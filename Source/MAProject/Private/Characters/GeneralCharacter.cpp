@@ -3,6 +3,8 @@
 
 #include "Characters/GeneralCharacter.h"
 #include "MotionWarpingComponent.h"
+#include "MAProject/MAProject.h"
+
 
 // Sets default values
 AGeneralCharacter::AGeneralCharacter() : FieldOfView(90.f)
@@ -13,7 +15,7 @@ AGeneralCharacter::AGeneralCharacter() : FieldOfView(90.f)
 	GetMesh()->SetCollisionObjectType(ECC_WorldDynamic);
 	GetMesh()->SetCollisionResponseToAllChannels(ECR_Overlap);
 
-	GetMesh()->ComponentTags.Add(DamageableVolumeTag);
+	GetMesh()->ComponentTags.Add(HitReactingVolumeTag);
 	
 }
 
