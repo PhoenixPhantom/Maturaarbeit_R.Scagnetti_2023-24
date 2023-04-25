@@ -5,5 +5,4 @@
 
 ACustomGameMode::ACustomGameMode()
 {
-	InitGame();
 }
