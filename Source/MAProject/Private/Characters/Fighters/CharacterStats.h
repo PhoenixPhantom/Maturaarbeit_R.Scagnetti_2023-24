@@ -55,7 +55,8 @@ struct FCharacterStats : public FGeneralObjectStats
 
 	FOnExecuteAttackDelegate OnExecuteAttack;
 	
-	TScalable<TScalable<float, float>, float> MovementSpeed;
+	TScalable<float, float> WalkSpeed;
+	TScalable<float, float> RunSpeed;
 	TScalable<uint32, float> InterruptionResistance;
 
 	TArray<FAttackProperties> AvailableAttacks;
