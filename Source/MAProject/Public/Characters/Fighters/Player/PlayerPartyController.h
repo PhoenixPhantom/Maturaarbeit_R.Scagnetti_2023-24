@@ -16,6 +16,29 @@ private:
 	FSetPawnStartTransformKey(){};
 };
 
+struct FSetPlayerUserSettingsKey final
+{
+	friend class USettingsMenuWidget;
+private:
+	FSetPlayerUserSettingsKey(){};
+};
+
+USTRUCT()
+struct FPlayerUserSettings
+{
+	GENERATED_BODY()
+public:
+	FPlayerUserSettings() : CameraZoomSpeed(10.f), bPreferClosestTarget(true){}
+	
+	UPROPERTY(VisibleAnywhere, SaveGame)
+	float CameraZoomSpeed;
+
+	//This defines weather the player character always attacks the closest target
+	//or always attacks the one most centered in view
+	UPROPERTY(VisibleAnywhere, SaveGame)
+	bool bPreferClosestTarget;
+};
+
 UCLASS()
 class MAPROJECT_API APlayerPartyController : public APlayerController
 {
@@ -23,14 +46,19 @@ class MAPROJECT_API APlayerPartyController : public APlayerController
 public:
 	APlayerPartyController();
 	void SetPawnStartTransform(FTransform Transform, FSetPawnStartTransformKey Key){ PawnStartTransform = Transform; }
+	const FPlayerUserSettings& GetPlayerUserSettings() const { return PlayerUserSettings; }
+	void SetPlayerUserSettings(const FPlayerUserSettings& NewPlayerUserSettings, FSetPlayerUserSettingsKey Key){ PlayerUserSettings = NewPlayerUserSettings; };
+	
 protected:
 	FTransform PawnStartTransform;
-
+	
 	FCharacterStats PartyMemberStats;
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<APlayerCharacter> PartyMemberClass;
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers PartyMemberModifiers;
+	UPROPERTY(SaveGame)
+	FPlayerUserSettings PlayerUserSettings;
 
 	virtual void BeginPlay() override;
 };

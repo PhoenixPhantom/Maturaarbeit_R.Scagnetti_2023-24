@@ -5,9 +5,12 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter() : bIsRunning(false)
 {
@@ -55,9 +58,11 @@ void APlayerCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& Out
 	OutRotation = FollowCamera->GetComponentRotation();
 }
 
-void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPreSpawnSetupKey Key)
+void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
+	FPreSpawnSetupKey Key)
 {
 	CharacterStats = PropertiesSource;
+	PlayerUserSettings = PlayerUserSettingsSource;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -190,10 +195,7 @@ void APlayerCharacter::CameraZoom(const FInputActionValue& Value)
 {
 	const float Movement = Value.Get<float>();
 	if(CurrentlyAvailableInputs.bFreeCameraAdjustment)
-	{
-		unimplemented();
-		CameraBoom->TargetArmLength += Movement; //CameraZoomSpeed;
-	}
+		CameraBoom->TargetArmLength += Movement * PlayerUserSettings->CameraZoomSpeed;
 }
 
 void APlayerCharacter::Aim(const FInputActionValue& Value)
@@ -203,5 +205,14 @@ void APlayerCharacter::Aim(const FInputActionValue& Value)
 
 void APlayerCharacter::OpenPauseMenu(const FInputActionValue& Value)
 {
-	unimplemented();
+	UGameplayStatics::SetGamePaused(GetWorld(), true);
+	UUserWidget* PauseMenu = CreateWidget<UUserWidget>(GetWorld(), PauseMenuClass);
+	PauseMenu->AddToViewport();
+	
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(PauseMenu->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	APlayerController* PlayerController = CastChecked<APlayerController>(GetController());
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->SetShowMouseCursor(true);
 }

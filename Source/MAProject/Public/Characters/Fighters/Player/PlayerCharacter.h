@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
 #include "InputActionValue.h"
+#include "PlayerPartyController.h"
 #include "PlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -31,7 +32,7 @@ public:
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
-	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPreSpawnSetupKey Key);
+	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FPreSpawnSetupKey Key);
 
 	///@return CameraBoom sub-object
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
@@ -41,6 +42,10 @@ public:
 
 protected:
 	bool bIsRunning;
+	FPlayerUserSettings* PlayerUserSettings;
+
+	UPROPERTY(EditAnywhere, Category = UserInterface)
+	TSubclassOf<UUserWidget> PauseMenuClass;
 	
 	//MappingContext
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))

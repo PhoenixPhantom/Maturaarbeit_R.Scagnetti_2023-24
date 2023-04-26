@@ -45,7 +45,7 @@ void APlayerPartyController::BeginPlay()
 	APlayerCharacter* NewCharacter = GetWorld()->SpawnActorDeferred<APlayerCharacter>(PartyMemberClass.Get(),
 		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 
-	NewCharacter->PreSpawnSetup(&PartyMemberStats, FPreSpawnSetupKey());
+	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, FPreSpawnSetupKey());
 	NewCharacter->FinishSpawning(TargetTransform);
 	
 	Possess(NewCharacter);
