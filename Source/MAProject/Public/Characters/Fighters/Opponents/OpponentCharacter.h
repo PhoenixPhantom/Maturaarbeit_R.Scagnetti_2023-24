@@ -6,6 +6,7 @@
 #include "Characters/Fighters/FighterCharacter.h"
 #include "OpponentCharacter.generated.h"
 
+class USavableObjectMarkerComponent;
 /**
  * 
  */
@@ -13,5 +14,10 @@ UCLASS()
 class MAPROJECT_API AOpponentCharacter : public AFighterCharacter
 {
 	GENERATED_BODY()
+public:
+	AOpponentCharacter();
+protected:
+	UPROPERTY(EditAnywhere)
+	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
 	
 };

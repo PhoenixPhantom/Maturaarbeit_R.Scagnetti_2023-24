@@ -3,3 +3,9 @@
 
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
+#include "Utility/Savegame/SavableObjectMarkerComponent.h"
+
+AOpponentCharacter::AOpponentCharacter()
+{
+	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
+}

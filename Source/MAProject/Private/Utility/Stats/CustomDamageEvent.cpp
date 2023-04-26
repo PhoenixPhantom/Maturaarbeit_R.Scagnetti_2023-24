@@ -3,6 +3,8 @@
 
 #include "CustomDamageEvent.h"
 
+DEFINE_LOG_CATEGORY(LogDamageSystem);
+
 bool FCustomDamageEvent::operator==(const FCustomDamageEvent& CustomDamageEvent) const
 {
 	return DamageTypeClass == CustomDamageEvent.DamageTypeClass;

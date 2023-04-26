@@ -12,9 +12,14 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 
-/**
- * 
- */
+
+struct FPreSpawnSetupKey final
+{
+	friend class APlayerPartyController;
+private:
+	FPreSpawnSetupKey(){}
+};
+
 UCLASS()
 class MAPROJECT_API APlayerCharacter : public AFighterCharacter
 {
@@ -24,6 +29,9 @@ public:
 	APlayerCharacter();
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
+
+	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
+	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPreSpawnSetupKey Key);
 
 	///@return CameraBoom sub-object
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

@@ -55,20 +55,16 @@ void APlayerCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& Out
 	OutRotation = FollowCamera->GetComponentRotation();
 }
 
+void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPreSpawnSetupKey Key)
+{
+	CharacterStats = PropertiesSource;
+}
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
 	FollowCamera->SetFieldOfView(FieldOfView);
-	//Add Input Mapping Context
-	if (const APlayerController* PlayerController = Cast<APlayerController>(Controller); IsValid(PlayerController))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()); IsValid(Subsystem))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
 }
 
 void APlayerCharacter::Destroyed()
@@ -78,6 +74,15 @@ void APlayerCharacter::Destroyed()
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
+	//Add Input Mapping Context
+	if (const APlayerController* PlayerController = Cast<APlayerController>(Controller); IsValid(PlayerController))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()); IsValid(Subsystem))
+		{
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		}
+	}
 	UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
 
 	//Character specific input
@@ -134,7 +139,7 @@ void APlayerCharacter::SpeedUpDash(const FInputActionValue& Value)
 	{
 		//Prevent having two inputs (from wasd keys and mouse) at the same time
 		ConsumeMovementInputVector();
-		Move(FVector2D(1.f, 0.f));
+		Move(FVector2D(0.f, 1.f));
 	}
 }
 

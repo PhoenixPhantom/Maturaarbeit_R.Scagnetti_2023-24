@@ -7,6 +7,8 @@
 #include "CustomDamageEvent.generated.h"
 
 
+DECLARE_LOG_CATEGORY_EXTERN(LogDamageSystem, Error, All);
+
 USTRUCT(BlueprintType)
 struct MAPROJECT_API FCustomDamageEvent : public FDamageEvent
 {

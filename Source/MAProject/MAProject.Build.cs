@@ -8,7 +8,7 @@ public class MAProject : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[]
+		PublicDependencyModuleNames.AddRange(new[]
 		{
 			"Core",
 			"CoreUObject",
@@ -16,7 +16,9 @@ public class MAProject : ModuleRules
 			"InputCore",
 			"HeadMountedDisplay",
 			"EnhancedInput",
-			"MotionWarping"
+			"MotionWarping",
+			"UMG",
+			"SlateCore"
 		});
 	}
 }

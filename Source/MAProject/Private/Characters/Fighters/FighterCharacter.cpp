@@ -2,8 +2,6 @@
 
 
 #include "Characters/Fighters/FighterCharacter.h"
-
-#include "Engine/DamageEvents.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "MAProject/MAProject.h"
 
@@ -38,7 +36,7 @@ void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, F
 {
 	if(!MeleeEnabledBones.IsEmpty())
 	{
-		UE_LOG(LogDamage, Warning, TEXT("MeleeEnabledBones was still full when starting a new attack."));
+		UE_LOG(LogDamageSystem, Warning, TEXT("MeleeEnabledBones was still full when starting a new attack."));
 		MeleeEnabledBones.Empty();
 	}
 	MeleeEnabledBones.Append(BonesToEnable);
@@ -48,7 +46,7 @@ void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable
 {
 	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.Remove(BoneToDisable);
 	if(!MeleeEnabledBones.IsEmpty())
-		UE_LOG(LogDamage, Warning, TEXT("MeleeEnabledBones wasn't emptied completely after the attack was carried out."));
+		UE_LOG(LogDamageSystem, Warning, TEXT("MeleeEnabledBones wasn't emptied completely after the attack was carried out."));
 
 }
 

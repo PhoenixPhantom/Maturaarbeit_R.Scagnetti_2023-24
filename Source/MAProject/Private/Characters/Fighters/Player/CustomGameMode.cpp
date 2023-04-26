@@ -3,6 +3,22 @@
 
 #include "Characters/Fighters/Player/CustomGameMode.h"
 
+#include "Characters/Fighters/Player/PlayerPartyController.h"
+#include "Utility/Savegame/ReadWriteHelpers.h"
+
 ACustomGameMode::ACustomGameMode()
 {
+}
+
+APlayerController* ACustomGameMode::SpawnPlayerController(ENetRole InRemoteRole, const FString& Options)
+{
+	APlayerController* PlayerController = Super::SpawnPlayerController(InRemoteRole, Options);
+	APlayerPartyController* PartyController = Cast<APlayerPartyController>(PlayerController);
+	if(IsValid(PartyController) && PlayerSetupData != nullptr)
+	{
+		PartyController->SetPawnStartTransform(PlayerSetupData->Transform, FSetPawnStartTransformKey());
+		UReadWriteHelpers::WriteToTarget(PlayerController, PlayerSetupData->SerializedData);
+	}
+	
+	return PlayerController;
 }
