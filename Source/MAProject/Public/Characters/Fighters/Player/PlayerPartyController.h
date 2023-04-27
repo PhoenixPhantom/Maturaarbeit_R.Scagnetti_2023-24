@@ -53,7 +53,7 @@ protected:
 	FTransform PawnStartTransform;
 	
 	FCharacterStats PartyMemberStats;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, SaveGame)
 	TSubclassOf<APlayerCharacter> PartyMemberClass;
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers PartyMemberModifiers;

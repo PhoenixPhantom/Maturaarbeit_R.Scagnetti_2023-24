@@ -32,7 +32,7 @@ void APlayerPartyController::BeginPlay()
 		TArray<AActor*> FoundActors;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), FoundActors);
 		check(!FoundActors.IsEmpty());
-		APlayerStart* ChosenPlayerStart = nullptr;
+		const APlayerStart* ChosenPlayerStart = nullptr;
 		for(AActor* Actor : FoundActors)
 		{
 			ChosenPlayerStart = CastChecked<APlayerStart>(Actor);

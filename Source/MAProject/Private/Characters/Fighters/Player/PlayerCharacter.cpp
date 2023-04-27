@@ -58,23 +58,16 @@ void APlayerCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& Out
 	OutRotation = FollowCamera->GetComponentRotation();
 }
 
+float APlayerCharacter::GetFieldOfView() const
+{
+	return FollowCamera->FieldOfView;
+}
+
 void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
-	FPreSpawnSetupKey Key)
+                                     FPreSpawnSetupKey Key)
 {
 	CharacterStats = PropertiesSource;
 	PlayerUserSettings = PlayerUserSettingsSource;
-}
-
-void APlayerCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	FollowCamera->SetFieldOfView(FieldOfView);
-}
-
-void APlayerCharacter::Destroyed()
-{
-	Super::Destroyed();
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

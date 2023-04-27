@@ -7,7 +7,7 @@
 
 
 // Sets default values
-AGeneralCharacter::AGeneralCharacter() : FieldOfView(90.f)
+AGeneralCharacter::AGeneralCharacter()
 {
 	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarpingComp"));
 
