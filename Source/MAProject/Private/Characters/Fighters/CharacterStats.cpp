@@ -21,7 +21,7 @@ void FCharacterStats::FromBase(const FCharacterBaseStats& Stats, const FSavableC
 {
 	FGeneralObjectStats::FromBase(Stats, Modifiers);
 	WalkSpeed.Base = Stats.BaseWalkSpeed;
-	RunSpeed.Base = Stats.DashSpeedup * Stats.BaseWalkSpeed;
+	RunSpeed.Base = (1.f + Stats.DashSpeedup/100.f) * Stats.BaseWalkSpeed;
 
 	InterruptionResistance.Base = Stats.BaseInterruptionResistance;
 	AvailableAttacks = Stats.AvailableAttacks;

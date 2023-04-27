@@ -26,7 +26,7 @@ void APlayerPartyController::BeginPlay()
 		TargetTransform = PawnStartTransform;
 	}
 	//if this is the first character that is spawned (ever), it should be spawned at the PlayerStart
-	//(which must always be marked with the tag "ActiveSpawn")
+	//(which can optionally be marked with the tag "ActiveSpawn")
 	else
 	{
 		TArray<AActor*> FoundActors;
