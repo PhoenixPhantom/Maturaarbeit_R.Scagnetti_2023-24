@@ -21,7 +21,11 @@ AGeneralCharacter::AGeneralCharacter()
 
 void AGeneralCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
 {
-	if(!IsValid(GetMesh())) return Super::GetActorEyesViewPoint(OutLocation, OutRotation);
+	if(!IsValid(GetMesh()))
+	{
+		Super::GetActorEyesViewPoint(OutLocation, OutRotation);
+		return;
+	}
 	const FName HeadSocket = *(BonePrefix + "-HeadSocket");
 	OutLocation = GetMesh()->GetSocketLocation(HeadSocket);
 	OutRotation = GetMesh()->GetSocketRotation(HeadSocket);

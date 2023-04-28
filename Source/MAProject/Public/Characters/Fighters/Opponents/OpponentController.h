@@ -15,10 +15,15 @@ class MAPROJECT_API AOpponentController : public AAIController
 	GENERATED_BODY()
 public:
 	AOpponentController();
+	float GetFieldOfView() const;
 protected:
 	UPROPERTY(EditAnywhere)
 	UBehaviorTree* DefaultBehaviorTree;
+	
 	virtual void OnPossess(APawn* InPawn) override;
+
+	UFUNCTION()
+	void OnPerceptionUpdated(const TArray<AActor*>& DetectedPawns);
 
 	
 };

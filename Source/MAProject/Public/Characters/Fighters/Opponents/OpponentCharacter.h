@@ -23,14 +23,4 @@ public:
 protected:
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
-	UPROPERTY(EditAnywhere)
-	UPawnSensingComponent* PawnSensingComponent;
-	UPROPERTY(EditAnywhere)
-	UBlackboardComponent* ControllingBlackboard;
-	
-	virtual void PossessedBy(AController* NewController) override;
-	virtual void UnPossessed() override;
-
-	UFUNCTION()
-	void OnSeePawn(APawn* Pawn); 
 };
