@@ -6,6 +6,8 @@
 #include "AIController.h"
 #include "OpponentController.generated.h"
 
+class UAISenseConfig_Sight;
+class AMovementTarget;
 /**
  * 
  */
@@ -15,15 +17,33 @@ class MAPROJECT_API AOpponentController : public AAIController
 	GENERATED_BODY()
 public:
 	AOpponentController();
+	
 	float GetFieldOfView() const;
+	
+	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath) override;
 protected:
+	
+	FTimerHandle LostPerceptionHandle;
+
+
+#if WITH_EDITORONLY_DATA
+	UFUNCTION(CallInEditor)
+	void ToggleDebugging() const;
+#endif
+	
+
+	UPROPERTY()
+	AActor* CurrentTarget;
+	UPROPERTY()
+	AMovementTarget* MoveTarget;
+
 	UPROPERTY(EditAnywhere)
 	UBehaviorTree* DefaultBehaviorTree;
 	
 	virtual void OnPossess(APawn* InPawn) override;
 
 	UFUNCTION()
-	void OnPerceptionUpdated(const TArray<AActor*>& DetectedPawns);
+	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);
 
 	
 };

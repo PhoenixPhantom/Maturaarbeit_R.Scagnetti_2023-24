@@ -8,51 +8,96 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"
+#include "Utility/NonPlayerFunctionality/MovementTarget.h"
 
-AOpponentController::AOpponentController() : DefaultBehaviorTree(nullptr)
+AOpponentController::AOpponentController() : CurrentTarget(nullptr), DefaultBehaviorTree(nullptr)
 {
+	PrimaryActorTick.bCanEverTick = false;
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
 
-	UAISenseConfig_Sight* SightConfig = CastChecked<UAISenseConfig_Sight>(PerceptionComponent->GetSenseConfig(UAISense::GetSenseID<UAISense_Sight>()));
-	SightConfig->SightRadius = 2000;
-	SightConfig->LoseSightRadius = 3000;
-	SightConfig->PeripheralVisionAngleDegrees = 45;
-	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
-	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
-	SightConfig->AutoSuccessRangeFromLastSeenLocation = 200;
-	//PerceptionComponent->ConfigureSense(SightConfig);
-
 	//Register OnPerceptionUpdated delegate
-	PerceptionComponent->OnPerceptionUpdated.AddDynamic(this, &AOpponentController::OnPerceptionUpdated);
+	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AOpponentController::OnTargetPerceptionUpdated);
+	
 }
 
 float AOpponentController::GetFieldOfView() const
 {
-	return CastChecked<UAISenseConfig_Sight>(PerceptionComponent->GetSenseConfig(UAISense::GetSenseID<UAISense_Sight>()))
-		->PeripheralVisionAngleDegrees * 2.f;
+	const UAISenseConfig_Sight* SightConfig = CastChecked<UAISenseConfig_Sight>(
+		PerceptionComponent->GetSenseConfig(UAISense::GetSenseID<UAISense_Sight>()));
+	return SightConfig->PeripheralVisionAngleDegrees * 2.f;
 }
+
+FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
+{
+	if(!IsValid(MoveTarget)) return Super::MoveTo(MoveRequest, OutPath);
+	FAIMoveRequest ResultingRequest;
+	CurrentTarget = nullptr;
+	if(!MoveRequest.IsMoveToActorRequest())
+	{
+		MoveTarget->SetMovementTargetLocation(MoveRequest.GetGoalLocation(), FSetMovementTargetKey());
+		ResultingRequest.SetGoalActor(MoveTarget);		
+	}
+	else if(MoveRequest.GetGoalActor() != MoveTarget)
+	{
+		//CurrentTarget = MoveRequest.GetGoalActor();
+		MoveTarget->SetTargetActor(MoveRequest.GetGoalActor(), FSetMovementTargetKey());
+		ResultingRequest.SetGoalActor(MoveTarget);
+	}
+	else ResultingRequest.SetGoalActor(MoveRequest.GetGoalActor());
+
+	//Normal copy doesn't work so we have to do this
+	ResultingRequest.SetAcceptanceRadius(MoveRequest.GetAcceptanceRadius());
+	ResultingRequest.SetCanStrafe(MoveRequest.CanStrafe());
+	ResultingRequest.SetNavigationFilter(MoveRequest.GetNavigationFilter());
+	ResultingRequest.SetUsePathfinding(MoveRequest.IsUsingPathfinding());
+	ResultingRequest.SetUserData(MoveRequest.GetUserData());
+	ResultingRequest.SetUserFlags(MoveRequest.GetUserFlags());
+	ResultingRequest.SetAllowPartialPath(MoveRequest.IsUsingPartialPaths());
+	ResultingRequest.SetProjectGoalLocation(MoveRequest.IsProjectingGoal());
+	ResultingRequest.SetReachTestIncludesAgentRadius(MoveRequest.IsReachTestIncludingAgentRadius());
+	ResultingRequest.SetReachTestIncludesGoalRadius(MoveRequest.IsReachTestIncludingGoalRadius());
+	return Super::MoveTo(ResultingRequest, OutPath);
+}
+
+#if WITH_EDITORONLY_DATA
+void AOpponentController::ToggleDebugging() const
+{
+	MoveTarget->SetIsDebugging(!MoveTarget->GetIsDebugging());
+}
+#endif
 
 void AOpponentController::OnPossess(APawn* InPawn)
 {
 	RunBehaviorTree(DefaultBehaviorTree);
 	Super::OnPossess(InPawn);
+	if(!IsValid(MoveTarget))
+	{
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParameters.Name = ToCStr(GetPawn()->GetClass()->GetName() + "_MovementTarget");
+		MoveTarget = GetWorld()->SpawnActor<AMovementTarget>(AMovementTarget::StaticClass(), SpawnParameters);
+
+	}
+	MoveTarget->SetActorLocation(GetPawn()->GetActorLocation());
 }
 
-void AOpponentController::OnPerceptionUpdated(const TArray<AActor*>& DetectedPawns)
+void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
 {
-	FActorPerceptionBlueprintInfo PerceptionInfo;
-	for(AActor* DetectedPawn : DetectedPawns)
+	if(!Stimulus.WasSuccessfullySensed())
 	{
-		PerceptionComponent->GetActorsPerception(DetectedPawn, PerceptionInfo);
-		for(FAIStimulus Stimulus : PerceptionInfo.LastSensedStimuli)
-		{
-			if(!Stimulus.WasSuccessfullySensed()) continue;
-			if(Stimulus.Type == UAISense::GetSenseID<UAISense_Sight>())
+		if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
+			GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this]
 			{
-				Blackboard->SetValueAsBool("HasSensedPlayer", true);
-				Blackboard->SetValueAsVector("TargetLocation", DetectedPawn->GetActorLocation());
-			}
+				Blackboard->ClearValue("HasSensedPlayer");
+				Blackboard->ClearValue("TargetObject");
+			}, 2.f, true);
 		}
+	}
+	else
+	{
+		if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
+		Blackboard->SetValueAsBool("HasSensedPlayer", true);
+		Blackboard->SetValueAsObject("TargetObject", UpdatedActor);
 	}
 }
