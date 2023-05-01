@@ -4,7 +4,6 @@
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
 #include "AIController.h"
-#include "BehaviorTree/BlackboardComponent.h"
 #include "Characters/Fighters/Opponents/OpponentController.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
@@ -16,5 +15,12 @@ AOpponentCharacter::AOpponentCharacter()
 float AOpponentCharacter::GetFieldOfView() const
 {
 	return CastChecked<AOpponentController>(Controller)->GetFieldOfView();
+}
+
+void AOpponentCharacter::BeginPlay()
+{
+	CharacterStats = new FCharacterStats();
+	CharacterStats->FromBase(BaseStats, StatsModifiers, GetWorld());
+	Super::BeginPlay();
 }
 

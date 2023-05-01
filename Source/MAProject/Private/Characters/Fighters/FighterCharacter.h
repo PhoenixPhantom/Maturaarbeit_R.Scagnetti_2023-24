@@ -9,6 +9,7 @@
 
 struct FMeleeControlsKey final
 {
+	friend class UMeleeAttackNotifyState;
 private:
 	FMeleeControlsKey(){}
 };
@@ -23,28 +24,43 @@ class AFighterCharacter : public AGeneralCharacter
 
 public:
 	AFighterCharacter();
+	
 	virtual void Tick(float DeltaSeconds) override;
-
+	
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
 
-	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, FMeleeControlsKey Key);
-	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, FMeleeControlsKey Key);
+	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, FMeleeControlsKey Key);
+	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
+
+	UFUNCTION(BlueprintCallable)
+	void ExecuteAttack(int32 Index);
 	
-
 protected:
-	virtual void BeginPlay() override;
-
-	UPROPERTY(EditAnywhere)
-	FCharacterBaseStats BaseStats;
+	TArray<FName> MeleeEnabledBones;
 	FCharacterStats* CharacterStats;
 
 	UPROPERTY()
 	TArray<AActor*> RecentlyDamagedActors;
-	TArray<FName> MeleeEnabledBones;
 	
+	UPROPERTY(EditAnywhere)
+	FCharacterBaseStats BaseStats;
+
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* GetHitAnimation;
+
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* DeathAnimation;
+
+	virtual void BeginPlay() override;
+	
+	UFUNCTION()
+	void OnExecuteAttack(const FAttackProperties& Properties);
+	UFUNCTION()
+	void OnGetHit(const FCustomDamageEvent& DamageEvent);
+	UFUNCTION()
+	void OnDeath(const FCustomDamageEvent& DamageEvent);
 	UFUNCTION()
 	void OnMeshOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp,  int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	
 };

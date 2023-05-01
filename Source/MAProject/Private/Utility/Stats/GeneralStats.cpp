@@ -36,13 +36,14 @@ float FGeneralObjectStats::GetDamageOutput() const
 
 uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent& DamageInfo)
 {
-	OnGetHit.Broadcast(DamageInfo);
 	const uint32 DeltaHealth = Damage/static_cast<float>(Defense.GetResulting());
-	if(Health <= DeltaHealth)
+	if(Health <= DeltaHealth || Health == 0)
 	{
+		Health = 0;
 		if(OnNoHealthReached.IsBound()) OnNoHealthReached.Broadcast(DamageInfo);
 		return 0;
 	}
+	OnGetHit.Broadcast(DamageInfo);
 	Health -= DeltaHealth;	
 	return Health;
 }

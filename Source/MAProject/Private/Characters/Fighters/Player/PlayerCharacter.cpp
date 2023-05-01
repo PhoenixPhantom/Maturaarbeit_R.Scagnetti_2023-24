@@ -106,23 +106,27 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::LightAttack(const FInputActionValue& Value)
 {
+	CharacterStats->ExecuteAttack(EAttackType::Light);
 }
 
 void APlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 {
+	CharacterStats->ExecuteAttack(EAttackType::Heavy);
 }
 
 void APlayerCharacter::SkillAttack(const FInputActionValue& Value)
 {
+	CharacterStats->ExecuteAttack(EAttackType::Skill);
 }
 
 void APlayerCharacter::UltimateAttack(const FInputActionValue& Value)
 {
+	CharacterStats->ExecuteAttack(EAttackType::Ultimate);
 }
 
 void APlayerCharacter::SpeedUpDash(const FInputActionValue& Value)
 {
-	if(!CurrentlyAvailableInputs.bCanSprint) return;
+	if(!AcceptedInputs.bCanSprint) return;
 	//we only have (and should only) to set variables one time
 	if(!bIsRunning)
 	{
@@ -130,7 +134,7 @@ void APlayerCharacter::SpeedUpDash(const FInputActionValue& Value)
 	
 		//Since on ongoing: dash will be called, we can assume that the player moves every time you dash, so
 		//a dash will always allows you to walk after execution because you've already been displaced)
-		CurrentlyAvailableInputs.MovementProperties.bCanWalk = true;
+		AcceptedInputs.MovementProperties.bCanWalk = true;
 		bIsRunning = true;
 	}
 	else
@@ -152,7 +156,7 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 	// input is a Vector2D
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (IsValid(Controller) && CurrentlyAvailableInputs.MovementProperties.bCanWalk)
+	if (IsValid(Controller) && AcceptedInputs.MovementProperties.bCanWalk)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -176,7 +180,7 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
-	if (IsValid(Controller) && CurrentlyAvailableInputs.bFreeCameraAdjustment)
+	if (IsValid(Controller) && AcceptedInputs.bFreeCameraAdjustment)
 	{
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
@@ -187,13 +191,13 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 void APlayerCharacter::CameraZoom(const FInputActionValue& Value)
 {
 	const float Movement = Value.Get<float>();
-	if(CurrentlyAvailableInputs.bFreeCameraAdjustment)
+	if(AcceptedInputs.bFreeCameraAdjustment)
 		CameraBoom->TargetArmLength += Movement * PlayerUserSettings->CameraZoomSpeed;
 }
 
 void APlayerCharacter::Aim(const FInputActionValue& Value)
 {
-	if(CurrentlyAvailableInputs.bFreeCameraAdjustment) unimplemented();
+	if(AcceptedInputs.bFreeCameraAdjustment) unimplemented();
 }
 
 void APlayerCharacter::OpenPauseMenu(const FInputActionValue& Value)

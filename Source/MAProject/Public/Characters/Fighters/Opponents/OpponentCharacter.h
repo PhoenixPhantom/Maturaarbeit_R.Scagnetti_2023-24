@@ -23,4 +23,9 @@ public:
 protected:
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
+
+	UPROPERTY(SaveGame)
+	FSavableCharacterModifiers StatsModifiers;
+
+	virtual void BeginPlay() override;
 };

@@ -3,15 +3,14 @@
 
 #include "AttackProperties.h"
 
-FAttackProperties::FAttackProperties(): DamagePercent(100.f), CdTime(0.f), AtkAnimation(nullptr), ExhaustionTime(0.f),
-	World(nullptr), bIsOnCd(false)
+FAttackProperties::FAttackProperties() : DamagePercent(100.f), CdTime(0.f), AtkAnimation(nullptr),
+	ResultingLimits(EInputType::Attack), World(nullptr), bIsOnCd(false)
 {
 }
 
-FAttackProperties::FAttackProperties(const FAttackProperties& Properties):
-	DamagePercent(Properties.DamagePercent),
+FAttackProperties::FAttackProperties(const FAttackProperties& Properties): DamagePercent(Properties.DamagePercent),
 	CdTime(Properties.CdTime), DamageEvent(Properties.DamageEvent), AtkAnimation(Properties.AtkAnimation),
-	ExhaustionTime(Properties.ExhaustionTime), World(Properties.World), bIsOnCd(Properties.bIsOnCd)
+	ResultingLimits(Properties.ResultingLimits), World(Properties.World), bIsOnCd(Properties.bIsOnCd)
 {
 }
 
@@ -19,7 +18,7 @@ bool FAttackProperties::operator==(const FAttackProperties& AttackProperties) co
 {
 	return DamagePercent == AttackProperties.DamagePercent && CdTime == AttackProperties.CdTime &&
 		DamageEvent == AttackProperties.DamageEvent && AtkAnimation == AttackProperties.AtkAnimation &&
-		ExhaustionTime == AttackProperties.ExhaustionTime;
+		ResultingLimits == AttackProperties.ResultingLimits;
 }
 
 void FAttackProperties::Execute()
@@ -46,9 +45,4 @@ float FAttackProperties::CdTimeRemaining() const
 float FAttackProperties::GetTotalCdTime() const
 {
 	return AtkAnimation->GetPlayLength() + CdTime;
-}
-
-float FAttackProperties::GetTotalExhaustionTime() const
-{
-	return AtkAnimation->GetPlayLength() + ExhaustionTime;
 }

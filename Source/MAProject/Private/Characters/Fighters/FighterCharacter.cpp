@@ -32,31 +32,58 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	return RemainingHealth;
 }
 
-void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, FMeleeControlsKey Key)
+void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, FMeleeControlsKey Key)
 {
-	if(!MeleeEnabledBones.IsEmpty())
-	{
-		UE_LOG(LogDamageSystem, Warning, TEXT("MeleeEnabledBones was still full when starting a new attack."));
-		MeleeEnabledBones.Empty();
-	}
+	if(StartEmpty) MeleeEnabledBones.Empty();
 	MeleeEnabledBones.Append(BonesToEnable);
 }
 
-void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable, FMeleeControlsKey Key)
+void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key)
 {
+	if(RefreshHitActors) RecentlyDamagedActors.Empty();
 	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.Remove(BoneToDisable);
-	if(!MeleeEnabledBones.IsEmpty())
-		UE_LOG(LogDamageSystem, Warning, TEXT("MeleeEnabledBones wasn't emptied completely after the attack was carried out."));
+}
 
+void AFighterCharacter::ExecuteAttack(int32 Index)
+{
+	CharacterStats->ExecuteAttack(Index);
 }
 
 void AFighterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	check(GetMesh()->GetRelativeTransform().GetMaximumAxisScale() == GetMesh()->GetRelativeTransform().GetMinimumAxisScale());
+	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
+	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
+	CharacterStats->OnGetHit.AddDynamic(this, &AFighterCharacter::OnGetHit);
+	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
+}
+
+void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
+{
+	if(!AcceptedInputs.CanOverrideCurrentInput(Properties.ResultingLimits.LimiterType)) return;
+	PlayAnimMontage(Properties.AtkAnimation);
+	AcceptedInputs.LimitAvailableInputs(Properties.ResultingLimits, GetWorld());
+}
+
+void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
+{
+	if(!IsValid(GetHitAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Stagger)) return;
+	StopAnimMontage(nullptr);
+	PlayAnimMontage(GetHitAnimation);
+	AcceptedInputs.LimitAvailableInputs(EInputType::Stagger, GetWorld());
+}
+
+void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
+{
+	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death)) return;
+	StopAnimMontage(nullptr);
+	PlayAnimMontage(GetHitAnimation);
+	AcceptedInputs.LimitAvailableInputs(EInputType::Death, GetWorld());
 }
 
 void AFighterCharacter::OnMeshOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if(OtherActor == this || !IsValid(OtherActor) || !OtherComp->ComponentTags.Contains(HitReactingVolumeTag))
 		return;
@@ -68,9 +95,10 @@ void AFighterCharacter::OnMeshOverlapEvent(UPrimitiveComponent* OverlappedCompon
 		FVector Velocity = GetMesh()->GetBoneLinearVelocity(BodyName);
 		Velocity.Normalize();
 
-		//not sure if tracing on world dynamic makes sense (TraceTypeQuery2)
+		//not sure if tracing on TraceTypeQuery3 (== whatever) makes sense (TraceTypeQuery2 == WorldDynamic, TraceTypeQuery1 == Visibility, Camera)
+		
 		UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetMesh()->GetBoneLocation(BodyName),
-		GetMesh()->GetBoneLocation(BodyName) + Velocity * 100.f, ETraceTypeQuery::TraceTypeQuery2,
+		GetMesh()->GetBoneLocation(BodyName) + Velocity * 100.f, ETraceTypeQuery::TraceTypeQuery3,
 		true, {this, Owner}, EDrawDebugTrace::None, TraceResult, true);
 		if(TraceResult.bBlockingHit && TraceResult.GetActor() == OtherActor)
 		{

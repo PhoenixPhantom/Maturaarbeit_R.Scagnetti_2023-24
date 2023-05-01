@@ -25,12 +25,12 @@ public:
 	 * @param Type the input to check
 	 * @return Weather the current input can be overridden by Type
 	 */
-	bool CanOverrideCurrentInput(EInputType Type) const { return CurrentlyAvailableInputs.CanOverrideCurrentInput(Type); }
+	bool CanOverrideCurrentInput(EInputType Type) const { return AcceptedInputs.CanOverrideCurrentInput(Type); }
 
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
 protected:
-	FAvailableInputs CurrentlyAvailableInputs;
+	FAcceptedInputs AcceptedInputs;
 	
 	//The prefix (if existent) every bone on the characters skeleton has
 	UPROPERTY(EditAnywhere, Category="Base Settings")

@@ -17,7 +17,7 @@ void AMovementTarget::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 #if WITH_EDITORONLY_DATA
-	if(bIsDebugging) DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 20, FColor(1.f, 1.f, 1.f), false, 0.f);
+	if(bIsDebugging) DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 20, FColor(0, 255, 255), false, 0.f);
 #endif
 	FVector Location = FAISystem::InvalidLocation;
 	if(IsValid(TargetActor)) Location = TargetActor->GetActorLocation();

@@ -47,7 +47,7 @@ struct MAPROJECT_API FCharacterBaseStats : public FGeneralBaseStats
 	TArray<FAttackProperties> AvailableAttacks;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnExecuteAttackDelegate, FAttackProperties&, AttackProperties);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnExecuteAttackDelegate, const FAttackProperties&, AttackProperties);
 
 struct FCharacterStats : public FGeneralObjectStats
 {

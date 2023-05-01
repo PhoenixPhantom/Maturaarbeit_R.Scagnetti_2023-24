@@ -101,4 +101,12 @@ protected:
 	void Aim(const FInputActionValue& Value);
 
 	void OpenPauseMenu(const FInputActionValue& Value);
+
+	enum EAttackType
+	{
+		Light,
+		Heavy,
+		Skill,
+		Ultimate
+	};
 };

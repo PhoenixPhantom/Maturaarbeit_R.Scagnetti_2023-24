@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AttackDamageEvent.h"
+#include "Characters/InputManagement.h"
 #include "AttackProperties.generated.h"
 
 USTRUCT()
@@ -26,9 +27,8 @@ struct MAPROJECT_API FAttackProperties
 	FAttackDamageEvent DamageEvent;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
-	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay,
-		meta=(ToolTip="The time after finishing the animation that it takes until it can be cancelled (negative values are permitted)"))
-	float ExhaustionTime;
+	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay)
+	FInputLimits ResultingLimits;
 
 
 	bool operator==(const FAttackProperties& AttackProperties) const;
@@ -39,7 +39,6 @@ struct MAPROJECT_API FAttackProperties
 	float CdTimeElapsed() const;
 	float CdTimeRemaining() const;
 	float GetTotalCdTime() const;
-	float GetTotalExhaustionTime() const;
 
 	UPROPERTY()
 	UWorld* World;

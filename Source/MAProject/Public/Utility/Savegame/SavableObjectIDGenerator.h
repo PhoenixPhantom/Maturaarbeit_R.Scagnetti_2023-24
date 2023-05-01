@@ -24,11 +24,11 @@ protected:
 	//Turning off this functionality means, that a once populated ID will not be restored until all other indices were used
 	//this means that when first shipping the project this option should be enabled to not invalidate existing players
 	//save data (by loading data from a completely unrelated saved object to a new one (that took over the old ones index))
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "ID Generation")
 	bool bAllowReusingIndices;
 
 	virtual void BeginPlay() override;
 
-	UFUNCTION(CallInEditor)
+	UFUNCTION(CallInEditor, Category = "ID Generation")
 	void Recalculate() const;
 };
