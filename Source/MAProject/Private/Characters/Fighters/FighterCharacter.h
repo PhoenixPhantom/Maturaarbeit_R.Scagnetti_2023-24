@@ -54,6 +54,11 @@ protected:
 
 	virtual void BeginPlay() override;
 	
+	void SwitchMovementToWalk() const;
+	void SwitchMovementToRun() const;
+
+	UFUNCTION()
+	bool OnCheckCanExecuteAttack(const FAttackProperties& Properties);
 	UFUNCTION()
 	void OnExecuteAttack(const FAttackProperties& Properties);
 	UFUNCTION()

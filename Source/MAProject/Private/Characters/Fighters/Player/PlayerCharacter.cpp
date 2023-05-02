@@ -130,7 +130,7 @@ void APlayerCharacter::SpeedUpDash(const FInputActionValue& Value)
 	//we only have (and should only) to set variables one time
 	if(!bIsRunning)
 	{
-		GetCharacterMovement()->MaxWalkSpeed = CharacterStats->RunSpeed.GetResulting();
+		SwitchMovementToRun();
 	
 		//Since on ongoing: dash will be called, we can assume that the player moves every time you dash, so
 		//a dash will always allows you to walk after execution because you've already been displaced)
@@ -148,7 +148,7 @@ void APlayerCharacter::SpeedUpDash(const FInputActionValue& Value)
 void APlayerCharacter::SlowDown(const FInputActionValue& Value)
 {
 	bIsRunning = false;
-	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->WalkSpeed.GetResulting();
+	SwitchMovementToWalk();
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)

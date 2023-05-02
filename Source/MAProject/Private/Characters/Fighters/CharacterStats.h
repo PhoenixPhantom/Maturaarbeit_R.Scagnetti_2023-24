@@ -48,12 +48,14 @@ struct MAPROJECT_API FCharacterBaseStats : public FGeneralBaseStats
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnExecuteAttackDelegate, const FAttackProperties&, AttackProperties);
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnCheckCanExecuteAttackDelegate, const FAttackProperties&, AttackProperties);
 
 struct FCharacterStats : public FGeneralObjectStats
 {
 	FCharacterStats();
-
+	
 	FOnExecuteAttackDelegate OnExecuteAttack;
+	FOnCheckCanExecuteAttackDelegate OnCheckCanExecuteAttack;
 	
 	TScalable<float, float> WalkSpeed;
 	TScalable<float, float> RunSpeed;

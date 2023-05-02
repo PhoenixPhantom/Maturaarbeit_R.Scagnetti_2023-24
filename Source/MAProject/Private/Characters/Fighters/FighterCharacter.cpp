@@ -2,6 +2,10 @@
 
 
 #include "Characters/Fighters/FighterCharacter.h"
+
+#include "MotionWarpingComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "MAProject/MAProject.h"
 
@@ -44,6 +48,16 @@ void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable
 	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.Remove(BoneToDisable);
 }
 
+void AFighterCharacter::SwitchMovementToWalk() const
+{
+	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->WalkSpeed.GetResulting();
+}
+
+void AFighterCharacter::SwitchMovementToRun() const
+{
+	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->RunSpeed.GetResulting();
+}
+
 void AFighterCharacter::ExecuteAttack(int32 Index)
 {
 	CharacterStats->ExecuteAttack(Index);
@@ -55,15 +69,28 @@ void AFighterCharacter::BeginPlay()
 	check(GetMesh()->GetRelativeTransform().GetMaximumAxisScale() == GetMesh()->GetRelativeTransform().GetMinimumAxisScale());
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
+	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
 	CharacterStats->OnGetHit.AddDynamic(this, &AFighterCharacter::OnGetHit);
 	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
+	SwitchMovementToWalk();
+}
+
+bool AFighterCharacter::OnCheckCanExecuteAttack(const FAttackProperties& Properties)
+{
+	return AcceptedInputs.CanOverrideCurrentInput(Properties.ResultingLimits.LimiterType);
 }
 
 void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
 {
-	if(!AcceptedInputs.CanOverrideCurrentInput(Properties.ResultingLimits.LimiterType)) return;
 	PlayAnimMontage(Properties.AtkAnimation);
 	AcceptedInputs.LimitAvailableInputs(Properties.ResultingLimits, GetWorld());
+	TArray<AActor*> OutActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFighterCharacter::StaticClass(), OutActors);
+	for(const AActor* Actor : OutActors)
+	{
+		if(Actor == this) continue;
+		MotionWarpingComponent->AddOrUpdateWarpTargetFromLocation("Test", Actor->GetActorLocation());
+	}
 }
 
 void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
@@ -85,8 +112,7 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 void AFighterCharacter::OnMeshOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if(OtherActor == this || !IsValid(OtherActor) || !OtherComp->ComponentTags.Contains(HitReactingVolumeTag))
-		return;
+	if(OtherActor == this || !IsValid(OtherActor)  && OtherComp->ComponentHasTag(HitReactingVolumeTag)) return;
 
 	//Overlap events don't generate full hit results but we need them for attack management
 	FHitResult TraceResult;
@@ -95,10 +121,9 @@ void AFighterCharacter::OnMeshOverlapEvent(UPrimitiveComponent* OverlappedCompon
 		FVector Velocity = GetMesh()->GetBoneLinearVelocity(BodyName);
 		Velocity.Normalize();
 
-		//not sure if tracing on TraceTypeQuery3 (== whatever) makes sense (TraceTypeQuery2 == WorldDynamic, TraceTypeQuery1 == Visibility, Camera)
-		
+		//tracing on TraceTypeQuery6 (== Destructible)
 		UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetMesh()->GetBoneLocation(BodyName),
-		GetMesh()->GetBoneLocation(BodyName) + Velocity * 100.f, ETraceTypeQuery::TraceTypeQuery3,
+		GetMesh()->GetBoneLocation(BodyName) + Velocity * 100.f, ETraceTypeQuery::TraceTypeQuery6,
 		true, {this, Owner}, EDrawDebugTrace::None, TraceResult, true);
 		if(TraceResult.bBlockingHit && TraceResult.GetActor() == OtherActor)
 		{
