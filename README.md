@@ -16,4 +16,5 @@ Creating interesting and intuitive combat is a difficult problem and many game s
 
 
 ## References:
+### Combat
 * Evolving Combat in 'God of War' for a New Perspective - CDC (By Santa Monica Studio's Mihir Sheth): https://www.youtube.com/watch?v=hE5tWF-Ou2k
