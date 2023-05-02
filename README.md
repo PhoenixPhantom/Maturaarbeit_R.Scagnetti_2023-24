@@ -1,7 +1,7 @@
 # MAProject
 
 ## On game mechanics
-A good video game consists of a number of different mechanics, which define it's gameplay. But what exactly these mechanics do, how they work on an fundamental level and even what they are trying to acchieve can vary greatly between games.
+A good video game consists of a number of different mechanics, which define its gameplay. But what exactly these mechanics do, how they work on an fundamental level and even what they are trying to achieve can vary greatly between games.
 
 As the purpose of this work is to develop a fantasy open world game where you play as different animals, a variety of different core mechanics would need to be included to call the final result a complete game.
 
