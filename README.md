@@ -12,8 +12,6 @@ animals, a variety of different core mechanics would need to be included to call
 result a complete game.
 
 However, the mechanics I decided to be the most important for the game 
-'''diff
-# (but are not already included in the unreal engine and therefore exclude things like physics, collision detection and basic rendering functionality) #
-'''
+''' diff # (but are not already included in the unreal engine and therefore exclude things like physics, collision detection and basic rendering functionality) # '''
 
 are the ones that revolve around combat.
