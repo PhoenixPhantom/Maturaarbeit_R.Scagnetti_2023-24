@@ -23,14 +23,7 @@ public:
 	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath) override;
 protected:
 	
-	FTimerHandle LostPerceptionHandle;
-
-
-#if WITH_EDITORONLY_DATA
-	UFUNCTION(CallInEditor)
-	void ToggleDebugging() const;
-#endif
-	
+	FTimerHandle LostPerceptionHandle;	
 
 	UPROPERTY()
 	AActor* CurrentTarget;
@@ -45,5 +38,8 @@ protected:
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);
 
-	
+#if WITH_EDITORONLY_DATA
+	UFUNCTION(CallInEditor)
+	void ToggleDebugging() const;
+#endif	
 };

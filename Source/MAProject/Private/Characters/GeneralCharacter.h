@@ -33,9 +33,9 @@ protected:
 	FAcceptedInputs AcceptedInputs;
 	
 	//The prefix (if existent) every bone on the characters skeleton has
-	UPROPERTY(EditAnywhere, Category="Base Settings")
+	UPROPERTY(EditAnywhere, Category= Character)
 	FString BonePrefix;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UMotionWarpingComponent* MotionWarpingComponent;
 
 #if WITH_EDITORONLY_DATA

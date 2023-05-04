@@ -84,13 +84,6 @@ void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
 {
 	PlayAnimMontage(Properties.AtkAnimation);
 	AcceptedInputs.LimitAvailableInputs(Properties.ResultingLimits, GetWorld());
-	TArray<AActor*> OutActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFighterCharacter::StaticClass(), OutActors);
-	for(const AActor* Actor : OutActors)
-	{
-		if(Actor == this) continue;
-		MotionWarpingComponent->AddOrUpdateWarpTargetFromLocation("Test", Actor->GetActorLocation());
-	}
 }
 
 void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)

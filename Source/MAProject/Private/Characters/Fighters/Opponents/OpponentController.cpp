@@ -59,13 +59,6 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 	return Super::MoveTo(ResultingRequest, OutPath);
 }
 
-#if WITH_EDITORONLY_DATA
-void AOpponentController::ToggleDebugging() const
-{
-	MoveTarget->SetIsDebugging(!MoveTarget->GetIsDebugging());
-}
-#endif
-
 void AOpponentController::OnPossess(APawn* InPawn)
 {
 	RunBehaviorTree(DefaultBehaviorTree);
@@ -75,7 +68,7 @@ void AOpponentController::OnPossess(APawn* InPawn)
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.Owner = this;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnParameters.Name = ToCStr(GetPawn()->GetClass()->GetName() + "_MovementTarget");
+		SpawnParameters.Name = ToCStr(GetPawn()->GetName() + "_MovementTarget");
 		MoveTarget = GetWorld()->SpawnActor<AMovementTarget>(AMovementTarget::StaticClass(), SpawnParameters);
 
 	}
@@ -101,3 +94,10 @@ void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAISti
 		Blackboard->SetValueAsObject("TargetObject", UpdatedActor);
 	}
 }
+
+#if WITH_EDITORONLY_DATA
+void AOpponentController::ToggleDebugging() const
+{
+	MoveTarget->SetIsDebugging(!MoveTarget->GetIsDebugging());
+}
+#endif

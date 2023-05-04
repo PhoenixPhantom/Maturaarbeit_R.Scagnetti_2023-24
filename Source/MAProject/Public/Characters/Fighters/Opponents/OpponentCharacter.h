@@ -8,7 +8,7 @@
 #include "OpponentCharacter.generated.h"
 
 class USavableObjectMarkerComponent;
-class UBlackboardComponent;
+class UTargetInformationComponent;
 /**
  * 
  */
@@ -23,6 +23,9 @@ public:
 protected:
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
+
+	UPROPERTY(EditAnywhere)
+	UTargetInformationComponent* TargetInformationComponent;
 
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers StatsModifiers;

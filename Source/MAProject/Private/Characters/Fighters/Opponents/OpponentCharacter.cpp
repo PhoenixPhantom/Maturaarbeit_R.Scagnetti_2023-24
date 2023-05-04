@@ -3,13 +3,16 @@
 
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
-#include "AIController.h"
 #include "Characters/Fighters/Opponents/OpponentController.h"
+#include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
 AOpponentCharacter::AOpponentCharacter()
 {
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
+	TargetInformationComponent = CreateDefaultSubobject<UTargetInformationComponent>(TEXT("TargetInformationComp"));
+
+	TargetInformationComponent->SetupAttachment(RootComponent);
 }
 
 float AOpponentCharacter::GetFieldOfView() const

@@ -46,8 +46,21 @@ void APlayerPartyController::BeginPlay()
 		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 
 	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, FPreSpawnSetupKey());
+#if WITH_EDITORONLY_DATA
+	NewCharacter->bIsDebugging = bIsDebugging;
+#endif
 	NewCharacter->FinishSpawning(TargetTransform);
 	
 	Possess(NewCharacter);
 	GetPawn()->EnableInput(this); //Input seems to be disabled by default	
 }
+
+#if WITH_EDITORONLY_DATA
+void APlayerPartyController::ToggleDebugging()
+{
+	bIsDebugging = !bIsDebugging;
+	if(APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetPawn()); IsValid(PlayerCharacter)){
+		PlayerCharacter->bIsDebugging = bIsDebugging;
+	}
+}
+#endif

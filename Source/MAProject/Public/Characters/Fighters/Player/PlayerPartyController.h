@@ -51,8 +51,12 @@ public:
 	
 protected:
 	FTransform PawnStartTransform;
-	
 	FCharacterStats PartyMemberStats;
+
+#if WITH_EDITORONLY_DATA
+	bool bIsDebugging = false;
+#endif
+	
 	UPROPERTY(EditAnywhere, SaveGame)
 	TSubclassOf<APlayerCharacter> PartyMemberClass;
 	UPROPERTY(SaveGame)
@@ -61,4 +65,9 @@ protected:
 	FPlayerUserSettings PlayerUserSettings;
 
 	virtual void BeginPlay() override;
+
+#if WITH_EDITORONLY_DATA
+	UFUNCTION(CallInEditor)
+	void ToggleDebugging();
+#endif
 };

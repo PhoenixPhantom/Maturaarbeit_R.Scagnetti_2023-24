@@ -33,7 +33,7 @@ public:
 	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, FMeleeControlsKey Key);
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = Combat)
 	void ExecuteAttack(int32 Index);
 	
 protected:
@@ -43,13 +43,13 @@ protected:
 	UPROPERTY()
 	TArray<AActor*> RecentlyDamagedActors;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = Combat)
 	FCharacterBaseStats BaseStats;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* GetHitAnimation;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* DeathAnimation;
 
 	virtual void BeginPlay() override;

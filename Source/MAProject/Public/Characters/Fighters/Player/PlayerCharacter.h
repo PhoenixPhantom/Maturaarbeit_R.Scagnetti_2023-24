@@ -6,8 +6,10 @@
 #include "Characters/Fighters/FighterCharacter.h"
 #include "InputActionValue.h"
 #include "PlayerPartyController.h"
+#include "../../../../../../../../../../../Program Files/Epic Games/UE_5.1/Engine/Platforms/Hololens/Source/Runtime/Core/Public/Microsoft/AllowMicrosoftPlatformTypesPrivate.h"
 #include "PlayerCharacter.generated.h"
 
+class UTargetInformationComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
@@ -35,17 +37,28 @@ public:
 
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
 	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FPreSpawnSetupKey Key);
-
+	
 	///@return CameraBoom sub-object
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	///@return FollowCamera sub-object
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	
+
+#if WITH_EDITORONLY_DATA
+	bool bIsDebugging = false;
+#endif
 
 protected:
 	bool bIsRunning;
 	FPlayerUserSettings* PlayerUserSettings;
 
+	FVector InputDirection;
+
+	UPROPERTY()
+	UTargetInformationComponent* CurrentTarget;
+
+	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay)
+	float AutotargetingRange;
+	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;
 	
@@ -78,13 +91,14 @@ protected:
 	UInputAction* PauseMenuAction;
 
 	//Camera boom positioning the camera behind the character
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
 
 	//Follow camera
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-	
+
+	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	void LightAttack(const FInputActionValue& Value);
@@ -101,6 +115,11 @@ protected:
 	void Aim(const FInputActionValue& Value);
 
 	void OpenPauseMenu(const FInputActionValue& Value);
+
+	void UpdateTargetSelection();
+
+	UFUNCTION()
+	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);
 
 	enum EAttackType
 	{
