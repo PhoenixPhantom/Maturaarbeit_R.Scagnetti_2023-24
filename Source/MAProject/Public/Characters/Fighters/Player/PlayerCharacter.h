@@ -53,6 +53,11 @@ protected:
 
 	FVector InputDirection;
 
+	float RemainingWarpTime;
+	float TotalWarpTime;
+	FVector TargetWarpLocation;
+	FRotator TargetWarpRotation;
+
 	UPROPERTY()
 	UTargetInformationComponent* CurrentTarget;
 

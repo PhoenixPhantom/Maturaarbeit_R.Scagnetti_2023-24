@@ -25,6 +25,9 @@ struct MAPROJECT_API FAttackProperties
 	float CdTime;
 	UPROPERTY(EditAnywhere, Category = Combat)
 	FAttackDamageEvent DamageEvent;
+	UPROPERTY(EditAnywhere, Category = Combat,
+		meta=(Units="cm", ToolTip="The maximal distance that motion warping can take the animation. If the target is further away, the character still moves in direction of the target but doesn't go the whole way."))
+	float MaximalMotionWarpingDistance;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
 	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay)

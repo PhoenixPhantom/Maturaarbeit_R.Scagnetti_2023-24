@@ -15,7 +15,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
-APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f)
+APlayerCharacter::APlayerCharacter() : bIsRunning(false), RemainingWarpTime(-1.f), CurrentTarget(nullptr), AutotargetingRange(1000.f)
 {
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -54,6 +54,13 @@ void APlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	UpdateTargetSelection();
+	if(RemainingWarpTime > 0.f)
+	{
+		SetActorLocationAndRotation(
+		FMath::VInterpTo(GetActorLocation(), TargetWarpLocation, DeltaSeconds, TotalWarpTime),
+			FMath::RInterpTo(GetActorRotation(), TargetWarpRotation, DeltaSeconds, TotalWarpTime), true);
+		RemainingWarpTime -= DeltaSeconds;
+	}
 }
 
 void APlayerCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
@@ -313,14 +320,67 @@ void APlayerCharacter::UpdateTargetSelection()
 		DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + WalkInput * 100.f,
 			50.f, FColor(0, 0, 255), false, -1.f, 0, 5.f);
 		if(IsValid(CurrentTarget)) DrawDebugSphere(GetWorld(), CurrentTarget->GetComponentLocation(), 50.f,
-			20, FColor(0, 255, 200), false, -1.f);
+			20, FColor(100, 255, 100), false, -1.f);
 	}
 #endif
 }
 
 void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)
 {
+	FVector AttackPosition;
 	if(IsValid(CurrentTarget))
-		MotionWarpingComponent->AddOrUpdateWarpTargetFromComponent("Test", CurrentTarget, "", true);
-	else MotionWarpingComponent->RemoveWarpTarget("Test");
+	{
+		FVector Direction = CurrentTarget->GetComponentLocation() - GetActorLocation();
+		if(Direction.Length() <= Properties.MaximalMotionWarpingDistance)
+		{
+			RemainingWarpTime = -1.f;
+			MotionWarpingComponent->AddOrUpdateWarpTargetFromComponent("AttackComponent", CurrentTarget, "", true);
+			AttackPosition = CurrentTarget->GetComponentLocation();
+		}
+
+		else
+		{
+			Direction.Normalize();
+			AttackPosition = GetActorLocation() + Direction * Properties.MaximalMotionWarpingDistance;
+			MotionWarpingComponent->RemoveWarpTarget("AttackComponent");
+			TargetWarpRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), AttackPosition);
+			RemainingWarpTime = 1.f;
+			TotalWarpTime = 1.f;
+			TargetWarpLocation = AttackPosition;
+		}
+	}
+	else
+	{
+		if(InputDirection.Length() <= 0.01f){
+			FVector PlayerLocation;
+			FRotator PlayerRotation;
+			GetActorEyesViewPoint(PlayerLocation, PlayerRotation);
+			FVector PlayerForward = PlayerRotation.Vector();
+			PlayerForward.Z = 0.f;
+			if(PlayerForward.Length() <= 0.01f)
+			{
+				Super::GetActorEyesViewPoint(PlayerLocation, PlayerRotation);
+				PlayerForward = PlayerRotation.Vector();
+			}
+			else PlayerForward.Normalize();
+			AttackPosition = GetActorLocation() + PlayerForward * Properties.MaximalMotionWarpingDistance/2.f;
+		} 
+		else
+		{
+			FVector InputDir = InputDirection;
+			InputDir.Normalize();
+			AttackPosition = GetActorLocation() + InputDir * Properties.MaximalMotionWarpingDistance/2.f;
+		}
+
+		MotionWarpingComponent->RemoveWarpTarget("AttackComponent");
+		TargetWarpRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), AttackPosition);
+		RemainingWarpTime = 1.f;
+		TotalWarpTime = 1.f;
+		TargetWarpLocation = AttackPosition;
+	}
+
+#if WITH_EDITORONLY_DATA
+	if(bIsDebugging) DrawDebugBox(GetWorld(), AttackPosition, FVector(20.f, 20.f, 20.f),
+		FColor(0, 255, 200), false, 2.f);
+#endif
 }
