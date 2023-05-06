@@ -6,7 +6,6 @@
 #include "Characters/Fighters/FighterCharacter.h"
 #include "InputActionValue.h"
 #include "PlayerPartyController.h"
-#include "RootMotionModifier.h"
 #include "../../../../../../../../../../../Program Files/Epic Games/UE_5.1/Engine/Platforms/Hololens/Source/Runtime/Core/Public/Microsoft/AllowMicrosoftPlatformTypesPrivate.h"
 #include "PlayerCharacter.generated.h"
 
@@ -44,16 +43,10 @@ public:
 	///@return FollowCamera sub-object
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-#if WITH_EDITORONLY_DATA
-	void SetIsDebugging(bool IsDebugging);
-	bool bIsDebugging = false;
-#endif
-
 protected:
 	bool bIsRunning;
 	
-	TTuple<double, FVector> InputDirection;	
-	FMotionWarpingInformation MotionWarpingInformation;
+	TTuple<double, FVector> InputDirection;
 	FPlayerUserSettings* PlayerUserSettings;
 
 	UPROPERTY()
@@ -123,8 +116,7 @@ protected:
 	void OpenPauseMenu(const FInputActionValue& Value);
 
 	void UpdateTargetSelection();
-	bool AreMultipleVisible(AActor* Target, const FVector& TraceStart, TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests);
-
+	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);
 

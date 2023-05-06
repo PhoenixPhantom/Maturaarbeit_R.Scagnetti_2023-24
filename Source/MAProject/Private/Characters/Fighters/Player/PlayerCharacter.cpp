@@ -13,6 +13,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
 APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f)
@@ -50,14 +51,13 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 }
 
-void APlayerCharacter::Tick(float DeltaSeconds)
+void APlayerCharacter::
+
+
+Tick(float DeltaSeconds)
 {
-	Super::Tick(DeltaSeconds);
 	UpdateTargetSelection();
-	if(MotionWarpingInformation.IsWarping())
-	{
-		SetActorTransform(MotionWarpingInformation.MotionWarp(GetActorTransform(), DeltaSeconds), true);
-	}
+	Super::Tick(DeltaSeconds);
 }
 
 void APlayerCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
@@ -77,15 +77,6 @@ void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerU
 	CharacterStats = PropertiesSource;
 	PlayerUserSettings = PlayerUserSettingsSource;
 }
-
-#if WITH_EDITORONLY_DATA
-void APlayerCharacter::SetIsDebugging(bool IsDebugging)
-{
-	bIsDebugging = IsDebugging;
-	MotionWarpingInformation.World = GetWorld();
-	MotionWarpingInformation.bIsDebugging = bIsDebugging;
-}
-#endif
 
 
 void APlayerCharacter::BeginPlay()
@@ -346,42 +337,24 @@ void APlayerCharacter::UpdateTargetSelection()
 #endif
 }
 
-bool APlayerCharacter::AreMultipleVisible(AActor* Target, const FVector& TraceStart, TArray<FVector>& RemainingEnds,
-	int32 RequiredPositiveTests)
-{
-	if(RequiredPositiveTests <= 0) return true;
-	if(RemainingEnds.IsEmpty()) return false;
-	FHitResult VisibilityTrace;
-	UKismetSystemLibrary::LineTraceSingle(GetWorld(), TraceStart, RemainingEnds[0],
-	ETraceTypeQuery::TraceTypeQuery1, true, {this, Owner}, EDrawDebugTrace::None,
-	VisibilityTrace, true);
-	if(VisibilityTrace.bBlockingHit && VisibilityTrace.GetActor() != Target) RequiredPositiveTests--;;
-	RemainingEnds.RemoveAt(0);
-	return AreMultipleVisible(Target, TraceStart, RemainingEnds, RequiredPositiveTests);
-}
-
 void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)
 {
 	if(IsValid(CurrentTarget))
 	{
 		FVector Direction = CurrentTarget->GetComponentLocation() - GetActorLocation();
 		if(Direction.Length() <= Properties.MaximalMotionWarpingDistance)
-		{
-			//MotionWarpingComponent->AddOrUpdateWarpTargetFromComponent("AttackComponent", CurrentTarget, "", true);
-			MotionWarpingInformation.SetWarpTargetFaceTowards(CurrentTarget);
-		}
-
+			SuckToTargetComponent->SetWarpTargetFaceTowards(CurrentTarget);
+		
 		else
 		{
 			Direction.Normalize();
 			//MotionWarpingComponent->RemoveWarpTarget("AttackComponent");
-			MotionWarpingInformation.SetWarpTargetFaceTowards(
+			SuckToTargetComponent->SetWarpTargetFaceTowards(
 				GetActorLocation() + Direction * Properties.MaximalMotionWarpingDistance, GetActorLocation());
 		}
 	}
 	else
 	{
-		
 		FVector AttackPosition;
 		if(GetWorld()->RealTimeSeconds - InputDirection.Key > RememberInputDirectionTime){
 			FVector PlayerLocation;
@@ -397,12 +370,7 @@ void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Prop
 			else PlayerForward.Normalize();
 			AttackPosition = GetActorLocation() + PlayerForward * Properties.MaximalMotionWarpingDistance/2.f;
 		} 
-		else
-		{
-			AttackPosition = GetActorLocation() + InputDirection.Value * Properties.MaximalMotionWarpingDistance/2.f;
-		}
-
-		//MotionWarpingComponent->RemoveWarpTarget("AttackComponent");
-		MotionWarpingInformation.SetWarpTargetFaceTowards(AttackPosition, GetActorLocation());
+		else AttackPosition = GetActorLocation() + InputDirection.Value * Properties.MaximalMotionWarpingDistance/2.f;
+		SuckToTargetComponent->SetWarpTargetFaceTowards(AttackPosition, GetActorLocation());
 	}
 }
