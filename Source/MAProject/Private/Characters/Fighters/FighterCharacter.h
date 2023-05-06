@@ -32,7 +32,7 @@ public:
 
 	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, FMeleeControlsKey Key);
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
-
+	
 	UFUNCTION(BlueprintCallable, Category = Combat)
 	void ExecuteAttack(int32 Index);
 	

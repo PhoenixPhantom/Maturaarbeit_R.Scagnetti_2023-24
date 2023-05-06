@@ -6,6 +6,7 @@
 #include "Characters/Fighters/FighterCharacter.h"
 #include "InputActionValue.h"
 #include "PlayerPartyController.h"
+#include "RootMotionModifier.h"
 #include "../../../../../../../../../../../Program Files/Epic Games/UE_5.1/Engine/Platforms/Hololens/Source/Runtime/Core/Public/Microsoft/AllowMicrosoftPlatformTypesPrivate.h"
 #include "PlayerCharacter.generated.h"
 
@@ -44,25 +45,25 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 #if WITH_EDITORONLY_DATA
+	void SetIsDebugging(bool IsDebugging);
 	bool bIsDebugging = false;
 #endif
 
 protected:
 	bool bIsRunning;
+	
+	TTuple<double, FVector> InputDirection;	
+	FMotionWarpingInformation MotionWarpingInformation;
 	FPlayerUserSettings* PlayerUserSettings;
-
-	FVector InputDirection;
-
-	float RemainingWarpTime;
-	float TotalWarpTime;
-	FVector TargetWarpLocation;
-	FRotator TargetWarpRotation;
 
 	UPROPERTY()
 	UTargetInformationComponent* CurrentTarget;
 
 	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay)
 	float AutotargetingRange;
+
+	UPROPERTY(EditAnywhere, Category = Input, AdvancedDisplay)
+	double RememberInputDirectionTime = 0.5;
 	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;
@@ -105,7 +106,7 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-
+	
 	void LightAttack(const FInputActionValue& Value);
 	void HeavyAttack(const FInputActionValue& Value);
 	void SkillAttack(const FInputActionValue& Value);
@@ -122,6 +123,7 @@ protected:
 	void OpenPauseMenu(const FInputActionValue& Value);
 
 	void UpdateTargetSelection();
+	bool AreMultipleVisible(AActor* Target, const FVector& TraceStart, TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests);
 
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);

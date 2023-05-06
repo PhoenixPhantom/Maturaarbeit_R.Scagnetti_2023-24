@@ -82,6 +82,7 @@ bool AFighterCharacter::OnCheckCanExecuteAttack(const FAttackProperties& Propert
 
 void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
 {
+	StopAnimMontage();
 	PlayAnimMontage(Properties.AtkAnimation);
 	AcceptedInputs.LimitAvailableInputs(Properties.ResultingLimits, GetWorld());
 }

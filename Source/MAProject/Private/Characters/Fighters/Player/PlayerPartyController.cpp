@@ -60,7 +60,7 @@ void APlayerPartyController::ToggleDebugging()
 {
 	bIsDebugging = !bIsDebugging;
 	if(APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetPawn()); IsValid(PlayerCharacter)){
-		PlayerCharacter->bIsDebugging = bIsDebugging;
+		PlayerCharacter->SetIsDebugging(bIsDebugging);
 	}
 }
 #endif
