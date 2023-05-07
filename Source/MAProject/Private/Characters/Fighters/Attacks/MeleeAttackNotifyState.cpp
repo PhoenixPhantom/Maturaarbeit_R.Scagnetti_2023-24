@@ -5,7 +5,7 @@
 
 #include "Characters/Fighters/FighterCharacter.h"
 
-UMeleeAttackNotifyState::UMeleeAttackNotifyState() : bStartEmpty(true)
+UMeleeAttackNotifyState::UMeleeAttackNotifyState() : bStartEmpty(true), bAllowHitAlreadyOverlapping(true), bRefreshHitActors(true)
 {
 	bShouldFireInEditor = false;
 	NotifyColor = {255, 0, 0};
@@ -16,7 +16,7 @@ void UMeleeAttackNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	MeshOwner = CastChecked<AFighterCharacter>(MeshComp->GetOwner());
-	MeshOwner->ActivateMeleeBones(BonesToEnable, bStartEmpty, FMeleeControlsKey());
+	MeshOwner->ActivateMeleeBones(BonesToEnable, bStartEmpty, bAllowHitAlreadyOverlapping, FMeleeControlsKey());
 	
 }   
 

@@ -30,7 +30,7 @@ public:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
 
-	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, FMeleeControlsKey Key);
+	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitAlreadyOverlapping, FMeleeControlsKey Key);
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
 	
 	UFUNCTION(BlueprintCallable, Category = Combat)

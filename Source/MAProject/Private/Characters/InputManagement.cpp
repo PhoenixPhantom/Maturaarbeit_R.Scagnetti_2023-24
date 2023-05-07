@@ -74,31 +74,26 @@ FAcceptedInputs::FAcceptedInputs(const FAcceptedInputs& AvailableInputs) : bCanA
 	ResetToLimits.LimiterType = EInputType::Force; //the ResetToLimits should always be able to be set
 }
 
-bool FAcceptedInputs::LimitAvailableInputs(const FInputLimits& InputLimits, UWorld* World)
+bool FAcceptedInputs::LimitAvailableInputs(const FInputLimits& FirstLimits, const FInputLimits& SecondLimits,
+	UWorld* World)
 {
 	//limits can only be applied if they are issued by an input type that can now make changes
-	if(!CanOverrideCurrentInput(InputLimits.LimiterType)) return false;
-	check(IsValid(World));
-
-	if(World->GetTimerManager().TimerExists(ResetHandle))
-	{
-		World->GetTimerManager().ClearTimer(ResetHandle);
-		LimitAvailableInputs(ResetToLimits, World);
-	}
+	if(!CanOverrideCurrentInput(FirstLimits.LimiterType)) return false;
 	
-	//Setting a timer with time == 0 doesn't work
-	if(InputLimits.LimitationDuration > 0.f)
+	ResetLimits(World);
+	//Setting a timer with time == 0.f doesn't work
+	if(FirstLimits.LimitationDuration > 0.f)
 	{
 		//Capture the old state, before setting the new one
 		CaptureCurrentLimits();
 
 		//Set a timer for the reset
-		World->GetTimerManager().SetTimer(ResetHandle, [&, LocWorld = World]
+		World->GetTimerManager().SetTimer(ResetHandle, [&, Limits = SecondLimits, WorldRef = World]()
 		{
-			LimitAvailableInputs(ResetToLimits, LocWorld);
-		}, InputLimits.LimitationDuration, false);
+			LimitAvailableInputsInternal(Limits, WorldRef, false);
+		}, FirstLimits.LimitationDuration, false);
 	}
-	EnactLimits(InputLimits);
+	EnactLimits(FirstLimits);
 	return true;
 }
 
@@ -118,6 +113,38 @@ bool FAcceptedInputs::CanOverrideCurrentInput(const EInputType InputType) const
 		default: { checkNoEntry(); }
 	}
 	return IsAllowed;
+}
+
+bool FAcceptedInputs::LimitAvailableInputsInternal(const FInputLimits& InputLimits, UWorld* World, bool CaptureCurrent)
+{
+	//limits can only be applied if they are issued by an input type that can now make changes
+	if(!CanOverrideCurrentInput(InputLimits.LimiterType)) return false;
+
+	ResetLimits(World);
+	//Setting a timer with time == 0.f doesn't work
+	if(InputLimits.LimitationDuration > 0.f)
+	{
+		//Capture the old state, before setting the new one
+		if(CaptureCurrent) CaptureCurrentLimits();
+
+		//Set a timer for the reset
+		World->GetTimerManager().SetTimer(ResetHandle, [&, WorldRef = World]()
+		{
+			LimitAvailableInputs(ResetToLimits, WorldRef);
+		}, InputLimits.LimitationDuration, false);
+	}
+	EnactLimits(InputLimits);
+	return true;
+}
+
+void FAcceptedInputs::ResetLimits(UWorld* World)
+{
+	check(IsValid(World));
+	if(World->GetTimerManager().TimerExists(ResetHandle))
+	{
+		World->GetTimerManager().ClearTimer(ResetHandle);
+		LimitAvailableInputs(ResetToLimits, World);
+	}
 }
 
 void FAcceptedInputs::CaptureCurrentLimits()

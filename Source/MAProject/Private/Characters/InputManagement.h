@@ -74,9 +74,16 @@ struct FAcceptedInputs
 	//Handle for the limit reset timer
 	FTimerHandle ResetHandle;
 	
-	//Set the limit for available inputs according to the given limits for the given time, before
-	//the state returns to the one before the first limits enacted
-	bool LimitAvailableInputs(const FInputLimits& InputLimits, UWorld* World);
+	//Limit available inputs according to the given parameters for the given time. After the time has passed,
+	//the state returns to what it was before the first limits enacted
+	FORCEINLINE bool LimitAvailableInputs(const FInputLimits& InputLimits, UWorld* World)
+	{ return LimitAvailableInputsInternal(InputLimits, World); }
+
+	//Limit available inputs according to the given parameters for the given time.
+	//Follows up with the next limit if no other limit has been enforced since the first one.
+	//After enacting both limits for their respective time,
+	//the state returns to what it was before the first limits enacted
+	bool LimitAvailableInputs(const FInputLimits& FirstLimits, const FInputLimits& SecondLimits, UWorld* World);
 
 	//@return whether the given InputType is being limited at the moment
 	bool CanOverrideCurrentInput(const EInputType InputType) const;
@@ -84,7 +91,10 @@ struct FAcceptedInputs
 protected:
 	//Used to save the old limits, so we can reset to them
 	FInputLimits ResetToLimits;
+
 	
+	bool LimitAvailableInputsInternal(const FInputLimits& InputLimits, UWorld* World, bool CaptureCurrent = true);
+	void ResetLimits(UWorld* World);
 	void CaptureCurrentLimits();
 	void EnactLimits(const FInputLimits& InputLimits);
 };

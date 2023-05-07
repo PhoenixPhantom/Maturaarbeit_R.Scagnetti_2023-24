@@ -15,7 +15,7 @@ void USuckToTargetComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                            FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if(IsWarping()) GetOwner()->SetActorTransform(MotionWarp(GetOwner()->GetActorTransform(), DeltaTime), true);
+	if(IsWarping()) OwnerRef->SetActorTransform(MotionWarp(OwnerRef->GetActorTransform(), DeltaTime), true);
 }
 
 void USuckToTargetComponent::SetWarpTarget(USceneComponent* TargetComp, bool ShouldFollow, FName BoneName,
@@ -27,17 +27,9 @@ void USuckToTargetComponent::SetWarpTarget(USceneComponent* TargetComp, bool Sho
 	MotionWarpingTarget.Component = TargetComp;
 	MotionWarpingTarget.BoneName = BoneName;
 	MotionWarpingTarget.bFollowComponent = ShouldFollow;
-	if (BoneName != NAME_None)
-	{
-		const FTransform Transform = FMotionWarpingTarget::GetTargetTransformFromComponent(TargetComp, BoneName);
-		MotionWarpingTarget.Location = Transform.GetLocation();
-		MotionWarpingTarget.Rotation = Transform.Rotator();
-	}
-	else
-	{
-		MotionWarpingTarget.Location = TargetComp->GetComponentLocation();
-		MotionWarpingTarget.Rotation = TargetComp->GetComponentRotation();
-	}
+	const FTransform Transform = GetTargetTransformFromComponent(TargetComp, BoneName);
+	MotionWarpingTarget.Location = Transform.GetLocation();
+	MotionWarpingTarget.Rotation = Transform.Rotator();
 }
 
 void USuckToTargetComponent::SetWarpTargetFaceTowards(USceneComponent* TargetComp, FVector CurrentLocation,
@@ -49,12 +41,9 @@ void USuckToTargetComponent::SetWarpTargetFaceTowards(USceneComponent* TargetCom
 	MotionWarpingTarget.Component = TargetComp;
 	MotionWarpingTarget.BoneName = BoneName;
 	MotionWarpingTarget.bFollowComponent = false;
-	if (BoneName != NAME_None)
-	{
-		MotionWarpingTarget.Location = FMotionWarpingTarget::GetTargetTransformFromComponent(TargetComp, BoneName).GetLocation();
-	}
-	else MotionWarpingTarget.Location = TargetComp->GetComponentLocation();
-	MotionWarpingTarget.Rotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation, MotionWarpingTarget.Location);
+	MotionWarpingTarget.Location = GetTargetTransformFromComponent(TargetComp, BoneName).GetLocation();
+	MotionWarpingTarget.Rotation = UKismetMathLibrary::FindLookAtRotation(CurrentLocation,
+		MotionWarpingTarget.Location);
 }
 void USuckToTargetComponent::SetWarpTargetFaceTowards(USceneComponent* TargetComp, FName BoneName,
 	bool AllowZAxisMovement, bool AllowOnlyYawRotation)
@@ -133,5 +122,19 @@ FTransform USuckToTargetComponent::MotionWarp(const FTransform& CurrentTransform
 #endif
 	RemainingWarpTime -= DeltaSeconds;
 	return Transform;
+}
+
+FTransform USuckToTargetComponent::GetTargetTransformFromComponent(const USceneComponent* Component, FName BoneName)
+{
+	if(!IsValid(Component)) return FTransform::Identity;
+	if(BoneName == NAME_None) return Component->GetComponentTransform();
+	return Component->GetSocketTransform(BoneName);
+}
+
+void USuckToTargetComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	OwnerRef = GetOwner();
+	check(IsValid(OwnerRef));
 }
 

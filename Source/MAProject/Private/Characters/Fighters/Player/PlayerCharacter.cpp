@@ -288,7 +288,7 @@ void APlayerCharacter::UpdateTargetSelection()
 				ActorCenter + FVector(Extent.X, Extent.Y, -Extent.Z), ActorCenter + FVector(Extent.X, -Extent.Y, Extent.Z),
 				ActorCenter + FVector(-Extent.X, Extent.Y, Extent.Z), ActorCenter - FVector(Extent.X, Extent.Y, -Extent.Z),
 				ActorCenter - FVector(Extent.X, -Extent.Y, Extent.Z), ActorCenter - FVector(-Extent.X, Extent.Y, Extent.Z)});
-			if(!AreMultipleVisible(TraceResult.GetActor(), EyesLocation, Locations, 2)) continue;
+			if(!AreMultipleVisible(TraceResult.GetActor(), EyesLocation, Locations, 3)) continue;
 		}
 		
 		
@@ -342,7 +342,7 @@ void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Prop
 	if(IsValid(CurrentTarget))
 	{
 		FVector Direction = CurrentTarget->GetComponentLocation() - GetActorLocation();
-		if(Direction.Length() <= Properties.MaximalMotionWarpingDistance)
+		if(Direction.Length() <= Properties.MaximalMovementDistance)
 			SuckToTargetComponent->SetWarpTargetFaceTowards(CurrentTarget);
 		
 		else
@@ -350,7 +350,7 @@ void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Prop
 			Direction.Normalize();
 			//MotionWarpingComponent->RemoveWarpTarget("AttackComponent");
 			SuckToTargetComponent->SetWarpTargetFaceTowards(
-				GetActorLocation() + Direction * Properties.MaximalMotionWarpingDistance, GetActorLocation());
+				GetActorLocation() + Direction * Properties.DefaultMovementDistance, GetActorLocation());
 		}
 	}
 	else
@@ -368,9 +368,9 @@ void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Prop
 				PlayerForward = PlayerRotation.Vector();
 			}
 			else PlayerForward.Normalize();
-			AttackPosition = GetActorLocation() + PlayerForward * Properties.MaximalMotionWarpingDistance/2.f;
+			AttackPosition = GetActorLocation() + PlayerForward * Properties.DefaultMovementDistance/2.f;
 		} 
-		else AttackPosition = GetActorLocation() + InputDirection.Value * Properties.MaximalMotionWarpingDistance/2.f;
+		else AttackPosition = GetActorLocation() + InputDirection.Value * Properties.DefaultMovementDistance/2.f;
 		SuckToTargetComponent->SetWarpTargetFaceTowards(AttackPosition, GetActorLocation());
 	}
 }

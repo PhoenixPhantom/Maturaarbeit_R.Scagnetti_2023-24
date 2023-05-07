@@ -50,7 +50,7 @@ bool AGeneralCharacter::AreMultipleVisible(AActor* Target, const FVector& TraceS
 	UKismetSystemLibrary::LineTraceSingle(GetWorld(), TraceStart, RemainingEnds[0],
 	ETraceTypeQuery::TraceTypeQuery1, true, {this, Owner}, EDrawDebugTrace::None,
 	VisibilityTrace, true);
-	if(VisibilityTrace.bBlockingHit && VisibilityTrace.GetActor() != Target) RequiredPositiveTests--;;
+	if(!VisibilityTrace.bBlockingHit || VisibilityTrace.GetActor() == Target) RequiredPositiveTests--;
 	RemainingEnds.RemoveAt(0);
 	return AreMultipleVisible(Target, TraceStart, RemainingEnds, RequiredPositiveTests);
 }

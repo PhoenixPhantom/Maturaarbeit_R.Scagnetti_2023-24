@@ -36,10 +36,23 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	return RemainingHealth;
 }
 
-void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, FMeleeControlsKey Key)
+void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitAlreadyOverlapping, FMeleeControlsKey Key)
 {
-	if(StartEmpty) MeleeEnabledBones.Empty();
+	if(StartEmpty)
+	{
+		MeleeEnabledBones.Empty();		
+	}
 	MeleeEnabledBones.Append(BonesToEnable);
+	if(AllowHitAlreadyOverlapping)
+	{
+		TArray<UPrimitiveComponent*> AlreadyOverlappingComponents;
+		GetOverlappingComponents(AlreadyOverlappingComponents);
+		for(UPrimitiveComponent* Comp : AlreadyOverlappingComponents)
+		{
+			OnMeshOverlapEvent(GetMesh(), Comp->GetOwner(),
+				Comp, INDEX_NONE, false, FHitResult());
+		}
+	}
 }
 
 void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key)
@@ -77,20 +90,20 @@ void AFighterCharacter::BeginPlay()
 
 bool AFighterCharacter::OnCheckCanExecuteAttack(const FAttackProperties& Properties)
 {
-	return AcceptedInputs.CanOverrideCurrentInput(Properties.ResultingLimits.LimiterType);
+	return AcceptedInputs.CanOverrideCurrentInput(Properties.InitialLimits.LimiterType);
 }
 
 void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
 {
 	StopAnimMontage();
 	PlayAnimMontage(Properties.AtkAnimation);
-	AcceptedInputs.LimitAvailableInputs(Properties.ResultingLimits, GetWorld());
+	AcceptedInputs.LimitAvailableInputs(Properties.InitialLimits, Properties.ReducedLimits, GetWorld());
 }
 
 void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
 {
 	if(!IsValid(GetHitAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Stagger)) return;
-	StopAnimMontage(nullptr);
+	StopAnimMontage();
 	PlayAnimMontage(GetHitAnimation);
 	AcceptedInputs.LimitAvailableInputs(EInputType::Stagger, GetWorld());
 }
@@ -98,7 +111,7 @@ void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
 void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 {
 	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death)) return;
-	StopAnimMontage(nullptr);
+	StopAnimMontage();
 	PlayAnimMontage(GetHitAnimation);
 	AcceptedInputs.LimitAvailableInputs(EInputType::Death, GetWorld());
 }
@@ -106,7 +119,8 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 void AFighterCharacter::OnMeshOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if(OtherActor == this || !IsValid(OtherActor)  && OtherComp->ComponentHasTag(HitReactingVolumeTag)) return;
+	if(OtherActor == this || !IsValid(OtherActor)  || !OtherComp->ComponentHasTag(HitReactingVolumeTag) ||
+		RecentlyDamagedActors.Contains(OtherActor)) return;
 
 	//Overlap events don't generate full hit results but we need them for attack management
 	FHitResult TraceResult;

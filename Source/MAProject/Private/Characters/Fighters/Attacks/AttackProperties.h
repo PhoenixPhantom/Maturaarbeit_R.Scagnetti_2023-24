@@ -27,11 +27,16 @@ struct MAPROJECT_API FAttackProperties
 	FAttackDamageEvent DamageEvent;
 	UPROPERTY(EditAnywhere, Category = Combat,
 		meta=(Units="cm", ToolTip="The maximal distance that motion warping can take the animation. If the target is further away, the character still moves in direction of the target but doesn't go the whole way."))
-	float MaximalMotionWarpingDistance;
+	float MaximalMovementDistance;
+	UPROPERTY(EditAnywhere, Category = Combat,
+		meta=(Units="cm", ToolTip="Default distance that the animation will move the actor."))
+	float DefaultMovementDistance;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
-	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay)
-	FInputLimits ResultingLimits;
+	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay, meta=(ToolTip="The limits that will be applied on attack execution."))
+	FInputLimits InitialLimits;
+	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay, meta=(ToolTip="The limits that will be applied after the first set of limits expires. (e.g. to allow for a follow up attack but not character movement)"))
+	FInputLimits ReducedLimits;
 
 
 	bool operator==(const FAttackProperties& AttackProperties) const;

@@ -60,5 +60,11 @@ protected:
 	bool bAllowOnlyYawRotation;
 	FMotionWarpingTarget MotionWarpingTarget;
 
+	UPROPERTY()
+	AActor* OwnerRef;
+
+	virtual void BeginPlay() override;
+
+	static FTransform GetTargetTransformFromComponent(const USceneComponent* Component, FName BoneName);
 	FORCEINLINE void StartWarpingInternal(float WarpTime){ RemainingWarpTime = TotalWarpTime = WarpTime; }
 };
