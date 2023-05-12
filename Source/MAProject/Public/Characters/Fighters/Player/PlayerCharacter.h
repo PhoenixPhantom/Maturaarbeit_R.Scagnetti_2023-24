@@ -9,6 +9,7 @@
 #include "../../../../../../../../../../../Program Files/Epic Games/UE_5.1/Engine/Platforms/Hololens/Source/Runtime/Core/Public/Microsoft/AllowMicrosoftPlatformTypesPrivate.h"
 #include "PlayerCharacter.generated.h"
 
+class USphereComponent;
 class UTargetInformationComponent;
 class USpringArmComponent;
 class UCameraComponent;
@@ -45,7 +46,8 @@ public:
 
 protected:
 	bool bIsRunning;
-	
+
+	FTimerHandle ResetPlayerVisibilityHandle;
 	TTuple<double, FVector> InputDirection;
 	FPlayerUserSettings* PlayerUserSettings;
 
@@ -97,25 +99,37 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
+	UPROPERTY(VisibleAnywhere)
+	UCapsuleComponent* CameraCollisionChecker;
+
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-	
-	void LightAttack(const FInputActionValue& Value);
-	void HeavyAttack(const FInputActionValue& Value);
-	void SkillAttack(const FInputActionValue& Value);
-	void UltimateAttack(const FInputActionValue& Value);
 
-	void SpeedUpDash(const FInputActionValue& Value);
-	void SlowDown(const FInputActionValue& Value);
+	void TryJump();
+	
+	void LightAttack();
+	void HeavyAttack();
+	void SkillAttack();
+	void UltimateAttack();
+
+	void SpeedUpDash();
+	void SlowDown();
 	void Move(const FInputActionValue& Value);
 	
 	void Look(const FInputActionValue& Value);
 	void CameraZoom(const FInputActionValue& Value);
 	void Aim(const FInputActionValue& Value);
 
-	void OpenPauseMenu(const FInputActionValue& Value);
+	void OpenPauseMenu();
 
 	void UpdateTargetSelection();
+
+	UFUNCTION()
+	void OnCameraCollisionOverlapStarted(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	UFUNCTION()
+	void OnCameraCollisionOverlapEnded(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);

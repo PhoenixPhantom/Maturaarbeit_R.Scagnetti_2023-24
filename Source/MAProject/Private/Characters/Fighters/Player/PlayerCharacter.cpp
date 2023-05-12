@@ -8,6 +8,8 @@
 #include "MotionWarpingComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -29,6 +31,14 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	// Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	CameraCollisionChecker = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CameraCollisionCheck"));
+	CameraCollisionChecker->SetupAttachment(FollowCamera);
+	CameraCollisionChecker->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
+	CameraCollisionChecker->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	CameraCollisionChecker->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	CameraCollisionChecker->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnCameraCollisionOverlapStarted);
+	CameraCollisionChecker->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnCameraCollisionOverlapEnded);
 	
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -40,7 +50,7 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 350.0f, 0.0f); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
@@ -99,7 +109,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
 
 	//Character specific input
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
+	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::TryJump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopJumping);
 	
 	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::LightAttack);
@@ -119,27 +129,32 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Triggered, this, &APlayerCharacter::OpenPauseMenu);
 }
 
-void APlayerCharacter::LightAttack(const FInputActionValue& Value)
+void APlayerCharacter::TryJump()
+{
+	if(AcceptedInputs.MovementProperties.bCanJump && !bPressedJump) Jump();
+}
+
+void APlayerCharacter::LightAttack()
 {
 	CharacterStats->ExecuteAttack(EAttackType::Light);
 }
 
-void APlayerCharacter::HeavyAttack(const FInputActionValue& Value)
+void APlayerCharacter::HeavyAttack()
 {
 	CharacterStats->ExecuteAttack(EAttackType::Heavy);
 }
 
-void APlayerCharacter::SkillAttack(const FInputActionValue& Value)
+void APlayerCharacter::SkillAttack()
 {
 	CharacterStats->ExecuteAttack(EAttackType::Skill);
 }
 
-void APlayerCharacter::UltimateAttack(const FInputActionValue& Value)
+void APlayerCharacter::UltimateAttack()
 {
 	CharacterStats->ExecuteAttack(EAttackType::Ultimate);
 }
 
-void APlayerCharacter::SpeedUpDash(const FInputActionValue& Value)
+void APlayerCharacter::SpeedUpDash()
 {
 	if(!AcceptedInputs.bCanSprint) return;
 	//we only have (and should only) to set variables one time
@@ -160,7 +175,7 @@ void APlayerCharacter::SpeedUpDash(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacter::SlowDown(const FInputActionValue& Value)
+void APlayerCharacter::SlowDown()
 {
 	bIsRunning = false;
 	SwitchMovementToWalk();
@@ -221,7 +236,7 @@ void APlayerCharacter::Aim(const FInputActionValue& Value)
 	if(AcceptedInputs.bFreeCameraAdjustment) unimplemented();
 }
 
-void APlayerCharacter::OpenPauseMenu(const FInputActionValue& Value)
+void APlayerCharacter::OpenPauseMenu()
 {
 	UGameplayStatics::SetGamePaused(GetWorld(), true);
 	UUserWidget* PauseMenu = CreateWidget<UUserWidget>(GetWorld(), PauseMenuClass);
@@ -335,6 +350,19 @@ void APlayerCharacter::UpdateTargetSelection()
 			20, FColor(100, 255, 100));
 	}
 #endif
+}
+
+void APlayerCharacter::OnCameraCollisionOverlapStarted(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	//if(OtherComp == GetMesh()) GetMesh()->SetVisibility(false, true);
+}
+
+void APlayerCharacter::OnCameraCollisionOverlapEnded(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	//does trigger to rarely
+	//if(OtherActor == this || OtherComp == GetMesh()) GetMesh()->SetVisibility(true, true);
 }
 
 void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)

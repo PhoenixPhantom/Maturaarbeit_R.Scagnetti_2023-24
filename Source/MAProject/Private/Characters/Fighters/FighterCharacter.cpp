@@ -15,11 +15,6 @@ AFighterCharacter::AFighterCharacter()
 	GetMesh()->OnComponentBeginOverlap.AddDynamic(this, &AFighterCharacter::OnMeshOverlapEvent);
 }
 
-void AFighterCharacter::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-}
-
 float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 	AActor* DamageCauser)
 {

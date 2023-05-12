@@ -36,7 +36,7 @@ struct FInputLimits
 	UPROPERTY(EditAnywhere)
 	EInputType LimiterType;
 
-	UPROPERTY(EditAnywhere, meta=(Units="s", ToolTip="The time for which the limitation will be in place (0 means that no limitation will be put in place)"))
+	UPROPERTY(EditAnywhere, meta=(ForceUnits="s", ToolTip="The time for which the limitation will be in place (0 means that no limitation will be put in place)"))
 	float LimitationDuration;
 
 	UPROPERTY(EditAnywhere)
@@ -76,8 +76,7 @@ struct FAcceptedInputs
 	
 	//Limit available inputs according to the given parameters for the given time. After the time has passed,
 	//the state returns to what it was before the first limits enacted
-	FORCEINLINE bool LimitAvailableInputs(const FInputLimits& InputLimits, UWorld* World)
-	{ return LimitAvailableInputsInternal(InputLimits, World); }
+	bool LimitAvailableInputs(const FInputLimits& InputLimits, UWorld* World);
 
 	//Limit available inputs according to the given parameters for the given time.
 	//Follows up with the next limit if no other limit has been enforced since the first one.
@@ -92,8 +91,6 @@ protected:
 	//Used to save the old limits, so we can reset to them
 	FInputLimits ResetToLimits;
 
-	
-	bool LimitAvailableInputsInternal(const FInputLimits& InputLimits, UWorld* World, bool CaptureCurrent = true);
 	void ResetLimits(UWorld* World);
 	void CaptureCurrentLimits();
 	void EnactLimits(const FInputLimits& InputLimits);

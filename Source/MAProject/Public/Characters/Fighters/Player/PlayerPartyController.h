@@ -22,7 +22,7 @@ struct FSetPlayerUserSettingsKey final
 private:
 	FSetPlayerUserSettingsKey(){};
 };
-
+ 
 USTRUCT()
 struct FPlayerUserSettings
 {

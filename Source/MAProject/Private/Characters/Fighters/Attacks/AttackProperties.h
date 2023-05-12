@@ -20,8 +20,8 @@ struct MAPROJECT_API FAttackProperties
 	UPROPERTY(EditAnywhere, Category = Combat, meta=(Units="%"))
 	float DamagePercent;
 	
-	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay,
-		meta=(ToolTip="The time after finishing the animation that it takes until this Attack can be used again (negative values are permitted)"))
+	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay, meta=(ForceUnits="s",
+		ToolTip="The time after finishing the animation that it takes until this Attack can be used again (negative values are permitted)"))
 	float CdTime;
 	UPROPERTY(EditAnywhere, Category = Combat)
 	FAttackDamageEvent DamageEvent;

@@ -7,7 +7,13 @@ FAttackProperties::FAttackProperties() : DamagePercent(100.f), CdTime(0.f), Maxi
 	DefaultMovementDistance(100.f), AtkAnimation(nullptr), InitialLimits(EInputType::Attack),
 	ReducedLimits(EInputType::Attack), World(nullptr),	bIsOnCd(false)
 {
+	//the second limiter (ReducedLimits) should normally be able to override the initial limits...
+	ReducedLimits.LimiterType = EInputType::Force;
+	//allow for attack strings
 	ReducedLimits.bCanAttack = true;
+	//allow for sprint/jump cancel
+	ReducedLimits.bCanSprint = true;
+	ReducedLimits.MovementProperties.bCanJump = true;
 }
 
 FAttackProperties::FAttackProperties(const FAttackProperties& Properties) : DamagePercent(Properties.DamagePercent),
