@@ -3,6 +3,3 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
-
-static const FName HitReactingVolumeTag = TEXT("CanReactToHit");

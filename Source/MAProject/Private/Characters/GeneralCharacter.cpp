@@ -15,10 +15,7 @@ AGeneralCharacter::AGeneralCharacter()
 	PrimaryActorTick.bCanEverTick = false;
 	
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetMesh()->SetCollisionObjectType(ECC_WorldDynamic);
-	GetMesh()->SetCollisionResponseToAllChannels(ECR_Overlap);
-
-	GetMesh()->ComponentTags.Add(HitReactingVolumeTag);
+	GetMesh()->SetCollisionProfileName("CharacterMesh", true);
 	
 }
 

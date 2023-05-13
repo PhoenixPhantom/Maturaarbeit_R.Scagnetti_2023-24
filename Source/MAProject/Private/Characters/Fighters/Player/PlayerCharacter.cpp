@@ -35,9 +35,6 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
-
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 350.0f, 0.0f); // ...at this rotation rate
@@ -51,10 +48,7 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 }
 
-void APlayerCharacter::
-
-
-Tick(float DeltaSeconds)
+void APlayerCharacter::Tick(float DeltaSeconds)
 {
 	UpdateTargetSelection();
 	Super::Tick(DeltaSeconds);

@@ -24,6 +24,8 @@ class AFighterCharacter : public AGeneralCharacter
 
 public:
 	AFighterCharacter();
+
+	virtual void Tick(float DeltaSeconds) override;
 	
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
@@ -54,6 +56,8 @@ protected:
 	
 	void SwitchMovementToWalk() const;
 	void SwitchMovementToRun() const;
+
+	void CheckMeshOverlaps();
 
 	UFUNCTION()
 	bool OnCheckCanExecuteAttack(const FAttackProperties& Properties);

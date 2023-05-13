@@ -7,16 +7,21 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "MAProject/MAProject.h"
 
 AFighterCharacter::AFighterCharacter()
 {
-	GetMesh()->SetGenerateOverlapEvents(true);
-	GetMesh()->OnComponentBeginOverlap.AddDynamic(this, &AFighterCharacter::OnMeshOverlapEvent);
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+}
+
+void AFighterCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if(!MeleeEnabledBones.IsEmpty()) CheckMeshOverlaps();
 }
 
 float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
-	AActor* DamageCauser)
+                                    AActor* DamageCauser)
 {
 	uint32 RemainingHealth = CharacterStats->Health;
 	if(DamageEvent.IsOfType(FCustomDamageEvent::ClassID))
@@ -66,6 +71,39 @@ void AFighterCharacter::SwitchMovementToRun() const
 	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->RunSpeed.GetResulting();
 }
 
+void AFighterCharacter::CheckMeshOverlaps()
+{
+	TArray<AActor*> OverlappingActors;
+	GetMesh()->GetOverlappingActors(OverlappingActors);
+	
+	//loop through all bones that can damage targets, to find some that actually hit a target
+	FHitResult TraceResult;
+	for(FName BodyName : MeleeEnabledBones)
+	{
+		FVector Velocity = GetMesh()->GetBoneLinearVelocity(BodyName);
+		Velocity.Normalize();
+
+		//we need hit results for attack management
+		//tracing on TraceTypeQuery6 (== Destructible)
+		UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetMesh()->GetBoneLocation(BodyName),
+		GetMesh()->GetBoneLocation(BodyName) + Velocity * 100.f, ETraceTypeQuery::TraceTypeQuery6,
+		true, {this, Owner}, EDrawDebugTrace::None, TraceResult, true);
+
+		if(TraceResult.bBlockingHit)
+		{
+			for(AActor* Target : OverlappingActors)
+			{
+				if(Target == this || !IsValid(Target)  || RecentlyDamagedActors.Contains(Target) ||
+					TraceResult.GetActor() != Target) continue;
+				RecentlyDamagedActors.Add(Target);
+				Target->TakeDamage(CharacterStats->GetDamageOutput(),
+					*CharacterStats->GenerateDamageEvent(TraceResult), GetController(), this);
+				break;
+			}
+		}
+	}
+}
+
 void AFighterCharacter::ExecuteAttack(int32 Index)
 {
 	CharacterStats->ExecuteAttack(Index);
@@ -85,7 +123,7 @@ void AFighterCharacter::BeginPlay()
 
 bool AFighterCharacter::OnCheckCanExecuteAttack(const FAttackProperties& Properties)
 {
-	return AcceptedInputs.CanOverrideCurrentInput(Properties.InitialLimits.LimiterType);
+	return AcceptedInputs.CanOverrideCurrentInput(Properties.InitialLimits.LimiterType) && !GetCharacterMovement()->IsFalling();
 }
 
 void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
@@ -109,31 +147,4 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 	StopAnimMontage();
 	PlayAnimMontage(GetHitAnimation);
 	AcceptedInputs.LimitAvailableInputs(EInputType::Death, GetWorld());
-}
-
-void AFighterCharacter::OnMeshOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if(OtherActor == this || !IsValid(OtherActor)  || !OtherComp->ComponentHasTag(HitReactingVolumeTag) ||
-		RecentlyDamagedActors.Contains(OtherActor)) return;
-
-	//Overlap events don't generate full hit results but we need them for attack management
-	FHitResult TraceResult;
-	for(FName BodyName : MeleeEnabledBones)
-	{
-		FVector Velocity = GetMesh()->GetBoneLinearVelocity(BodyName);
-		Velocity.Normalize();
-
-		//tracing on TraceTypeQuery6 (== Destructible)
-		UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetMesh()->GetBoneLocation(BodyName),
-		GetMesh()->GetBoneLocation(BodyName) + Velocity * 100.f, ETraceTypeQuery::TraceTypeQuery6,
-		true, {this, Owner}, EDrawDebugTrace::None, TraceResult, true);
-		if(TraceResult.bBlockingHit && TraceResult.GetActor() == OtherActor)
-		{
-			RecentlyDamagedActors.Add(OtherActor);
-			OtherActor->TakeDamage(CharacterStats->GetDamageOutput(),
-				*CharacterStats->GenerateDamageEvent(TraceResult), GetController(), this);
-			break;
-		}
-	}
 }
