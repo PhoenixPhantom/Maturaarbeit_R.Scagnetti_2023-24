@@ -8,8 +8,6 @@
 #include "MotionWarpingComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -31,14 +29,6 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	// Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
-	CameraCollisionChecker = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CameraCollisionCheck"));
-	CameraCollisionChecker->SetupAttachment(FollowCamera);
-	CameraCollisionChecker->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
-	CameraCollisionChecker->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	CameraCollisionChecker->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	CameraCollisionChecker->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnCameraCollisionOverlapStarted);
-	CameraCollisionChecker->OnComponentEndOverlap.AddDynamic(this, &APlayerCharacter::OnCameraCollisionOverlapEnded);
 	
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -350,19 +340,6 @@ void APlayerCharacter::UpdateTargetSelection()
 			20, FColor(100, 255, 100));
 	}
 #endif
-}
-
-void APlayerCharacter::OnCameraCollisionOverlapStarted(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	//if(OtherComp == GetMesh()) GetMesh()->SetVisibility(false, true);
-}
-
-void APlayerCharacter::OnCameraCollisionOverlapEnded(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	//does trigger to rarely
-	//if(OtherActor == this || OtherComp == GetMesh()) GetMesh()->SetVisibility(true, true);
 }
 
 void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)
