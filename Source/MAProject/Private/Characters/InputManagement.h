@@ -15,9 +15,16 @@ enum class EInputType
 	Attack,
 	SwitchOut,
 	Stagger,
+	//Death cannot be blocked or stopped from execution and by default does not allow for any input other than Death or Force
+	//(the behavior can still be changed by manually initializing FInputLimits)
 	Death,
-	//Force is the strongest input type and cannot be blocked or stopped from execution
-	Force
+	//Force cannot be blocked or stopped from execution, just like death, but by default it allows any input to follow up
+	//(the behavior can still be changed by manually initializing FInputLimits)
+	Force,
+	//Reset will always be executed when the current limits don't reset after a certain time,
+	//and forces immediate reset of the properties to the previous ones
+	//(the behavior CANNOT be changed in FInputLimits)
+	Reset
 	
 };
 
@@ -28,6 +35,7 @@ struct FInputLimits
 
 	FInputLimits();
 	FInputLimits(const EInputType Input);
+	FInputLimits(const EInputType Input, float LimitationTime, const struct FAcceptedInputs& AcceptedInputs);
 	FInputLimits(const FInputLimits& Limits) = default;
 
 	bool operator==(const FInputLimits& Compare) const;

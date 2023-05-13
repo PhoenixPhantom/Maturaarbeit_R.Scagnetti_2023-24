@@ -46,6 +46,7 @@ public:
 
 protected:
 	bool bIsRunning;
+	bool bHasJumped;
 
 	FTimerHandle ResetPlayerVisibilityHandle;
 	TTuple<double, FVector> InputDirection;
@@ -103,6 +104,7 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	void TryJump();
+	void EndJump();
 	
 	void LightAttack();
 	void HeavyAttack();

@@ -100,7 +100,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	//Character specific input
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::TryJump);
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopJumping);
+	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::EndJump);
 	
 	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::LightAttack);
 	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::HeavyAttack);
@@ -121,7 +121,17 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::TryJump()
 {
-	if(AcceptedInputs.MovementProperties.bCanJump && !bPressedJump) Jump();
+	if(AcceptedInputs.MovementProperties.bCanJump && !bHasJumped)
+	{
+		bHasJumped = true;
+		Jump();
+	}
+}
+
+void APlayerCharacter::EndJump()
+{
+	bHasJumped = false;
+ 	StopJumping();
 }
 
 void APlayerCharacter::LightAttack()

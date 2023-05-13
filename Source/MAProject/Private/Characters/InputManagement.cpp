@@ -38,10 +38,28 @@ FInputLimits::FInputLimits(const EInputType Input) : LimiterType(Input), Limitat
 					MovementProperties.bCanCrouch = bCanGetStaggered = false;
 				break;
 			}
+	case EInputType::Force:
+			{
+				bCanSprint = bCanAttack = bCanSwitchOut = bFreeCameraAdjustment = MovementProperties.bCanFly =
+					MovementProperties.bCanJump = MovementProperties.bCanSwim = MovementProperties.bCanWalk =
+					MovementProperties.bCanCrouch = bCanGetStaggered = true;
+			}
+	case EInputType::Reset:
+			{
+				//other settings have no effect when EInputType == Reset
+				break;
+			}
 		default:
 			unimplemented();
 	}
 }
+
+FInputLimits::FInputLimits(const EInputType Input, float LimitationTime, const FAcceptedInputs& AcceptedInputs) :
+	LimiterType(Input), LimitationDuration(LimitationTime), bCanAttack(AcceptedInputs.bCanAttack),
+	bCanGetStaggered(AcceptedInputs.bCanGetStaggered), bCanSprint(AcceptedInputs.bCanSprint),
+	bFreeCameraAdjustment(AcceptedInputs.bFreeCameraAdjustment), bCanSwitchOut(AcceptedInputs.bCanSwitchOut),
+	MovementProperties(AcceptedInputs.MovementProperties)
+{}
 
 bool FInputLimits::operator==(const FInputLimits& Compare) const
 {
@@ -76,6 +94,12 @@ FAcceptedInputs::FAcceptedInputs(const FAcceptedInputs& AvailableInputs) : bCanA
 
 bool FAcceptedInputs::LimitAvailableInputs(const FInputLimits& InputLimits, UWorld* World)
 {
+	//if we have a limit without timer, we can reset the limits by using EInputType::Reset
+	if(InputLimits.LimiterType == EInputType::Reset && !World->GetTimerManager().TimerExists(ResetHandle))
+	{
+		EnactLimits(ResetToLimits);
+		return true;
+	}
 	//limits can only be applied if they are issued by an input type that can now make changes
 	if(!CanOverrideCurrentInput(InputLimits.LimiterType)) return false;
 
@@ -132,6 +156,7 @@ bool FAcceptedInputs::CanOverrideCurrentInput(const EInputType InputType) const
 		case EInputType::Attack: { IsAllowed = bCanAttack; break; }
 		case EInputType::SwitchOut: { IsAllowed = bCanSwitchOut; break;}
 		case EInputType::Stagger: { IsAllowed = bCanGetStaggered; break; }
+		case EInputType::Reset: { IsAllowed = false;  break; }
 		case EInputType::Force: case EInputType::Death: { IsAllowed = true; break; } //These types can override everything
 		default: { checkNoEntry(); }
 	}
