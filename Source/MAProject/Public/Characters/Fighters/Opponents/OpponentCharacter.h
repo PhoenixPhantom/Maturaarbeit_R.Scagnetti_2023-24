@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
-#include "Perception/PawnSensingComponent.h"
 #include "OpponentCharacter.generated.h"
 
 class USavableObjectMarkerComponent;
@@ -20,6 +19,8 @@ public:
 	AOpponentCharacter();
 	virtual float GetFieldOfView() const override;
 
+	float GetAggressionPriority(float Distance) const { return AggressionPriority * (1.f - Distance/AggressionRange); }
+
 protected:
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
@@ -29,6 +30,12 @@ protected:
 
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers StatsModifiers;
+
+	UPROPERTY(EditAnywhere, Category=AI)
+	float AggressionPriority;
+
+	UPROPERTY(EditAnywhere, Category=AI, AdvancedDisplay)
+	float AggressionRange;
 
 	virtual void BeginPlay() override;
 };

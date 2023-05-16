@@ -4,7 +4,6 @@
 #include "Characters/GeneralCharacter.h"
 #include "MotionWarpingComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "MAProject/MAProject.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 
 

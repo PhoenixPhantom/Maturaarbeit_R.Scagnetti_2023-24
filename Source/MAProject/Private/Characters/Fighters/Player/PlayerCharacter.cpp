@@ -266,7 +266,7 @@ void APlayerCharacter::UpdateTargetSelection()
 	}
 	
 	TTuple<float, UTargetInformationComponent*> BestResult;
-	BestResult.Key = 0.f;
+	BestResult.Key = std::numeric_limits<float>::lowest();
 	BestResult.Value = nullptr;
 	for(FHitResult TraceResult : TraceResults)
 	{
