@@ -43,6 +43,9 @@ public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	///@return FollowCamera sub-object
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	
+	UFUNCTION()
+	float OnGenerateAggressionScore(AOpponentCharacter* TargetCharacter);
 
 protected:
 	bool bIsRunning;

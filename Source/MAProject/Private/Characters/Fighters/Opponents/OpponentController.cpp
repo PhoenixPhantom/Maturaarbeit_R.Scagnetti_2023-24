@@ -5,12 +5,10 @@
 
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"
 #include "Utility/NonPlayerFunctionality/MovementTarget.h"
-#include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
 AOpponentController::AOpponentController() : CurrentTarget(nullptr), DefaultBehaviorTree(nullptr)
 {
@@ -65,12 +63,7 @@ void AOpponentController::OnPossess(APawn* InPawn)
 {
 	RunBehaviorTree(DefaultBehaviorTree);
 	Super::OnPossess(InPawn);
-	UActorComponent* Comp = InPawn->GetComponentByClass(UTargetInformationComponent::StaticClass());
-	if(IsValid(Comp))
-		CastChecked<UTargetInformationComponent>(Comp)->OnChangeTargetState.AddDynamic(this,
-			&AOpponentController::OnTargetStateChanged);
-	OpponentCharacter = Cast<AOpponentCharacter>(InPawn);
-	check(IsValid(OpponentCharacter));
+
 	if(!IsValid(MoveTarget))
 	{
 		FActorSpawnParameters SpawnParameters;
@@ -83,14 +76,6 @@ void AOpponentController::OnPossess(APawn* InPawn)
 	MoveTarget->SetActorLocation(GetPawn()->GetActorLocation());
 }
 
-float AOpponentController::GenerateAggressionScore()
-{
-	if(!bCanBecomeAggressive) return NAN;
-	float Score = 0.f;
-	if(bIsCurrentTarget) Score += 5.f; //TODO: Make this number be anything that makes sense
-	if(OnGenerateAggressionScore.IsBound()) Score += OnGenerateAggressionScore.Execute(OpponentCharacter);
-	return Score;
-}
 
 void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
 {
@@ -110,11 +95,6 @@ void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAISti
 		Blackboard->SetValueAsBool("HasSensedPlayer", true);
 		Blackboard->SetValueAsObject("TargetObject", UpdatedActor);
 	}
-}
-
-void AOpponentController::OnTargetStateChanged(bool IsCurrentTarget)
-{
-	bIsCurrentTarget = IsCurrentTarget;
 }
 
 #if WITH_EDITORONLY_DATA

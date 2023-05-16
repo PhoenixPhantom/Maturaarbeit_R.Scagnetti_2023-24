@@ -8,6 +8,10 @@
 
 class USavableObjectMarkerComponent;
 class UTargetInformationComponent;
+
+
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(float, FOnGenerateAggressionScoreDelegate, AOpponentCharacter*, TargetCharacter);
+
 /**
  * 
  */
@@ -19,9 +23,16 @@ public:
 	AOpponentCharacter();
 	virtual float GetFieldOfView() const override;
 
+	float GenerateAggressionScore();
 	float GetAggressionPriority(float Distance) const { return AggressionPriority * (1.f - Distance/AggressionRange); }
 
 protected:
+	uint8 bIsAggressive:1;
+	uint8 bCanBecomeAggressive:1;
+	uint8 bIsCurrentTarget:1;
+
+	FOnGenerateAggressionScoreDelegate OnGenerateAggressionScore;
+	
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
 

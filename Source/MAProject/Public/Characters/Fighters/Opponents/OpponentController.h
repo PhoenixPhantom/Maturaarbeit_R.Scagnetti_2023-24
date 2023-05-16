@@ -9,8 +9,6 @@
 class UAISenseConfig_Sight;
 class AMovementTarget;
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(float, FOnGenerateAggressionScoreDelegate, AOpponentCharacter*, TargetCharacter);
-
 /**
  * 
  */
@@ -25,11 +23,6 @@ public:
 	
 	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath) override;
 protected:
-	uint8 bIsAggressive:1;
-	uint8 bCanBecomeAggressive:1;
-	uint8 bIsCurrentTarget:1;
-
-	FOnGenerateAggressionScoreDelegate OnGenerateAggressionScore;
 	
 	FTimerHandle LostPerceptionHandle;	
 
@@ -38,21 +31,13 @@ protected:
 	UPROPERTY()
 	AMovementTarget* MoveTarget;
 
-	UPROPERTY()
-	AOpponentCharacter* OpponentCharacter;
-
 	UPROPERTY(EditAnywhere)
 	UBehaviorTree* DefaultBehaviorTree;
 	
 	virtual void OnPossess(APawn* InPawn) override;
 
-	float GenerateAggressionScore();
-
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);
-
-	UFUNCTION()
-	void OnTargetStateChanged(bool IsCurrentTarget);
 
 #if WITH_EDITORONLY_DATA
 	UFUNCTION(CallInEditor)

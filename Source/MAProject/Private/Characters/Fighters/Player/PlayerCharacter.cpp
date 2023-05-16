@@ -8,6 +8,7 @@
 #include "MotionWarpingComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
+#include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -70,6 +71,16 @@ void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerU
 {
 	CharacterStats = PropertiesSource;
 	PlayerUserSettings = PlayerUserSettingsSource;
+}
+
+float APlayerCharacter::OnGenerateAggressionScore(AOpponentCharacter* TargetCharacter)
+{
+	float AggressionScore = TargetCharacter->GetAggressionPriority(FVector::Distance(GetActorLocation(),
+		TargetCharacter->GetActorLocation()));
+	//TODO: on/off screen
+	//TODO: Ange from camera
+	//TODO: Distance from player
+	return AggressionScore;
 }
 
 
