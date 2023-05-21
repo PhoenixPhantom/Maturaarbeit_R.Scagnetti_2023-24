@@ -38,14 +38,15 @@ public:
 
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
 	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FPreSpawnSetupKey Key);
+
+	//Calculate the action rank the given target has in relation to the player
+	float RequestActionRank(const AActor* RankGenerationTarget);
 	
 	///@return CameraBoom sub-object
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	///@return FollowCamera sub-object
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	
-	UFUNCTION()
-	float OnGenerateAggressionScore(AOpponentCharacter* TargetCharacter);
+
 
 protected:
 	bool bIsRunning;

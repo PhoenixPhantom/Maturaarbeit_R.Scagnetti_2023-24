@@ -31,8 +31,8 @@ protected:
 	UPROPERTY(EditAnywhere, meta=(ToolTip="Wether we should delete all prior enabled bones (to ensure there aren't to many enabled). It is reccomended to set the first MeleeAttackNotifyState in each animation to true."))
 	bool bStartEmpty;
 
-	UPROPERTY(EditAnywhere, meta=(ToolTip="Wether this attack can damage targets even if they were already touching"))
-	bool bAllowHitAlreadyOverlapping;
+	UPROPERTY(EditAnywhere, meta=(ToolTip="Wether this attack can damage targets even if they were already damaged from the last attack of the string"))
+	bool bAllowHitRecentVictims;
 
 	UPROPERTY(EditAnywhere, AdvancedDisplay, meta=(ToolTip="Wether this attack string has ended and once hit actors can be damaged again"))
 	bool bRefreshHitActors;

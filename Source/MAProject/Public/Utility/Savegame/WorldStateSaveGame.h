@@ -23,6 +23,7 @@ struct FNonPlayerSaveData : public FGeneralActorSaveData
 {
 	GENERATED_BODY()
 public:
+	FNonPlayerSaveData() : FGeneralActorSaveData(), ActorUniqueWorldID(0){}
 	UPROPERTY()
 	uint64 ActorUniqueWorldID;
 };

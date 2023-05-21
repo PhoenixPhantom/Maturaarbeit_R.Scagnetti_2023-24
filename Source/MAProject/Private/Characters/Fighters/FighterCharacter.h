@@ -30,7 +30,7 @@ public:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
 
-	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitAlreadyOverlapping, FMeleeControlsKey Key);
+	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitRecentVicitms, FMeleeControlsKey Key);
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
 	
 	UFUNCTION(BlueprintCallable, Category = Combat)
@@ -67,7 +67,4 @@ protected:
 	void OnGetHit(const FCustomDamageEvent& DamageEvent);
 	UFUNCTION()
 	void OnDeath(const FCustomDamageEvent& DamageEvent);
-	UFUNCTION()
-	void OnMeshOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,  int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 };

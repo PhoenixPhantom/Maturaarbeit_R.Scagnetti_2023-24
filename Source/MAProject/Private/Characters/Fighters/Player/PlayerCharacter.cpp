@@ -8,7 +8,6 @@
 #include "MotionWarpingComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
-#include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -73,14 +72,24 @@ void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerU
 	PlayerUserSettings = PlayerUserSettingsSource;
 }
 
-float APlayerCharacter::OnGenerateAggressionScore(AOpponentCharacter* TargetCharacter)
+float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget)
 {
-	float AggressionScore = TargetCharacter->GetAggressionPriority(FVector::Distance(GetActorLocation(),
-		TargetCharacter->GetActorLocation()));
-	//TODO: on/off screen
-	//TODO: Ange from camera
-	//TODO: Distance from player
-	return AggressionScore;
+	//whether the target is on screen
+	FVector EyesLocation;
+	FRotator EyesRotation;
+	GetActorEyesViewPoint(EyesLocation, EyesRotation);
+	//Get the actors center
+	FVector ActorCenter;
+	FVector Extent;
+	RankGenerationTarget->GetActorBounds(true, ActorCenter, Extent);
+
+	float ActionRank = 0.f;
+	const float OffsetFromForward = FVector::DotProduct(EyesRotation.Vector(),
+		UKismetMathLibrary::GetDirectionUnitVector(EyesLocation, ActorCenter));
+	if(UKismetMathLibrary::DegAcos(OffsetFromForward) > GetFieldOfView()/2.f) ActionRank += 5.f; //TODO: Replace arbitrary bonus
+	ActionRank += OffsetFromForward;
+	
+	return ActionRank;
 }
 
 
@@ -270,11 +279,6 @@ void APlayerCharacter::UpdateTargetSelection()
 		EyesLocation + EyesRotation.Vector() * AutotargetingRange,
 		ETraceTypeQuery::TraceTypeQuery6, true, {this, Owner}, EDrawDebugTrace::None,
 		CenteredHitResult, true);
-	AActor* CenteredActor = nullptr;
-	if(CenteredHitResult.bBlockingHit)
-	{
-		CenteredActor = CenteredHitResult.GetActor();
-	}
 	
 	TTuple<float, UTargetInformationComponent*> BestResult;
 	BestResult.Key = std::numeric_limits<float>::lowest();
@@ -315,7 +319,7 @@ void APlayerCharacter::UpdateTargetSelection()
 		//Generate a score for the target priority
 		float TotalScore = 0.f;
 		TotalScore += 0.75f * OffsetFromForward; //together with centered actor we can still reach 1.f
-		if(CenteredActor == TraceResult.GetActor()) TotalScore += 0.25f;
+		if(CenteredHitResult.bBlockingHit && CenteredHitResult.GetActor() == TraceResult.GetActor()) TotalScore += 0.25f;
 		if(GetWorld()->RealTimeSeconds - InputDirection.Key <= RememberInputDirectionTime)
 			TotalScore += 3.f * FVector::DotProduct(InputDirection.Value,
 				UKismetMathLibrary::GetDirectionUnitVector(GetActorLocation(), ActorCenter));

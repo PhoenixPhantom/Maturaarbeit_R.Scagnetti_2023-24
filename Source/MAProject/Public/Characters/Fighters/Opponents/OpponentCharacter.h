@@ -4,13 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
+#include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "OpponentCharacter.generated.h"
 
+class ACombatManager;
+class AOpponentController;
 class USavableObjectMarkerComponent;
 class UTargetInformationComponent;
 
+struct FSetFieldOfViewKey final
+{
+	friend AOpponentController;
+private:
+	FSetFieldOfViewKey(){};
+};
 
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(float, FOnGenerateAggressionScoreDelegate, AOpponentCharacter*, TargetCharacter);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenGrantedDelegate);
 
 /**
  * 
@@ -20,18 +29,22 @@ class MAPROJECT_API AOpponentCharacter : public AFighterCharacter
 {
 	GENERATED_BODY()
 public:
+	FOnAggressionTokenGrantedDelegate OnAggressionTokenGranted;
+	
 	AOpponentCharacter();
-	virtual float GetFieldOfView() const override;
+	virtual float GetFieldOfView() const override { return LocalFieldOfView; };
 
-	float GenerateAggressionScore();
-	float GetAggressionPriority(float Distance) const { return AggressionPriority * (1.f - Distance/AggressionRange); }
+	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
+	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; };
+	
+	float GenerateAggressionScore(APlayerCharacter* PlayerCharacter);
 
 protected:
 	uint8 bIsAggressive:1;
 	uint8 bCanBecomeAggressive:1;
 	uint8 bIsCurrentTarget:1;
 
-	FOnGenerateAggressionScoreDelegate OnGenerateAggressionScore;
+	float LocalFieldOfView;
 	
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
@@ -43,10 +56,14 @@ protected:
 	FSavableCharacterModifiers StatsModifiers;
 
 	UPROPERTY(EditAnywhere, Category=AI)
+	uint32 RequestedAggressionTokens;
+	
+	UPROPERTY(EditAnywhere, Category=AI)
 	float AggressionPriority;
 
 	UPROPERTY(EditAnywhere, Category=AI, AdvancedDisplay)
 	float AggressionRange;
 
 	virtual void BeginPlay() override;
+	
 };

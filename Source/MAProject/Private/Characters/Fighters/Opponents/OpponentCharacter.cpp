@@ -19,24 +19,15 @@ AOpponentCharacter::AOpponentCharacter()
 	TargetInformationComponent->SetupAttachment(RootComponent);
 }
 
-float AOpponentCharacter::GetFieldOfView() const
+float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter)
 {
-	return CastChecked<AOpponentController>(Controller)->GetFieldOfView();
-}
-
-float AOpponentCharacter::GenerateAggressionScore()
-{
-	if(!bCanBecomeAggressive) return NAN;
+	if(!bCanBecomeAggressive) return std::numeric_limits<float>::lowest();
 	float Score = 0.f;
-	if(bIsCurrentTarget) Score += 5.f; //TODO: Make this number be anything that makes sense
-	if(!OnGenerateAggressionScore.IsBound())
-	{
-		TArray<AActor*> Actors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACombatManager::StaticClass(), Actors);
-		const ACombatManager* CombatManager = CastChecked<ACombatManager>(Actors[0]);
-		OnGenerateAggressionScore.BindDynamic(CombatManager->GetPlayerCharacter(), &APlayerCharacter::OnGenerateAggressionScore);
-	}
-	Score += OnGenerateAggressionScore.Execute(this);
+	if(bIsCurrentTarget) Score += 5.f; //TODO: replace arbitrary bonus
+	//Aggression priority
+	Score += AggressionPriority * (1.f - FVector::Distance(PlayerCharacter->GetActorLocation(), GetActorLocation())/AggressionRange);
+	//Action rank
+	Score += PlayerCharacter->RequestActionRank(this);
 	return Score;
 }
 

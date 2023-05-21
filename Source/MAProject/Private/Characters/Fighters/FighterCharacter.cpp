@@ -3,7 +3,6 @@
 
 #include "Characters/Fighters/FighterCharacter.h"
 
-#include "MotionWarpingComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -36,26 +35,16 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	return RemainingHealth;
 }
 
-void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitAlreadyOverlapping, FMeleeControlsKey Key)
+void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty,
+	bool AllowHitRecentVicitms, FMeleeControlsKey Key)
 {
-	if(StartEmpty)
-	{
-		MeleeEnabledBones.Empty();		
-	}
+	if(StartEmpty) MeleeEnabledBones.Empty();
+	if(AllowHitRecentVicitms) RecentlyDamagedActors.Empty();
 	MeleeEnabledBones.Append(BonesToEnable);
-	if(AllowHitAlreadyOverlapping)
-	{
-		TArray<UPrimitiveComponent*> AlreadyOverlappingComponents;
-		GetOverlappingComponents(AlreadyOverlappingComponents);
-		for(UPrimitiveComponent* Comp : AlreadyOverlappingComponents)
-		{
-			OnMeshOverlapEvent(GetMesh(), Comp->GetOwner(),
-				Comp, INDEX_NONE, false, FHitResult());
-		}
-	}
 }
 
-void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key)
+void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors,
+	FMeleeControlsKey Key)
 {
 	if(RefreshHitActors) RecentlyDamagedActors.Empty();
 	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.Remove(BoneToDisable);

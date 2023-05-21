@@ -8,6 +8,7 @@
 #include "PlayerPartyController.generated.h"
 
 class APlayerCharacter;
+class ACombatManager;
 
 struct FSetPawnStartTransformKey final
 {
@@ -52,10 +53,9 @@ public:
 protected:
 	FTransform PawnStartTransform;
 	FCharacterStats PartyMemberStats;
-
-#if WITH_EDITORONLY_DATA
-	bool bIsDebugging = false;
-#endif
+	
+	UPROPERTY()
+	ACombatManager* CombatManager;
 	
 	UPROPERTY(EditAnywhere, SaveGame)
 	TSubclassOf<APlayerCharacter> PartyMemberClass;
@@ -67,6 +67,8 @@ protected:
 	virtual void BeginPlay() override;
 
 #if WITH_EDITORONLY_DATA
+	bool bIsDebugging = false;
+
 	UFUNCTION(CallInEditor)
 	void ToggleDebugging();
 #endif

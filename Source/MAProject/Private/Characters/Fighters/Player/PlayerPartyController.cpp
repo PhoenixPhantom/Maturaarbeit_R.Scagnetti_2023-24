@@ -3,6 +3,7 @@
 
 #include "Characters/Fighters/Player/PlayerPartyController.h"
 
+#include "Characters/Fighters/Opponents/CombatManager.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,6 +16,11 @@ void APlayerPartyController::BeginPlay()
 {
 
 	Super::BeginPlay();
+
+	TArray<AActor*> Actors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACombatManager::StaticClass(), Actors);
+	check(Actors.Num() == 1);
+	CombatManager = CastChecked<ACombatManager>(Actors[0]);
 
 	const APlayerCharacter* TargetCharacter = CastChecked<APlayerCharacter>(PartyMemberClass.GetDefaultObject());
 	PartyMemberStats.FromBase(TargetCharacter->GetCharacterBaseStats(), PartyMemberModifiers, GetWorld());
@@ -44,6 +50,7 @@ void APlayerPartyController::BeginPlay()
 
 	APlayerCharacter* NewCharacter = GetWorld()->SpawnActorDeferred<APlayerCharacter>(PartyMemberClass.Get(),
 		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	CombatManager->RegisterCombatParticipant(NewCharacter, FManageCombatParticipantsKey());
 
 	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, FPreSpawnSetupKey());
 #if WITH_EDITORONLY_DATA
