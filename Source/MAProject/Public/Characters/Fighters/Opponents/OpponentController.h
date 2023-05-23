@@ -54,6 +54,9 @@ protected:
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);
 
+	UFUNCTION()
+	void OnAggressionTokenGranted();
+
 #if WITH_EDITORONLY_DATA
 	UFUNCTION(CallInEditor)
 	void ToggleDebugging() const;

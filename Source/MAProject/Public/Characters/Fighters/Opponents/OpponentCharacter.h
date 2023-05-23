@@ -36,8 +36,13 @@ public:
 
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; };
-	
-	float GenerateAggressionScore(APlayerCharacter* PlayerCharacter);
+
+	/**
+	 * @brief Generate a score for the importance of the opponent to the player. Screen centered-ness,
+	 * distance from player and opponent preferences as well as opponent importance are taken into account
+	 * @param PlayerCharacter The player in regards to which the score is generated
+	 * @return the score >= 0.f if the opponent is allowed to become aggressive*/
+	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter);
 
 protected:
 	uint8 bIsAggressive:1;

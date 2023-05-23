@@ -75,15 +75,25 @@ void AOpponentController::BeginPlay()
 void AOpponentController::BeginDestroy()
 {
 	Super::BeginDestroy();
-	CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
+	if(IsValid(CombatManager))
+		CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
 }
 
 void AOpponentController::OnPossess(APawn* InPawn)
 {
 	RunBehaviorTree(DefaultBehaviorTree);
 	Super::OnPossess(InPawn);
+
+	//Set blackboard default values (they can't have a default value in the editor)
+	
+	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	Blackboard->SetValueAsBool("HasSensedPlayer", false);
+	
 	ControlledOpponent = CastChecked<AOpponentCharacter>(InPawn);
 	ControlledOpponent->SetLocalFieldOfView(GetFieldOfView(), FSetFieldOfViewKey());
+	ControlledOpponent->OnAggressionTokenGranted.AddDynamic(this, &AOpponentController::OnAggressionTokenGranted);
+
+	//Setup move target
 	if(!IsValid(MoveTarget))
 	{
 		FActorSpawnParameters SpawnParameters;
@@ -98,6 +108,7 @@ void AOpponentController::OnPossess(APawn* InPawn)
 
 void AOpponentController::RegisterSensedPlayer(AActor* Player)
 {
+	if(!IsValid(Player)) return;
 	Blackboard->SetValueAsBool("HasSensedPlayer", true);
 	Blackboard->SetValueAsObject("TargetObject", Player);
 	CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
@@ -105,7 +116,9 @@ void AOpponentController::RegisterSensedPlayer(AActor* Player)
 
 void AOpponentController::UnregisterSensedPlayer(AActor* Player)
 {
-	Blackboard->ClearValue("HasSensedPlayer");
+	if(!IsValid(Player)) return;
+	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	Blackboard->SetValueAsBool("HasSensedPlayer", false);
 	Blackboard->ClearValue("TargetObject");
 	CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
 }
@@ -113,6 +126,7 @@ void AOpponentController::UnregisterSensedPlayer(AActor* Player)
 
 void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
 {
+	//TODO: at the moment also detects opponents (fix that)
 	if(!Stimulus.WasSuccessfullySensed())
 	{
 		if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
@@ -127,6 +141,11 @@ void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAISti
 		if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
 		RegisterSensedPlayer(UpdatedActor);
 	}
+}
+
+void AOpponentController::OnAggressionTokenGranted()
+{
+	Blackboard->SetValueAsBool("IsActiveCombat", true);
 }
 
 #if WITH_EDITORONLY_DATA

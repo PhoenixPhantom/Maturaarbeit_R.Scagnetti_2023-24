@@ -65,9 +65,12 @@ protected:
 	TArray<FAggressionData> ActiveRequests;
 	uint32 AvailableAggressionTokens;
 	
+	
+	FAggressionData AnticipatedActive;
+	
 	UPROPERTY()
 	APlayerCharacter* PlayerCharacter;
-
+	
 	UPROPERTY()
 	TArray<AOpponentCharacter*> ActiveParticipants;
 	UPROPERTY()
@@ -78,15 +81,18 @@ protected:
 	
 	virtual void BeginPlay() override;
 
+	//Grants the requested number of tokens, if enough are available. If not, returns false.
+	bool GrantToken(const FAggressionData& AggressionData);
+
 	//Try to distribute the AvailableAggressionTokens so the highest scoring objects will be inserted
 	void AttemptDistributeRemainingTokens();
-
+	
 	/**
 	 * @brief Calculates the best possible combination of options that uses no more than the given amount of tokens
 	 * @param BestOptions Array to where the best combination of options is written
 	 * @param OptionsToFillWith the possible options from which the best options are chosen
 	 * @param TokenSpaceToFill The amount of tokens that the combination can use (if appropriate, some tokens will not be used)
 	 * @return The weighted average AggressionScore of the combination considered optimal, using RequestedTokens as weight*/
-	static float FindBestToFill(TArray<FAggressionData>& BestOptions, const TArray<FAggressionData>& OptionsToFillWith,
+	float FindBestToFill(TArray<FAggressionData>& BestOptions, const TArray<FAggressionData>& OptionsToFillWith,
 	                            uint32 TokenSpaceToFill);
 };

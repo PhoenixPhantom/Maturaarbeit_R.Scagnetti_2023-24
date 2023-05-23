@@ -87,7 +87,7 @@ float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget)
 	const float OffsetFromForward = FVector::DotProduct(EyesRotation.Vector(),
 		UKismetMathLibrary::GetDirectionUnitVector(EyesLocation, ActorCenter));
 	if(UKismetMathLibrary::DegAcos(OffsetFromForward) > GetFieldOfView()/2.f) ActionRank += 5.f; //TODO: Replace arbitrary bonus
-	ActionRank += OffsetFromForward;
+	ActionRank += 1.f + OffsetFromForward; //there should be no negative action ranks
 	
 	return ActionRank;
 }

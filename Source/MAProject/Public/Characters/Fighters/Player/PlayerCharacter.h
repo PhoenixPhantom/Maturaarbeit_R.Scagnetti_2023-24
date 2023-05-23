@@ -39,7 +39,12 @@ public:
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
 	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FPreSpawnSetupKey Key);
 
-	//Calculate the action rank the given target has in relation to the player
+
+	/**
+	 * @brief Calculate the action rank the given target has in relation to the player. This takes screen centered-ness
+	 * as well as whether the target is on-screen 
+	 * @param RankGenerationTarget the target for which we calculate the action rank 
+	 * @return the score calculated >= 0.f*/
 	float RequestActionRank(const AActor* RankGenerationTarget);
 	
 	///@return CameraBoom sub-object

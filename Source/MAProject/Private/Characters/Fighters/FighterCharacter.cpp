@@ -11,6 +11,8 @@ AFighterCharacter::AFighterCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+
+	GetMesh()->SetGenerateOverlapEvents(true);
 }
 
 void AFighterCharacter::Tick(float DeltaSeconds)
@@ -67,7 +69,7 @@ void AFighterCharacter::CheckMeshOverlaps()
 	
 	//loop through all bones that can damage targets, to find some that actually hit a target
 	FHitResult TraceResult;
-	for(FName BodyName : MeleeEnabledBones)
+	for(const FName BodyName : MeleeEnabledBones)
 	{
 		FVector Velocity = GetMesh()->GetBoneLinearVelocity(BodyName);
 		Velocity.Normalize();
