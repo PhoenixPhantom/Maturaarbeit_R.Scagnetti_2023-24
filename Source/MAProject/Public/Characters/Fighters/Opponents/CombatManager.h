@@ -23,6 +23,7 @@ private:
 struct FManageAggressionTokensKey final
 {
 	friend class ACombatManager;
+	friend class AOpponentController;
 private:
 	FManageAggressionTokensKey(){};
 };

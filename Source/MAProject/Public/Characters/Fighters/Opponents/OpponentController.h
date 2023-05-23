@@ -11,6 +11,13 @@ class UAISenseConfig_Sight;
 class AMovementTarget;
 class ACombatManager;
 
+struct FReleaseTokenKey final
+{
+	friend class UReleaseAggressionTokensTask;
+private:
+	FReleaseTokenKey(){};
+};
+
 /**
  * 
  */
@@ -26,7 +33,8 @@ public:
 	//starting to walk every time we change the MoveTo target
 	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath) override;
 
-		
+	void ReleaseAggressionToken(FReleaseTokenKey Key);
+	
 	float GetFieldOfView() const;
 	
 protected:

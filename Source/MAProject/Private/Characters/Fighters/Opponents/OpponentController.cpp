@@ -56,6 +56,12 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 	return Super::MoveTo(ResultingRequest, OutPath);
 }
 
+void AOpponentController::ReleaseAggressionToken(FReleaseTokenKey Key)
+{
+	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	CombatManager->ReleaseAggressionToken(ControlledOpponent, FManageAggressionTokensKey());
+}
+
 float AOpponentController::GetFieldOfView() const
 {
 	const UAISenseConfig_Sight* SightConfig = CastChecked<UAISenseConfig_Sight>(
