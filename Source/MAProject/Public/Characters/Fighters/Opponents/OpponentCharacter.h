@@ -29,7 +29,7 @@ class MAPROJECT_API AOpponentCharacter : public AFighterCharacter
 {
 	GENERATED_BODY()
 public:
-	FOnAggressionTokenGrantedDelegate OnAggressionTokenGranted;
+	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
 	
 	AOpponentCharacter();
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; };

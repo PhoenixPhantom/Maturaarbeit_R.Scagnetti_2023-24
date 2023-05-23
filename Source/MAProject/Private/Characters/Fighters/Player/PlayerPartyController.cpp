@@ -3,7 +3,7 @@
 
 #include "Characters/Fighters/Player/PlayerPartyController.h"
 
-#include "Characters/Fighters/Opponents/CombatManager.h"
+#include "Utility/CombatManager.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"

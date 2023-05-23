@@ -1,0 +1,162 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Characters/Fighters/Opponents/AI/OpponentController.h"
+
+#include "AI/NavigationSystemBase.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "Utility/CombatManager.h"
+#include "Characters/Fighters/Opponents/OpponentCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISenseConfig_Sight.h"
+#include "Perception/AISense_Sight.h"
+#include "Utility/NonPlayerFunctionality/MovementTarget.h"
+
+AOpponentController::AOpponentController() : CurrentTarget(nullptr), DefaultBehaviorTree(nullptr)
+{
+	PrimaryActorTick.bCanEverTick = false;
+	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
+
+	//Register OnPerceptionUpdated delegate
+	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AOpponentController::OnTargetPerceptionUpdated);
+	
+}
+
+FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
+{
+	if(!IsValid(MoveTarget)) return Super::MoveTo(MoveRequest, OutPath);
+	FAIMoveRequest ResultingRequest;
+	CurrentTarget = nullptr;
+	if(!MoveRequest.IsMoveToActorRequest())
+	{
+		MoveTarget->SetMovementTargetLocation(MoveRequest.GetGoalLocation(), FSetMovementTargetKey());
+		ResultingRequest.SetGoalActor(MoveTarget);		
+	}
+	else if(MoveRequest.GetGoalActor() != MoveTarget)
+	{
+		//CurrentTarget = MoveRequest.GetGoalActor();
+		MoveTarget->SetTargetActor(MoveRequest.GetGoalActor(), FSetMovementTargetKey());
+		ResultingRequest.SetGoalActor(MoveTarget);
+	}
+	else ResultingRequest.SetGoalActor(MoveRequest.GetGoalActor());
+
+	//Normal copy doesn't work so we have to do this
+	ResultingRequest.SetAcceptanceRadius(MoveRequest.GetAcceptanceRadius());
+	ResultingRequest.SetCanStrafe(MoveRequest.CanStrafe());
+	ResultingRequest.SetNavigationFilter(MoveRequest.GetNavigationFilter());
+	ResultingRequest.SetUsePathfinding(MoveRequest.IsUsingPathfinding());
+	ResultingRequest.SetUserData(MoveRequest.GetUserData());
+	ResultingRequest.SetUserFlags(MoveRequest.GetUserFlags());
+	ResultingRequest.SetAllowPartialPath(MoveRequest.IsUsingPartialPaths());
+	ResultingRequest.SetProjectGoalLocation(MoveRequest.IsProjectingGoal());
+	ResultingRequest.SetReachTestIncludesAgentRadius(MoveRequest.IsReachTestIncludingAgentRadius());
+	ResultingRequest.SetReachTestIncludesGoalRadius(MoveRequest.IsReachTestIncludingGoalRadius());
+	return Super::MoveTo(ResultingRequest, OutPath);
+}
+
+void AOpponentController::ReleaseAggressionToken(FReleaseTokenKey Key)
+{
+	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	CombatManager->ReleaseAggressionTokens(ControlledOpponent, FManageAggressionTokensKey());
+}
+
+float AOpponentController::GetFieldOfView() const
+{
+	const UAISenseConfig_Sight* SightConfig = CastChecked<UAISenseConfig_Sight>(
+		PerceptionComponent->GetSenseConfig(UAISense::GetSenseID<UAISense_Sight>()));
+	return SightConfig->PeripheralVisionAngleDegrees * 2.f;
+}
+
+void AOpponentController::BeginPlay()
+{
+	Super::BeginPlay();
+	//There can only be one combat manager at any given time to prevent logic problems
+	TArray<AActor*> Actors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACombatManager::StaticClass(), Actors);
+	CombatManager = CastChecked<ACombatManager>(Actors[0]);
+}
+
+void AOpponentController::BeginDestroy()
+{
+	Super::BeginDestroy();
+	if(IsValid(CombatManager))
+		CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
+}
+
+void AOpponentController::OnPossess(APawn* InPawn)
+{
+	RunBehaviorTree(DefaultBehaviorTree);
+	Super::OnPossess(InPawn);
+
+	//Set blackboard default values (they can't have a default value in the editor)
+	
+	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	Blackboard->SetValueAsBool("HasSensedPlayer", false);
+	
+	ControlledOpponent = CastChecked<AOpponentCharacter>(InPawn);
+	ControlledOpponent->SetLocalFieldOfView(GetFieldOfView(), FSetFieldOfViewKey());
+	ControlledOpponent->OnAggressionTokensGranted.AddDynamic(this, &AOpponentController::OnAggressionTokenGranted);
+
+	//Setup move target
+	if(!IsValid(MoveTarget))
+	{
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = this;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParameters.Name = ToCStr(GetPawn()->GetName() + "_MovementTarget");
+		MoveTarget = GetWorld()->SpawnActor<AMovementTarget>(AMovementTarget::StaticClass(), SpawnParameters);
+
+	}
+	MoveTarget->SetActorLocation(GetPawn()->GetActorLocation());
+}
+
+void AOpponentController::RegisterSensedPlayer(AActor* Player)
+{
+	if(!IsValid(Player)) return;
+	if(!CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey())) return;
+	Blackboard->SetValueAsBool("HasSensedPlayer", true);
+	Blackboard->SetValueAsObject("TargetObject", Player);
+}
+
+void AOpponentController::UnregisterSensedPlayer(AActor* Player)
+{
+	if(!IsValid(Player)) return;
+	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	Blackboard->SetValueAsBool("HasSensedPlayer", false);
+	Blackboard->ClearValue("TargetObject");
+	CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
+}
+
+
+void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
+{
+	//TODO: at the moment also detects opponents (fix that)
+	if(!Stimulus.WasSuccessfullySensed())
+	{
+		if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
+			GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, UpdatedActor]
+			{
+				UnregisterSensedPlayer(UpdatedActor);
+			}, 2.f, true);
+		}
+	}
+	else
+	{
+		if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
+		RegisterSensedPlayer(UpdatedActor);
+	}
+}
+
+void AOpponentController::OnAggressionTokenGranted()
+{
+	Blackboard->SetValueAsBool("IsActiveCombat", true);
+}
+
+#if WITH_EDITORONLY_DATA
+void AOpponentController::ToggleDebugging() const
+{
+	MoveTarget->SetIsDebugging(!MoveTarget->GetIsDebugging());
+}
+#endif

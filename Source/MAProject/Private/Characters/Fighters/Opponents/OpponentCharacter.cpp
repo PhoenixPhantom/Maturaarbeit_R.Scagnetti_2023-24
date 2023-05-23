@@ -3,15 +3,16 @@
 
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
-#include "Characters/Fighters/Opponents/CombatManager.h"
-#include "Characters/Fighters/Opponents/OpponentController.h"
+#include "Utility/CombatManager.h"
+#include "Characters/Fighters/Opponents/AI/OpponentController.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
-AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), RequestedAggressionTokens(1), AggressionPriority(1.f), AggressionRange(1.f)
+AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), RequestedAggressionTokens(1),
+	AggressionPriority(1.f), AggressionRange(1.f)
 {
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
 	TargetInformationComponent = CreateDefaultSubobject<UTargetInformationComponent>(TEXT("TargetInformationComp"));

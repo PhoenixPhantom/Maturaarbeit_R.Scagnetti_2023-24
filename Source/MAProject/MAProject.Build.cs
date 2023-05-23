@@ -18,7 +18,8 @@ public class MAProject : ModuleRules
 			"EnhancedInput",
 			"MotionWarping",
 			"UMG",
-			"SlateCore"
+			"SlateCore",
+			"GameplayTasks"
 		});
 	}
 }

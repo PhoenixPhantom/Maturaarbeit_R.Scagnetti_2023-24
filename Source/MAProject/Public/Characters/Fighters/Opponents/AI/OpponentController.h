@@ -1,0 +1,72 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "AIController.h"
+#include "OpponentController.generated.h"
+
+class AOpponentCharacter;
+class UAISenseConfig_Sight;
+class AMovementTarget;
+class ACombatManager;
+
+struct FReleaseTokenKey final
+{
+	friend class UReleaseAggressionTokensTask;
+private:
+	FReleaseTokenKey(){};
+};
+
+/**
+ * 
+ */
+UCLASS()
+class MAPROJECT_API AOpponentController : public AAIController
+{
+	GENERATED_BODY()
+public:
+	AOpponentController();
+
+	//We override the built in MoveTo function to make all move to requests use the custom MoveTarget so we can
+	//have a smooth interpolation when movement targets are changed on the fly instead of always stopping and then
+	//starting to walk every time we change the MoveTo target
+	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath) override;
+
+	void ReleaseAggressionToken(FReleaseTokenKey Key);
+	
+	float GetFieldOfView() const;
+	
+protected:
+	FTimerHandle LostPerceptionHandle;	
+
+	UPROPERTY()
+	AActor* CurrentTarget;
+	UPROPERTY()
+	AMovementTarget* MoveTarget;
+	UPROPERTY()
+	ACombatManager* CombatManager;
+	UPROPERTY()
+	AOpponentCharacter* ControlledOpponent;
+
+	UPROPERTY(EditAnywhere)
+	UBehaviorTree* DefaultBehaviorTree;
+
+	virtual void BeginPlay() override;
+	virtual void BeginDestroy() override;
+	virtual void OnPossess(APawn* InPawn) override;
+
+	void RegisterSensedPlayer(AActor* Player);
+	void UnregisterSensedPlayer(AActor* Player);
+
+	UFUNCTION()
+	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);
+
+	UFUNCTION()
+	void OnAggressionTokenGranted();
+
+#if WITH_EDITORONLY_DATA
+	UFUNCTION(CallInEditor)
+	void ToggleDebugging() const;
+#endif	
+};
