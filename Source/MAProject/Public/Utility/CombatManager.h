@@ -22,7 +22,6 @@ private:
 
 struct FManageAggressionTokensKey final
 {
-	friend class ACombatManager;
 	friend class AOpponentController;
 private:
 	FManageAggressionTokensKey(){};
@@ -81,6 +80,8 @@ protected:
 	uint32 MaxAggressionTokens;
 	
 	virtual void BeginPlay() override;
+
+	bool RemoveAggressionTokens(AOpponentCharacter* Participant);
 
 	//Grants the requested number of tokens, if enough are available. If not, returns false.
 	bool GrantTokens(const FAggressionData& AggressionData);

@@ -14,7 +14,23 @@
 #include "Perception/AISense_Sight.h"
 #include "Utility/NonPlayerFunctionality/MovementTarget.h"
 
-AOpponentController::AOpponentController() : CurrentTarget(nullptr), DefaultBehaviorTree(nullptr)
+void FAIMoveRequestExpanded::ForceSetGoalActor(const AActor* InGoalActor)
+{
+	GoalActor = const_cast<AActor*>(InGoalActor);
+	GoalLocation = FAISystem::InvalidLocation;
+	bMoveToActor = true;
+	bInitialized = true;
+}
+
+void FAIMoveRequestExpanded::ForceSetGoalLocation(const FVector& InGoalLocation)
+{
+	GoalActor = nullptr;
+	GoalLocation = InGoalLocation;
+	bMoveToActor = false;
+	bInitialized = true;
+}
+
+AOpponentController::AOpponentController() : DefaultBehaviorTree(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
@@ -27,33 +43,21 @@ AOpponentController::AOpponentController() : CurrentTarget(nullptr), DefaultBeha
 FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
 {
 	if(!IsValid(MoveTarget)) return Super::MoveTo(MoveRequest, OutPath);
-	FAIMoveRequest ResultingRequest;
-	CurrentTarget = nullptr;
+	FAIMoveRequestExpanded ModifiedRequest = MoveRequest;
 	if(!MoveRequest.IsMoveToActorRequest())
 	{
 		MoveTarget->SetMovementTargetLocation(MoveRequest.GetGoalLocation(), FSetMovementTargetKey());
-		ResultingRequest.SetGoalActor(MoveTarget);		
+		ModifiedRequest.ForceSetGoalActor(MoveTarget);
 	}
 	else if(MoveRequest.GetGoalActor() != MoveTarget)
 	{
-		//CurrentTarget = MoveRequest.GetGoalActor();
 		MoveTarget->SetTargetActor(MoveRequest.GetGoalActor(), FSetMovementTargetKey());
-		ResultingRequest.SetGoalActor(MoveTarget);
+		ModifiedRequest.ForceSetGoalActor(MoveTarget);
+		ModifiedRequest.SetAcceptanceRadius(ModifiedRequest.GetAcceptanceRadius() +
+			MoveRequest.GetGoalActor()->GetSimpleCollisionRadius());
 	}
-	else ResultingRequest.SetGoalActor(MoveRequest.GetGoalActor());
-
-	//Normal copy doesn't work so we have to do this
-	ResultingRequest.SetAcceptanceRadius(MoveRequest.GetAcceptanceRadius());
-	ResultingRequest.SetCanStrafe(MoveRequest.CanStrafe());
-	ResultingRequest.SetNavigationFilter(MoveRequest.GetNavigationFilter());
-	ResultingRequest.SetUsePathfinding(MoveRequest.IsUsingPathfinding());
-	ResultingRequest.SetUserData(MoveRequest.GetUserData());
-	ResultingRequest.SetUserFlags(MoveRequest.GetUserFlags());
-	ResultingRequest.SetAllowPartialPath(MoveRequest.IsUsingPartialPaths());
-	ResultingRequest.SetProjectGoalLocation(MoveRequest.IsProjectingGoal());
-	ResultingRequest.SetReachTestIncludesAgentRadius(MoveRequest.IsReachTestIncludingAgentRadius());
-	ResultingRequest.SetReachTestIncludesGoalRadius(MoveRequest.IsReachTestIncludingGoalRadius());
-	return Super::MoveTo(ResultingRequest, OutPath);
+	else ModifiedRequest.ForceSetGoalActor(MoveRequest.GetGoalActor());
+	return Super::MoveTo(ModifiedRequest, OutPath);
 }
 
 void AOpponentController::ReleaseAggressionToken(FReleaseTokenKey Key)

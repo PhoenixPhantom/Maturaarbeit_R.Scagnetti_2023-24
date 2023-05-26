@@ -36,17 +36,13 @@ bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, 
 void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
 	if(AnticipatedActive.Holder == Participant) AnticipatedActive = FAggressionData();
-	if(PassiveParticipants.Contains(Participant)) PassiveParticipants.Remove(Participant);
-	else ReleaseAggressionTokens(Participant, FManageAggressionTokensKey());
+	RemoveAggressionTokens(Participant);
+	PassiveParticipants.Remove(Participant);
 }
 
 void ACombatManager::ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key)
 {
-	if(!ActiveParticipants.Contains(Participant)) return;
-	AvailableAggressionTokens += Participant->GetRequestedTokens();
-	ActiveParticipants.Remove(Participant);
-	PassiveParticipants.Add(Participant);
-	AttemptDistributeRemainingTokens();
+	if(RemoveAggressionTokens(Participant))	AttemptDistributeRemainingTokens();
 }
 
 // Called when the game starts or when spawned
@@ -60,6 +56,15 @@ void ACombatManager::BeginPlay()
 	TArray<AActor*> Actors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACombatManager::StaticClass(), Actors);
 	check(Actors.Num() == 1 && Actors[0] == this);
+}
+
+bool ACombatManager::RemoveAggressionTokens(AOpponentCharacter* Participant)
+{
+	if(!ActiveParticipants.Contains(Participant)) return false;
+	AvailableAggressionTokens += Participant->GetRequestedTokens();
+	ActiveParticipants.Remove(Participant);
+	PassiveParticipants.Add(Participant);
+	return true;
 }
 
 bool ACombatManager::GrantTokens(const FAggressionData& AggressionData)

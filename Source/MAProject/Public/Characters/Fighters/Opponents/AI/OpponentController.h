@@ -18,6 +18,20 @@ private:
 	FReleaseTokenKey(){};
 };
 
+//We need this child class so we can easily change the GoalActor/Location of the AIMoveRequest (which is not easily
+//possible in the parent class)
+USTRUCT()
+struct FAIMoveRequestExpanded : public FAIMoveRequest
+{
+	GENERATED_BODY()
+public:
+	FAIMoveRequestExpanded() = default;
+	FAIMoveRequestExpanded(const FAIMoveRequest& Request) : FAIMoveRequest(Request){}
+	
+	void ForceSetGoalActor(const AActor* InGoalActor);
+	void ForceSetGoalLocation(const FVector& InGoalLocation);
+};
+
 /**
  * 
  */
@@ -39,9 +53,7 @@ public:
 	
 protected:
 	FTimerHandle LostPerceptionHandle;	
-
-	UPROPERTY()
-	AActor* CurrentTarget;
+	
 	UPROPERTY()
 	AMovementTarget* MoveTarget;
 	UPROPERTY()
@@ -64,6 +76,7 @@ protected:
 
 	UFUNCTION()
 	void OnAggressionTokenGranted();
+
 
 #if WITH_EDITORONLY_DATA
 	UFUNCTION(CallInEditor)
