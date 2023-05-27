@@ -20,6 +20,13 @@ ACombatManager::ACombatManager()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
+bool ACombatManager::IsParticipant(AFighterCharacter* Character) const
+{
+	if(Character == PlayerCharacter) return true;
+	if(PassiveParticipants.Contains(Character)) return true;
+	return ActiveParticipants.Contains(Character);
+}
+
 void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key)
 {
 	PlayerCharacter = PlayerParticipant;
@@ -27,7 +34,7 @@ void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipa
 
 bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
-	if(ActiveParticipants.Contains(Participant) || PassiveParticipants.Contains(Participant)) return false;
+	if(IsParticipant(Participant)) return false;
 	PassiveParticipants.Add(Participant);
 	AttemptDistributeRemainingTokens();
 	return true;
@@ -62,32 +69,57 @@ bool ACombatManager::RemoveAggressionTokens(AOpponentCharacter* Participant)
 {
 	if(!ActiveParticipants.Contains(Participant)) return false;
 	AvailableAggressionTokens += Participant->GetRequestedTokens();
-	ActiveParticipants.Remove(Participant);
-	PassiveParticipants.Add(Participant);
-	return true;
+	return MakePassiveParticipant(ActiveParticipants.Find(Participant));
 }
 
 bool ACombatManager::GrantTokens(const FAggressionData& AggressionData)
 {
-	check(PassiveParticipants.Contains(AggressionData.Holder));
+	if(!PassiveParticipants.Contains(AggressionData.Holder) || ActiveParticipants.Contains(AggressionData.Holder))
+	{
+		checkNoEntry();
+		return false;
+	}
 	if(AggressionData.RequestedTokens > AvailableAggressionTokens) return false;
-	AvailableAggressionTokens -= AnticipatedActive.RequestedTokens;
-	PassiveParticipants.Remove(AggressionData.Holder);
-	ActiveParticipants.Add(AggressionData.Holder);
+	AvailableAggressionTokens -= AggressionData.RequestedTokens;
+	MakeActiveParticipant(PassiveParticipants.Find(AggressionData.Holder));
 	AggressionData.Holder->OnAggressionTokensGranted.Broadcast();
+	return true;
+}
+
+bool ACombatManager::MakeActiveParticipant(int32 Index)
+{
+	if(!PassiveParticipants.IsValidIndex(Index))
+	{
+		checkNoEntry();
+		return false;
+	}
+	ActiveParticipants.Add(PassiveParticipants[Index]);
+	PassiveParticipants.RemoveAt(Index);
+	return true;
+}
+
+bool ACombatManager::MakePassiveParticipant(int32 Index)
+{
+	if(!ActiveParticipants.IsValidIndex(Index))
+	{
+		checkNoEntry();
+		return false;
+	}
+	PassiveParticipants.Add(ActiveParticipants[Index]);
+	ActiveParticipants.RemoveAt(Index);
 	return true;
 }
 
 void ACombatManager::AttemptDistributeRemainingTokens()
 {
-	
+	constexpr float PreferBestScorePower = 4.f;
 	if(IsValid(AnticipatedActive.Holder))
 	{
 		if(!GrantTokens(AnticipatedActive)) return;
 	}
 	
 	//Generate the aggression score for every passive participant
-	double TotalAggressionScore = 0.0;
+	double TotalAggressionScoreSquared = 0.0;
 	TArray<FAggressionData> RelevantData;
 	for(AOpponentCharacter* Participant : PassiveParticipants)
 	{
@@ -99,26 +131,31 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
 		if(Score >= 0.f)
 		{
-			TotalAggressionScore += Score;
+			TotalAggressionScoreSquared += pow(Score, PreferBestScorePower);
+			
+			GLog->Log(FString::SanitizeFloat(Score));
 			RelevantData.Add(FAggressionData(Score, Participant, RequestedTokens));
 		}
 	}
 	
-	while(AvailableAggressionTokens > 0)
+	while(AvailableAggressionTokens > 0 && !RelevantData.IsEmpty())
 	{
 		FAggressionData ChosenOption;
 		//we use double in the assignment because we could be dealing with very small numbers and we still want high accuracy
-		float RandomNumber = static_cast<double>(rand()) / static_cast<double>(RAND_MAX) * TotalAggressionScore;
+		float RandomNumber = static_cast<double>(rand()) * TotalAggressionScoreSquared / static_cast<double>(RAND_MAX);
 		for(const FAggressionData& AggressionData : RelevantData)
 		{
-			RandomNumber -= AggressionData.AggressionScore;
+			RandomNumber -= pow(AggressionData.AggressionScore, PreferBestScorePower);
 			if(RandomNumber <= 0.f)
 			{
+				
+				GLog->Log("Chose:" + FString::SanitizeFloat(AggressionData.AggressionScore));
 				ChosenOption = AggressionData;
 				break;
 			}
 		}
-		if(!IsValid(ChosenOption.Holder)) break;
+
+		//Try to grant tokens to the chosen entity
 		if(!GrantTokens(ChosenOption))
 		{
 			//if the entity cannot be granted enough tokens and other entities are can't get a token because of
@@ -126,8 +163,9 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 			if(RelevantData.Num() > 1) AnticipatedActive = ChosenOption;
 			break;
 		}
-		//if we were able to grant the token, the entity cannot be granted a token again until it releases it
+		//if we were able to grant the token, the entity cannot be granted a token again for some time
 		RelevantData.Remove(ChosenOption);
-		TotalAggressionScore -= ChosenOption.AggressionScore;
+		TotalAggressionScoreSquared -= pow(ChosenOption.AggressionScore, PreferBestScorePower);
 	}
+	GLog->Log("Ended");
 }

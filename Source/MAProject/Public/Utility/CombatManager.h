@@ -7,6 +7,7 @@
 #include "CombatManager.generated.h"
 
 
+class AFighterCharacter;
 class AOpponentCharacter;
 class APlayerCharacter;
 class APlayerPartyController;
@@ -54,6 +55,7 @@ public:
 	ACombatManager();
 
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; };
+	bool IsParticipant(AFighterCharacter* Character) const;
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);
 	bool RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key);
@@ -85,6 +87,9 @@ protected:
 
 	//Grants the requested number of tokens, if enough are available. If not, returns false.
 	bool GrantTokens(const FAggressionData& AggressionData);
+
+	bool MakeActiveParticipant(int32 Index);
+	bool MakePassiveParticipant(int32 Index);
 
 	//Try to distribute the AvailableAggressionTokens so the highest scoring objects will be inserted
 	void AttemptDistributeRemainingTokens();

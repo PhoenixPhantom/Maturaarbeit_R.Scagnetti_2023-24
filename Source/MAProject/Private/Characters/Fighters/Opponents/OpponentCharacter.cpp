@@ -24,10 +24,10 @@ float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharac
 {
 	if(!bCanBecomeAggressive) return -1.f;
 	float Score = 0.f;
-	if(bIsCurrentTarget) Score += 5.f; //TODO: replace arbitrary bonus
+	if(TargetInformationComponent->GetTargetState()) Score += 1.f; //TODO: replace arbitrary bonus
 	//Aggression priority
-	if(AggressionRange > 0.f) Score += std::max(AggressionPriority * (1.f - FVector::Distance(PlayerCharacter->GetActorLocation(),
-			GetActorLocation())/AggressionRange), 0.0);
+	if(AggressionRange > 0.f) Score += AggressionPriority * (1.f - std::min(FVector::Distance(PlayerCharacter->GetActorLocation(),
+			GetActorLocation())/AggressionRange, 1.0));
 	//Action rank
 	Score += PlayerCharacter->RequestActionRank(this);
 	return Score;

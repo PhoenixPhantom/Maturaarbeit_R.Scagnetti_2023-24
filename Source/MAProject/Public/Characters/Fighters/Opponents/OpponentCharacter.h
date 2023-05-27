@@ -45,9 +45,7 @@ public:
 	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter);
 
 protected:
-	uint8 bIsAggressive:1;
 	uint8 bCanBecomeAggressive:1;
-	uint8 bIsCurrentTarget:1;
 
 	float LocalFieldOfView;
 	
