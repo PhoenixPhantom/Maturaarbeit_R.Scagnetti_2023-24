@@ -5,20 +5,36 @@
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 
 
-UCheckIsInRangeService::UCheckIsInRangeService()
+UCheckIsInRangeService::UCheckIsInRangeService() : Target(nullptr)
 {
 	NodeName = "Check is in Range";
 	bNotifyBecomeRelevant = true;
+	bNotifyTick = true;
 }
 
 void UCheckIsInRangeService::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
-	Target = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(BlackboardKey.SelectedKeyName));
 	OwningCharacter = OwnerComp.GetAIOwner()->GetPawn();
-	if(!IsValid(Target) || !IsValid(OwningCharacter))
+	if(BlackboardKey.SelectedKeyType->IsChildOf(UBlackboardKeyType_Object::StaticClass()))
+	{
+		Target = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(BlackboardKey.SelectedKeyName));
+		if(!IsValid(Target) || !IsValid(OwningCharacter))
+		{
+			checkNoEntry();
+			bNotifyTick = false;
+		}
+	}
+	else if(BlackboardKey.SelectedKeyType->IsChildOf(UBlackboardKeyType_Vector::StaticClass()))
+	{
+		TargetLocation = OwnerComp.GetBlackboardComponent()->GetValueAsVector(BlackboardKey.SelectedKeyName);
+	}
+	else
 	{
 		checkNoEntry();
 		bNotifyTick = false;
@@ -28,6 +44,7 @@ void UCheckIsInRangeService::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp,
 void UCheckIsInRangeService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
-	if(FVector::Distance(Target->GetActorLocation(), OwningCharacter->GetActorLocation()) <= MaximalDistance)
+	if(IsValid(Target)) TargetLocation = Target->GetActorLocation();
+	if(FVector::Distance(TargetLocation, OwningCharacter->GetActorLocation()) <= MaximalDistance)
 		OwnerComp.RequestBranchEvaluation(EBTNodeResult::Succeeded);
 }

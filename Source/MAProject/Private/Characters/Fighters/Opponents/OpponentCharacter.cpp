@@ -20,6 +20,14 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), Requested
 	TargetInformationComponent->SetupAttachment(RootComponent);
 }
 
+FActiveCombatConstraint AOpponentCharacter::GetActivePositionConstraint() const
+{
+}
+
+FPassiveCombatConstraint AOpponentCharacter::GetPassivePositionConstraint() const
+{
+}
+
 float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter)
 {
 	if(!bCanBecomeAggressive) return -1.f;

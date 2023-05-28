@@ -54,7 +54,8 @@ class MAPROJECT_API ACombatManager : public AActor
 public:
 	ACombatManager();
 
-	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; };
+	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
+	FVector GetAggressivenessDependantLocation(AOpponentCharacter* OwningCharacter);
 	bool IsParticipant(AFighterCharacter* Character) const;
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);

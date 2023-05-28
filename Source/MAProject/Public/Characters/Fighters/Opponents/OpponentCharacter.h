@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
+#include "Utility/NonPlayerFunctionality/NPCRelativeConstraints.h"
 #include "OpponentCharacter.generated.h"
 
 class ACombatManager;
@@ -32,10 +33,13 @@ public:
 	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
 	
 	AOpponentCharacter();
-	virtual float GetFieldOfView() const override { return LocalFieldOfView; };
+	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
+	
+	FActiveCombatConstraint GetActivePositionConstraint() const;
+	FPassiveCombatConstraint GetPassivePositionConstraint() const;
 
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
-	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; };
+	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
 
 	/**
 	 * @brief Generate a score for the importance of the opponent to the player. Screen centered-ness,

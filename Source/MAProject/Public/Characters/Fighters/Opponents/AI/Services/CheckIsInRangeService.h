@@ -19,6 +19,8 @@ public:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 protected:
+	FVector TargetLocation;
+	
 	UPROPERTY()
 	AActor* Target;
 
@@ -27,7 +29,4 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	float MaximalDistance;
-
-	UPROPERTY(EditAnywhere)
-	FBlackboardKeySelector AbortConditionKey;
 };

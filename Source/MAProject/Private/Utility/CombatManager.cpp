@@ -20,6 +20,27 @@ ACombatManager::ACombatManager()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
+FVector ACombatManager::GetAggressivenessDependantLocation(AOpponentCharacter* OwningCharacter)
+{
+	if(!IsParticipant(OwningCharacter))
+	{
+		checkNoEntry();
+		return FVector(NAN);
+	}
+
+	
+	
+	if(PassiveParticipants.Contains(OwningCharacter))
+	{
+		OwningCharacter->GetActivePositionConstraint();
+	}
+	else
+	{
+		OwningCharacter->GetPassivePositionConstraint();
+	}
+	return FVector();
+}
+
 bool ACombatManager::IsParticipant(AFighterCharacter* Character) const
 {
 	if(Character == PlayerCharacter) return true;
