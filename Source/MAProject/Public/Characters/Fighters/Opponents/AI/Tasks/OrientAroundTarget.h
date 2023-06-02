@@ -20,8 +20,11 @@ public:
 	
 protected:
 	FAIRequestID RequestId;
-	UBehaviorTreeComponent* OwnerBehaviorTree;
 	uint8* LocalNodeMemory;
+
+	
+	UPROPERTY()
+	UBehaviorTreeComponent* OwnerBehaviorTree;
 	
 	UPROPERTY(EditAnywhere, meta=(ToolTip="Wheather AI should be oriented as a aggressive or passive entity"))
 	bool bOrientAggressively;

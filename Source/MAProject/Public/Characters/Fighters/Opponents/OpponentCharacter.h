@@ -6,6 +6,7 @@
 #include "Characters/Fighters/FighterCharacter.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Utility/NonPlayerFunctionality/NPCRelativeConstraints.h"
+#include "Utility/NonPlayerFunctionality/PlayerRelativeConstraints.h"
 #include "OpponentCharacter.generated.h"
 
 class ACombatManager;
@@ -34,10 +35,13 @@ public:
 	
 	AOpponentCharacter();
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
-	
-	FActiveCombatConstraint GetActivePositionConstraint() const;
-	FPassiveCombatConstraint GetPassivePositionConstraint() const;
 
+	
+	FActiveCombatConstraint GetActivePositionConstraint() const{ return ActiveCombatConstraint; };
+	FPlayerDistanceConstraint GetActivePlayerDistanceConstraint() const { return ActivePlayerDistanceConstraint; };
+	FPassiveCombatConstraint GetPassivePositionConstraint() const{ return PassiveCombatConstraint; };
+	FPlayerDistanceConstraint GetPassivePlayerDistanceConstraint() const{ return PassivePlayerDistanceConstraint; };
+	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
 
@@ -46,12 +50,16 @@ public:
 	 * distance from player and opponent preferences as well as opponent importance are taken into account
 	 * @param PlayerCharacter The player in regards to which the score is generated
 	 * @return the score >= 0.f if the opponent is allowed to become aggressive*/
-	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter);
+	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const;
 
 protected:
 	uint8 bCanBecomeAggressive:1;
 
 	float LocalFieldOfView;
+
+	
+	UPROPERTY(SaveGame)
+	FSavableCharacterModifiers StatsModifiers;
 	
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
@@ -59,9 +67,18 @@ protected:
 	UPROPERTY(EditAnywhere)
 	UTargetInformationComponent* TargetInformationComponent;
 
-	UPROPERTY(SaveGame)
-	FSavableCharacterModifiers StatsModifiers;
+	UPROPERTY(EditAnywhere, Category=Combat)
+	FActiveCombatConstraint ActiveCombatConstraint;
 
+	UPROPERTY(EditAnywhere, Category=Combat)
+	FPlayerDistanceConstraint ActivePlayerDistanceConstraint;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	FPassiveCombatConstraint PassiveCombatConstraint;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	FPlayerDistanceConstraint PassivePlayerDistanceConstraint;
+	
 	UPROPERTY(EditAnywhere, Category=AI)
 	uint32 RequestedAggressionTokens;
 	

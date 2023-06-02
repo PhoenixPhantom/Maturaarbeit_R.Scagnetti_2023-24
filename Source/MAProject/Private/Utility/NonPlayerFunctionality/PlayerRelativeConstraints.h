@@ -14,7 +14,11 @@ struct MAPROJECT_API FPlayerRelativeConstraint : public FPositionalConstraint
 {
 	GENERATED_BODY();
 public:
-	virtual bool IsConstraintSatisfied(FVector Position) override;
+	UPROPERTY()
+	AActor* Player;
+	
+	FPlayerRelativeConstraint() : FPositionalConstraint(), Player(nullptr){}
+	FPlayerRelativeConstraint(AActor* SourcePlayer) : FPositionalConstraint(), Player(SourcePlayer){}
 };
 
 
@@ -26,7 +30,12 @@ struct MAPROJECT_API FPlayerDistanceConstraint : public FPlayerRelativeConstrain
 {
 	GENERATED_BODY();
 public:
-	virtual bool IsConstraintSatisfied(FVector Position) override;
+	UPROPERTY(EditAnywhere)
+	float MaxRadius;
+	UPROPERTY(EditAnywhere)
+	float MinRadius;
+	
+	virtual bool IsConstraintSatisfied(FVector Position) const override;
 };
 
 /* The constraint imposed by dividing the world into zones
@@ -37,5 +46,22 @@ struct MAPROJECT_API FPlayerRelativeWorldZoneConstraint : public FPlayerRelative
 {
 	GENERATED_BODY();
 public:
-	virtual bool IsConstraintSatisfied(FVector Position) override;
+	enum EWorldConstraintZone : uint8
+	{
+		Invalid,
+		Northeast,
+		Northwest,
+		Southwest,
+		Southeast
+	};
+
+	EWorldConstraintZone ConstraintZone;
+
+	FPlayerRelativeWorldZoneConstraint() : FPlayerRelativeConstraint(), ConstraintZone(Invalid)	{}
+
+	FPlayerRelativeWorldZoneConstraint(AActor* SourcePlayer) : FPlayerRelativeConstraint(SourcePlayer),
+	ConstraintZone(Invalid){}
+	
+	virtual bool IsConstraintSatisfied(FVector Position) const override{ return CalculateTargetZone(Position) == ConstraintZone; }
+	EWorldConstraintZone CalculateTargetZone(FVector TargetPosition) const;
 };

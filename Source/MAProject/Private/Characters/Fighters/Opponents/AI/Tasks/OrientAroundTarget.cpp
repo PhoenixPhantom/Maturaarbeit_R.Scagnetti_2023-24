@@ -23,7 +23,7 @@ EBTNodeResult::Type UOrientAroundTarget::ExecuteTask(UBehaviorTreeComponent& Own
 
 	
 	ACombatManager* CombatManager = OwningController->GetCombatManager();
-	FVector TargetLocation = CombatManager->GetAggressivenessDependantLocation(OwningCharacter);
+	const FVector TargetLocation = CombatManager->GetAggressivenessDependantLocation(OwningCharacter);
 	
 	const FPathFollowingRequestResult RequestResult = OwningController->MoveTo(TargetLocation);
 	RequestId = RequestResult.MoveId;

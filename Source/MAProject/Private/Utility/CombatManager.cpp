@@ -27,18 +27,56 @@ FVector ACombatManager::GetAggressivenessDependantLocation(AOpponentCharacter* O
 		checkNoEntry();
 		return FVector(NAN);
 	}
+	const FVector OpponentLocation = OwningCharacter->GetActorLocation();
 
 	
+	TArray<FPositionalConstraint> PositionalConstraints;
+	GetPositionalConstraints(PositionalConstraints);
 	
-	if(PassiveParticipants.Contains(OwningCharacter))
+	FPlayerDistanceConstraint PlayerDistanceConstraint;
+	if(ActiveParticipants.Contains(OwningCharacter)) PlayerDistanceConstraint = OwningCharacter->GetActivePlayerDistanceConstraint();
+	else PlayerDistanceConstraint = OwningCharacter->GetPassivePlayerDistanceConstraint();
+	PlayerDistanceConstraint.Player = PlayerCharacter;
+	PositionalConstraints.Add(PlayerDistanceConstraint);
+
+	FPlayerRelativeWorldZoneConstraint ZoneConstraint(PlayerCharacter);
+	ZoneConstraint.ConstraintZone = ZoneConstraint.CalculateTargetZone(OpponentLocation);
+	PositionalConstraints.Add(ZoneConstraint);
+
+	//We only have to expensively find a new location if the current one isn't good anymore
+	bool AreAllSatisfied = true;
+	for(const FPositionalConstraint& Constraint : PositionalConstraints)
 	{
-		OwningCharacter->GetActivePositionConstraint();
+		if(!Constraint.IsConstraintSatisfied(OpponentLocation))
+		{
+			AreAllSatisfied = false;
+			break;
+		}
 	}
-	else
+	if(AreAllSatisfied) return OpponentLocation;
+	
+	FVector Location;
+	FRotator Rotation;
+	OwningCharacter->GetActorEyesViewPoint(Location, Rotation);
+	return SampleGetClosestValid(OwningCharacter->GetActorLocation(), Rotation.Vector() * 100.f,
+		50.f, PositionalConstraints);
+}
+
+void ACombatManager::GetPositionalConstraints(TArray<FPositionalConstraint>& PositionalConstraints,
+                                              const AOpponentCharacter* Excepted)
+{
+	for(const AOpponentCharacter* Passive : PassiveParticipants)
 	{
-		OwningCharacter->GetPassivePositionConstraint();
+		if(Passive == Excepted) continue;
+		FPassiveCombatConstraint PassiveCombatConstraint = Passive->GetPassivePositionConstraint();
+		PassiveCombatConstraint.OrientationCenter = PlayerCharacter;
+		PositionalConstraints.Add(PassiveCombatConstraint);
 	}
-	return FVector();
+	for(const AOpponentCharacter* Active : ActiveParticipants)
+	{
+		if(Active == Excepted) continue;
+		PositionalConstraints.Add(Active->GetActivePositionConstraint());
+	}
 }
 
 bool ACombatManager::IsParticipant(AFighterCharacter* Character) const

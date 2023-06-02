@@ -56,6 +56,7 @@ public:
 
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
 	FVector GetAggressivenessDependantLocation(AOpponentCharacter* OwningCharacter);
+	void GetPositionalConstraints(TArray<FPositionalConstraint>& PositionalConstraints, const AOpponentCharacter* Excepted = nullptr);
 	bool IsParticipant(AFighterCharacter* Character) const;
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);

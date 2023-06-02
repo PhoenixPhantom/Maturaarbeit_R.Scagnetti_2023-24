@@ -20,15 +20,7 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), Requested
 	TargetInformationComponent->SetupAttachment(RootComponent);
 }
 
-FActiveCombatConstraint AOpponentCharacter::GetActivePositionConstraint() const
-{
-}
-
-FPassiveCombatConstraint AOpponentCharacter::GetPassivePositionConstraint() const
-{
-}
-
-float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter)
+float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const
 {
 	if(!bCanBecomeAggressive) return -1.f;
 	float Score = 0.f;
@@ -45,6 +37,8 @@ void AOpponentCharacter::BeginPlay()
 {
 	CharacterStats = new FCharacterStats();
 	CharacterStats->FromBase(BaseStats, StatsModifiers, GetWorld());
+	ActiveCombatConstraint.Npc = this;
+	PassiveCombatConstraint.Npc = this;
 	Super::BeginPlay();
 }
 
