@@ -24,9 +24,10 @@ public:
  * @param SpacedStartDirection The direction where the first sample of each circle will be taken and the spacing between every circle
  * @param Distribution How far the sample points are from each other
  * @param RelevantConstraints The constraints that have to be met for a point to be considered valid
- * @return the closest valid point if there is one that can be found in max_val(int32) test cycles*/
-static FVector SampleGetClosestValid(const FVector& SourcePoint, const FVector& SpacedStartDirection, float Distribution,
-                                     const TArray<FPositionalConstraint>& RelevantConstraints);
+ * @param MaxSampleRange The maximal range in which samples will be taken
+ * @return the closest valid point if there is one inside MaxSampleRange*/
+FVector SampleGetClosestValid(const FVector& SourcePoint, const FVector& SpacedStartDirection, float Distribution,
+                              const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange);
 
-static bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-	const TArray<FPositionalConstraint>& RelevantConstraints);
+bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
+	const TArray<const FPositionalConstraint*>& RelevantConstraints);

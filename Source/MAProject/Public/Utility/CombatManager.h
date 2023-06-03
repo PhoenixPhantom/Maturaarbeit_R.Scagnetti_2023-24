@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "CombatManager.generated.h"
 
 
@@ -56,7 +57,7 @@ public:
 
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
 	FVector GetAggressivenessDependantLocation(AOpponentCharacter* OwningCharacter);
-	void GetPositionalConstraints(TArray<FPositionalConstraint>& PositionalConstraints, const AOpponentCharacter* Excepted = nullptr);
+	void GetPositionalConstraints(TArray<const FPositionalConstraint*>& PositionalConstraints, const AOpponentCharacter* Excepted = nullptr);
 	bool IsParticipant(AFighterCharacter* Character) const;
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);

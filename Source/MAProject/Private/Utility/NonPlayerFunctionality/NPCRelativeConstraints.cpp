@@ -5,20 +5,20 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
-FPassiveCombatConstraint::FPassiveCombatConstraint(): FNpcRelativeConstraint(), VerticalSize(0), HorizontalSize(0),
-                                                      OrientationCenter(nullptr)
+FPassiveCombatConstraint::FPassiveCombatConstraint() : FNpcRelativeConstraint(), OrientationCenter(nullptr),
+	VerticalSize(100.f), HorizontalSize(100.f)
 {}
 
-FPassiveCombatConstraint::FPassiveCombatConstraint(AActor* SourceNpc, AActor* SourceOrientationCenter):
-	FNpcRelativeConstraint(SourceNpc), VerticalSize(0), HorizontalSize(0),
-	OrientationCenter(SourceOrientationCenter)
+FPassiveCombatConstraint::FPassiveCombatConstraint(AActor* SourceNpc, AActor* SourceOrientationCenter) :
+	FNpcRelativeConstraint(SourceNpc), OrientationCenter(SourceOrientationCenter), VerticalSize(100.f),
+	HorizontalSize(100.f)
 {}
 
 bool FPassiveCombatConstraint::IsConstraintSatisfied(FVector Position) const
 {
 	FVector Direction;
 	float DistanceFromCenter;
-	(Npc->GetActorLocation() - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
+	((Npc->GetActorLocation() + PositionOffset) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
 		DistanceFromCenter);
 	const float ActualRadius = DistanceFromCenter - VerticalSize/2.f;
 	const float DotProduct = FVector::DotProduct(Direction,

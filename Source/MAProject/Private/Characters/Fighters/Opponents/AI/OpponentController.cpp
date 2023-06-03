@@ -122,6 +122,7 @@ void AOpponentController::RegisterSensedPlayer(AActor* Player)
 	if(!CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey())) return;
 	Blackboard->SetValueAsBool("HasSensedPlayer", true);
 	Blackboard->SetValueAsObject("TargetObject", Player);
+	ControlledOpponent->RegisterPlayerOpponent(Player, FSetPlayerOpponentKey());
 }
 
 void AOpponentController::UnregisterSensedPlayer(AActor* Player)

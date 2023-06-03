@@ -4,35 +4,39 @@
 #include "PositionalConstraint.h"
 
 FVector SampleGetClosestValid(const FVector& SourcePoint, const FVector& SpacedStartDirection, float Distribution,
-	const TArray<FPositionalConstraint>& RelevantConstraints)
+                              const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange)
 {
-	const float ValidDistribution = std::round(Distribution);
 	for(int32 i = 1; i > 0; i++)
 	{
 		FVector Direction = SpacedStartDirection * i;
+		const double DirectionLength = Direction.Length();
+		if(DirectionLength > MaxSampleRange) return FVector(NAN);
+		
+		const double RadiusDistance = DOUBLE_PI * 2.0 * DirectionLength;
+		const int32 Steps = std::round(RadiusDistance / Distribution);
+		const double RotationPerStep = Distribution/RadiusDistance;
+
 		TArray<FVector> SamplePoints;
 		SamplePoints.Add(Direction);
-		const float RotationPerTurn = PI * 2.f * Direction.Length() / ValidDistribution;
-		for(int32 j = 1; j < ValidDistribution ; j++)
+		for(int32 j = 1; j < Steps; j++)
 		{
-			SamplePoints.Add(Direction.RotateAngleAxisRad(RotationPerTurn, FVector(0.f, 0.f, 1.f)) + SourcePoint);
+			SamplePoints.Add(SourcePoint + Direction.RotateAngleAxisRad(RotationPerStep, FVector(0.f, 0.f, 1.f)));
 		}
 		FVector Result;
 		if(CheckSamplesForFirstValid(Result, SamplePoints, RelevantConstraints)) return Result;
 	}
-	checkNoEntry();
-	return FVector(NAN);
+	return {};
 }
 
 bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-	const TArray<FPositionalConstraint>& RelevantConstraints)
+                               const TArray<const FPositionalConstraint*>& RelevantConstraints)
 {
 	for(const FVector& SamplePoint : SamplePoints)
 	{
 		bool AreAllSatisfied = true;
-		for(const FPositionalConstraint& Constraint : RelevantConstraints)
+		for(const FPositionalConstraint* Constraint : RelevantConstraints)
 		{
-			if(!Constraint.IsConstraintSatisfied(SamplePoint))
+			if(!Constraint->IsConstraintSatisfied(SamplePoint))
 			{
 				AreAllSatisfied = false;
 				break;

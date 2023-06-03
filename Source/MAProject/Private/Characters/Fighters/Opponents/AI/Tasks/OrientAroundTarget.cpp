@@ -19,11 +19,13 @@ EBTNodeResult::Type UOrientAroundTarget::ExecuteTask(UBehaviorTreeComponent& Own
 	LocalNodeMemory = NodeMemory;
 	AOpponentController* OwningController = CastChecked<AOpponentController>(OwnerComp.GetAIOwner());
 	AOpponentCharacter* OwningCharacter = CastChecked<AOpponentCharacter>(OwningController->GetPawn());
-	OwningController->ReceiveMoveCompleted.AddDynamic(this, &UOrientAroundTarget::OnMoveCompleted);
+	if(!OwningController->ReceiveMoveCompleted.IsAlreadyBound(this, &UOrientAroundTarget::OnMoveCompleted))
+		OwningController->ReceiveMoveCompleted.AddDynamic(this, &UOrientAroundTarget::OnMoveCompleted);
 
 	
 	ACombatManager* CombatManager = OwningController->GetCombatManager();
 	const FVector TargetLocation = CombatManager->GetAggressivenessDependantLocation(OwningCharacter);
+	if(TargetLocation.ContainsNaN()) return EBTNodeResult::Failed;
 	
 	const FPathFollowingRequestResult RequestResult = OwningController->MoveTo(TargetLocation);
 	RequestId = RequestResult.MoveId;

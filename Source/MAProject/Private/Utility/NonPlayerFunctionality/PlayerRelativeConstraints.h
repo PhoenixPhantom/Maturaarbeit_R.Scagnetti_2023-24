@@ -34,6 +34,10 @@ public:
 	float MaxRadius;
 	UPROPERTY(EditAnywhere)
 	float MinRadius;
+
+	FPlayerDistanceConstraint() : FPlayerRelativeConstraint(), MaxRadius(300.f), MinRadius(200.f){}
+	FPlayerDistanceConstraint(AActor* SourcePlayer) : FPlayerRelativeConstraint(SourcePlayer),
+		MaxRadius(300.f), MinRadius(200.f){}
 	
 	virtual bool IsConstraintSatisfied(FVector Position) const override;
 };

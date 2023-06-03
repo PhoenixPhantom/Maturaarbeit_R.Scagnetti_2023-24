@@ -20,6 +20,13 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), Requested
 	TargetInformationComponent->SetupAttachment(RootComponent);
 }
 
+void AOpponentCharacter::RegisterPlayerOpponent(AActor* NewOpponent, FSetPlayerOpponentKey Key)
+{
+	PassiveCombatConstraint.OrientationCenter = NewOpponent;
+	ActivePlayerDistanceConstraint.Player = NewOpponent;
+	PassivePlayerDistanceConstraint.Player = NewOpponent;
+}
+
 float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const
 {
 	if(!bCanBecomeAggressive) return -1.f;

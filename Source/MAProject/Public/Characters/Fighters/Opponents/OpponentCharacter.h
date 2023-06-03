@@ -21,6 +21,13 @@ private:
 	FSetFieldOfViewKey(){};
 };
 
+struct FSetPlayerOpponentKey final
+{
+	friend AOpponentController;
+private:
+	FSetPlayerOpponentKey(){};
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenGrantedDelegate);
 
 /**
@@ -37,12 +44,13 @@ public:
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
 
 	
-	FActiveCombatConstraint GetActivePositionConstraint() const{ return ActiveCombatConstraint; };
-	FPlayerDistanceConstraint GetActivePlayerDistanceConstraint() const { return ActivePlayerDistanceConstraint; };
-	FPassiveCombatConstraint GetPassivePositionConstraint() const{ return PassiveCombatConstraint; };
-	FPlayerDistanceConstraint GetPassivePlayerDistanceConstraint() const{ return PassivePlayerDistanceConstraint; };
+	const FActiveCombatConstraint* GetActivePositionConstraint() const{ return &ActiveCombatConstraint; };
+	const FPlayerDistanceConstraint* GetActivePlayerDistanceConstraint() const { return &ActivePlayerDistanceConstraint; };
+	const FPassiveCombatConstraint* GetPassivePositionConstraint() const{ return &PassiveCombatConstraint; };
+	const FPlayerDistanceConstraint* GetPassivePlayerDistanceConstraint() const{ return &PassivePlayerDistanceConstraint; };
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
+	void RegisterPlayerOpponent(AActor* NewOpponent, FSetPlayerOpponentKey Key);
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
 
 	/**
