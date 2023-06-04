@@ -40,6 +40,11 @@ public:
 		MaxRadius(300.f), MinRadius(200.f){}
 	
 	virtual bool IsConstraintSatisfied(FVector Position) const override;
+
+#if WITH_EDITORONLY_DATA
+	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
+	void DrawOldConstraintDebug(UWorld* World, const FVector& Position, FLinearColor DebugColor, float ShowTime) const;
+#endif
 };
 
 /* The constraint imposed by dividing the world into zones
@@ -68,4 +73,9 @@ public:
 	
 	virtual bool IsConstraintSatisfied(FVector Position) const override{ return CalculateTargetZone(Position) == ConstraintZone; }
 	EWorldConstraintZone CalculateTargetZone(FVector TargetPosition) const;
+
+#if WITH_EDITORONLY_DATA
+	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
+	void DrawOldConstraintDebug(UWorld* World, const FVector& Position, FLinearColor DebugColor, float ShowTime) const;
+#endif
 };

@@ -22,22 +22,22 @@ EBTNodeResult::Type UOrientAroundTarget::ExecuteTask(UBehaviorTreeComponent& Own
 	if(!OwningController->ReceiveMoveCompleted.IsAlreadyBound(this, &UOrientAroundTarget::OnMoveCompleted))
 		OwningController->ReceiveMoveCompleted.AddDynamic(this, &UOrientAroundTarget::OnMoveCompleted);
 
-	
-	ACombatManager* CombatManager = OwningController->GetCombatManager();
-	const FVector TargetLocation = CombatManager->GetAggressivenessDependantLocation(OwningCharacter);
-	if(TargetLocation.ContainsNaN()) return EBTNodeResult::Failed;
+
+	FVector TargetLocation;
+	if(!OwningController->GetCombatManager()->
+		GetAggressivenessDependantLocation(TargetLocation, OwningCharacter)) return EBTNodeResult::Failed;
 	
 	const FPathFollowingRequestResult RequestResult = OwningController->MoveTo(TargetLocation);
 	RequestId = RequestResult.MoveId;
-	if (RequestResult.Code == EPathFollowingRequestResult::AlreadyAtGoal) return EBTNodeResult::Succeeded;
+	if(RequestResult.Code == EPathFollowingRequestResult::AlreadyAtGoal) return EBTNodeResult::Succeeded;
 	if(RequestResult.Code == EPathFollowingRequestResult::RequestSuccessful) return EBTNodeResult::InProgress;
+	//=> RequestResult.Code == EPathFollowingRequestResult::Failed
 	return EBTNodeResult::Failed;
 }
 
 void UOrientAroundTarget::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result)
 {
 	if(RequestId != RequestID) return;
-	const EBTNodeResult::Type TaskResult = ExecuteTask(*OwnerBehaviorTree, LocalNodeMemory);
-	if(TaskResult == EBTNodeResult::InProgress) return;
-	FinishLatentTask(*OwnerBehaviorTree, TaskResult);
+	if(const EBTNodeResult::Type TaskResult = ExecuteTask(*OwnerBehaviorTree, LocalNodeMemory);
+		TaskResult != EBTNodeResult::InProgress) FinishLatentTask(*OwnerBehaviorTree, TaskResult);
 }

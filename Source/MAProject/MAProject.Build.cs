@@ -19,7 +19,8 @@ public class MAProject : ModuleRules
 			"MotionWarping",
 			"UMG",
 			"SlateCore",
-			"GameplayTasks"
+			"GameplayTasks",
+			"NavigationSystem"
 		});
 	}
 }

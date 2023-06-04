@@ -17,34 +17,61 @@ bool FAggressionData::operator==(const FAggressionData& AggressionData) const
 // Sets default values
 ACombatManager::ACombatManager()
 {
+#if WITH_EDITORONLY_DATA
+	PrimaryActorTick.bCanEverTick = true;
+#else
 	PrimaryActorTick.bCanEverTick = false;
+#endif
 }
 
-FVector ACombatManager::GetAggressivenessDependantLocation(AOpponentCharacter* OwningCharacter)
+bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocation, AOpponentCharacter* OwningCharacter)
 {
 	if(!IsParticipant(OwningCharacter))
 	{
-		checkNoEntry();
-		return FVector(NAN);
+		UE_LOG(LogTemp, Warning, TEXT("Try getting egressiveness dependant location for a non-combat engaged entity."));
+		return false;
 	}
 	const FVector OpponentLocation = OwningCharacter->GetActorLocation();
 
+
+	TArray<const FPositionalConstraint*> RelevantConstraints = PositionalConstraints;
+	//we have to remove all constraints imposed by the entity we want to move
+	//(otherwise, wherever it stands will not be valid as something (itself) is already there)
+	RelevantConstraints.RemoveAll([OwningCharacter](const FPositionalConstraint* Constraint)
+	{ return Constraint->Owner == OwningCharacter; });
+
 	
-	TArray<const FPositionalConstraint*> PositionalConstraints;
-	GetPositionalConstraints(PositionalConstraints);
-	
+	//Instead add the constraints that are specific to this entity
 	const FPlayerDistanceConstraint* PlayerDistanceConstraint;
 	if(ActiveParticipants.Contains(OwningCharacter)) PlayerDistanceConstraint = OwningCharacter->GetActivePlayerDistanceConstraint();
 	else PlayerDistanceConstraint = OwningCharacter->GetPassivePlayerDistanceConstraint();
-	PositionalConstraints.Add(PlayerDistanceConstraint);
+	RelevantConstraints.Add(PlayerDistanceConstraint);
 
-	FPlayerRelativeWorldZoneConstraint* ZoneConstraint = new FPlayerRelativeWorldZoneConstraint(PlayerCharacter);
-	ZoneConstraint->ConstraintZone = ZoneConstraint->CalculateTargetZone(OpponentLocation);
-	PositionalConstraints.Add(ZoneConstraint);
+	FPlayerRelativeWorldZoneConstraint* PlayerZoneConstraint = new FPlayerRelativeWorldZoneConstraint(PlayerCharacter);
+	PlayerZoneConstraint->ConstraintZone = PlayerZoneConstraint->CalculateTargetZone(OpponentLocation);
+	RelevantConstraints.Add(PlayerZoneConstraint);
 
+#if WITH_EDITORONLY_DATA
+	if(bIsDebugging)
+	{
+		//Debug shapes should be shown for 10s (but only when there is no more recent debug shape)
+		DebugImagesToDraw.Key = 10.f;
+		DebugImagesToDraw.Value.Clear();
+		DebugImagesToDraw.Value.AddLambda([DistanceConstraint = *PlayerDistanceConstraint,
+			ZoneConstraint = *PlayerZoneConstraint, World = GetWorld(),
+			DCPosition = PlayerDistanceConstraint->Player->GetActorLocation(),
+			ZCPosition = PlayerZoneConstraint->Player->GetActorLocation()]
+		{
+			DistanceConstraint.DrawOldConstraintDebug(World, DCPosition, FLinearColor(0, 255, 0), 0.f);
+			ZoneConstraint.DrawOldConstraintDebug(World, ZCPosition, FLinearColor(0, 255, 0), 0.f);
+		});
+		
+	}
+#endif
+	
 	//We only have to expensively find a new location if the current one isn't good anymore
 	bool AreAllSatisfied = true;
-	for(const FPositionalConstraint* Constraint : PositionalConstraints)
+	for(const FPositionalConstraint* Constraint : RelevantConstraints)
 	{
 		if(!Constraint->IsConstraintSatisfied(OpponentLocation))
 		{
@@ -52,29 +79,25 @@ FVector ACombatManager::GetAggressivenessDependantLocation(AOpponentCharacter* O
 			break;
 		}
 	}
-	if(AreAllSatisfied) return OpponentLocation;
-	
+	if(AreAllSatisfied)
+	{
+		ResultingLocation = OpponentLocation;
+		return true;
+	}
+
 	FVector Location;
 	FRotator Rotation;
 	OwningCharacter->GetActorEyesViewPoint(Location, Rotation);
-	return SampleGetClosestValid(OwningCharacter->GetActorLocation(), Rotation.Vector() * 100.f,
-	                             50.f, PositionalConstraints, 10000.f);
-}
-
-void ACombatManager::GetPositionalConstraints(TArray<const FPositionalConstraint*>& PositionalConstraints,
-                                              const AOpponentCharacter* Excepted)
-{
-	for(const AOpponentCharacter* Passive : PassiveParticipants)
-	{
-		if(Passive == Excepted) continue;
-		const FPassiveCombatConstraint* PassiveCombatConstraint = Passive->GetPassivePositionConstraint();
-		PositionalConstraints.Add(PassiveCombatConstraint);
-	}
-	for(const AOpponentCharacter* Active : ActiveParticipants)
-	{
-		if(Active == Excepted) continue;
-		PositionalConstraints.Add(Active->GetActivePositionConstraint());
-	}
+	FVector ProjectedRotation = Rotation.Vector();
+	ProjectedRotation.Z = 0;
+	ProjectedRotation.Normalize();
+	return SampleGetClosestValid(ResultingLocation, OwningCharacter->GetActorLocation(),
+	                             ProjectedRotation * 100.f, 50.f, RelevantConstraints,
+	                             5000.f, GetWorld()
+#if WITH_EDITORONLY_DATA
+	                             , bIsDebugging
+#endif
+	);
 }
 
 bool ACombatManager::IsParticipant(AFighterCharacter* Character) const
@@ -92,6 +115,7 @@ void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipa
 bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
 	if(IsParticipant(Participant)) return false;
+	PositionalConstraints.Add(Participant->GetPassivePositionConstraint());
 	PassiveParticipants.Add(Participant);
 	AttemptDistributeRemainingTokens();
 	return true;
@@ -108,6 +132,39 @@ void ACombatManager::ReleaseAggressionTokens(AOpponentCharacter* Participant, FM
 {
 	if(RemoveAggressionTokens(Participant))	AttemptDistributeRemainingTokens();
 }
+
+#if WITH_EDITORONLY_DATA
+void ACombatManager::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if(bIsDebugging)
+	{
+		for(const FPositionalConstraint* Constraint : PositionalConstraints)
+		{
+			Constraint->DrawConstraintDebug(GetWorld(), FLinearColor(0, 0, 0), 0);
+		}
+
+		for(const AOpponentCharacter* OpponentCharacter : PassiveParticipants)
+		{
+			UKismetSystemLibrary::DrawDebugCircle(GetWorld(), OpponentCharacter->GetActorLocation(), 100.f,
+		50, FLinearColor(0, 0, 255), 0, 20.f, FVector(0, 1, 0),
+		FVector(1, 0, 0));
+		}
+		for(const AOpponentCharacter* OpponentCharacter : ActiveParticipants)
+		{
+			UKismetSystemLibrary::DrawDebugCircle(GetWorld(), OpponentCharacter->GetActorLocation(), 100.f,
+		50, FLinearColor(255, 0, 0), 0, 20.f, FVector(0, 1, 0),
+		FVector(1, 0, 0));
+		}
+		
+		if(DebugImagesToDraw.Key > 0.f)
+		{
+			DebugImagesToDraw.Key -= DeltaSeconds;
+			DebugImagesToDraw.Value.Broadcast();
+		}
+	}
+}
+#endif
 
 // Called when the game starts or when spawned
 void ACombatManager::BeginPlay()
@@ -150,6 +207,10 @@ bool ACombatManager::MakeActiveParticipant(int32 Index)
 		checkNoEntry();
 		return false;
 	}
+	PositionalConstraints.RemoveAll(
+		[Participant = PassiveParticipants[Index]](const FPositionalConstraint* Constraint)
+					{ return Constraint->Owner == Participant; });
+	PositionalConstraints.Add(PassiveParticipants[Index]->GetActivePositionConstraint());
 	ActiveParticipants.Add(PassiveParticipants[Index]);
 	PassiveParticipants.RemoveAt(Index);
 	return true;
@@ -162,6 +223,10 @@ bool ACombatManager::MakePassiveParticipant(int32 Index)
 		checkNoEntry();
 		return false;
 	}
+	PositionalConstraints.RemoveAll(
+		[Participant = ActiveParticipants[Index]](const FPositionalConstraint* Constraint)
+					{ return Constraint->Owner == Participant; });
+	PositionalConstraints.Add(ActiveParticipants[Index]->GetPassivePositionConstraint());
 	PassiveParticipants.Add(ActiveParticipants[Index]);
 	ActiveParticipants.RemoveAt(Index);
 	return true;
@@ -189,8 +254,6 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 		if(Score >= 0.f)
 		{
 			TotalAggressionScoreSquared += pow(Score, PreferBestScorePower);
-			
-			GLog->Log(FString::SanitizeFloat(Score));
 			RelevantData.Add(FAggressionData(Score, Participant, RequestedTokens));
 		}
 	}
@@ -205,8 +268,6 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 			RandomNumber -= pow(AggressionData.AggressionScore, PreferBestScorePower);
 			if(RandomNumber <= 0.f)
 			{
-				
-				GLog->Log("Chose:" + FString::SanitizeFloat(AggressionData.AggressionScore));
 				ChosenOption = AggressionData;
 				break;
 			}
@@ -224,5 +285,4 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 		RelevantData.Remove(ChosenOption);
 		TotalAggressionScoreSquared -= pow(ChosenOption.AggressionScore, PreferBestScorePower);
 	}
-	GLog->Log("Ended");
 }

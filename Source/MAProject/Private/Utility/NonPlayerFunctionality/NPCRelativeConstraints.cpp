@@ -4,13 +4,30 @@
 #include "NPCRelativeConstraints.h"
 
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
-FPassiveCombatConstraint::FPassiveCombatConstraint() : FNpcRelativeConstraint(), OrientationCenter(nullptr),
-	VerticalSize(100.f), HorizontalSize(100.f)
+#if WITH_EDITORONLY_DATA
+void FNonCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
+{
+	UKismetSystemLibrary::DrawDebugSphere(World, Owner->GetActorLocation() + PositionOffset, Radius,
+		50, DebugColor, ShowTime);
+}
+#endif
+
+#if WITH_EDITORONLY_DATA
+void FActiveCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
+{
+	UKismetSystemLibrary::DrawDebugSphere(World, Owner->GetActorLocation() + PositionOffset, Radius,
+		50, DebugColor, ShowTime);
+}
+#endif
+
+FPassiveCombatConstraint::FPassiveCombatConstraint() : FNpcRelativeConstraints(), OrientationCenter(nullptr),
+                                                       VerticalSize(100.f), HorizontalSize(100.f)
 {}
 
 FPassiveCombatConstraint::FPassiveCombatConstraint(AActor* SourceNpc, AActor* SourceOrientationCenter) :
-	FNpcRelativeConstraint(SourceNpc), OrientationCenter(SourceOrientationCenter), VerticalSize(100.f),
+	FNpcRelativeConstraints(SourceNpc), OrientationCenter(SourceOrientationCenter), VerticalSize(100.f),
 	HorizontalSize(100.f)
 {}
 
@@ -18,14 +35,30 @@ bool FPassiveCombatConstraint::IsConstraintSatisfied(FVector Position) const
 {
 	FVector Direction;
 	float DistanceFromCenter;
-	((Npc->GetActorLocation() + PositionOffset) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
+	((Owner->GetActorLocation() + PositionOffset) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
 		DistanceFromCenter);
 	const float ActualRadius = DistanceFromCenter - VerticalSize/2.f;
 	const float DotProduct = FVector::DotProduct(Direction,
 	            UKismetMathLibrary::GetDirectionUnitVector(OrientationCenter->GetActorLocation(), Position));
 
-	const float ConstrainedAngle = 2.f * PI * std::min(HorizontalSize / (ActualRadius + VerticalSize/2.f), 1.f);
+	const float ConstrainedAngle = 2.f * PI * std::min(HorizontalSize / (2.f * PI * DistanceFromCenter), 1.f);
 	
 	return (DistanceFromCenter < ActualRadius || DistanceFromCenter > (ActualRadius + VerticalSize)) &&
 		UKismetMathLibrary::Acos(DotProduct) <= ConstrainedAngle;;
 }
+
+#if WITH_EDITORONLY_DATA
+void FPassiveCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
+{
+	FVector Direction;
+	float DistanceFromCenter;
+	((Owner->GetActorLocation() + PositionOffset) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
+	DistanceFromCenter);
+	const float ActualRadius = DistanceFromCenter - VerticalSize/2.f;
+	const float Angle = 2.f * PI * std::min(HorizontalSize / (2.f * PI * DistanceFromCenter), 1.f);
+	UKismetSystemLibrary::DrawDebugCone(World, OrientationCenter->GetActorLocation(), Direction, DistanceFromCenter,
+		Angle, Angle, 20, DebugColor, ShowTime);
+		UKismetSystemLibrary::DrawDebugCone(World, OrientationCenter->GetActorLocation(), Direction, DistanceFromCenter + VerticalSize,
+		Angle, Angle, 20, DebugColor, ShowTime);
+}
+#endif

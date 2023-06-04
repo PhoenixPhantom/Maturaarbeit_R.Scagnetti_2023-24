@@ -44,8 +44,10 @@ void AOpponentCharacter::BeginPlay()
 {
 	CharacterStats = new FCharacterStats();
 	CharacterStats->FromBase(BaseStats, StatsModifiers, GetWorld());
-	ActiveCombatConstraint.Npc = this;
-	PassiveCombatConstraint.Npc = this;
+	ActiveCombatConstraint.Owner = this;
+	PassiveCombatConstraint.Owner = this;
+	ActivePlayerDistanceConstraint.Owner = this;
+	PassivePlayerDistanceConstraint.Owner = this;
 	Super::BeginPlay();
 }
 

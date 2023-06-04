@@ -3,33 +3,48 @@
 
 #include "PositionalConstraint.h"
 
-FVector SampleGetClosestValid(const FVector& SourcePoint, const FVector& SpacedStartDirection, float Distribution,
-                              const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange)
+#include "NavigationSystem.h"
+#include "Kismet/KismetSystemLibrary.h"
+
+bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
+                           float Distribution, const TArray<const FPositionalConstraint*>& RelevantConstraints,
+                           float MaxSampleRange, UWorld* World, bool DebuggingEnabled)
 {
-	for(int32 i = 1; i > 0; i++)
+	for(uint32 i = 1; true; i++)
 	{
 		FVector Direction = SpacedStartDirection * i;
 		const double DirectionLength = Direction.Length();
-		if(DirectionLength > MaxSampleRange) return FVector(NAN);
-		
+		if(DirectionLength > MaxSampleRange) return false;
+
+/*#if WITH_EDITORONLY_DATA
+		if(DebuggingEnabled)
+		{
+			UKismetSystemLibrary::DrawDebugCircle(World, SourcePoint, DirectionLength, 20,
+				FLinearColor(0, 0, 255), 0, 5.f, FVector(1, 0, 0),
+				FVector(0, 1, 0), true);
+		}
+#endif*/
 		const double RadiusDistance = DOUBLE_PI * 2.0 * DirectionLength;
 		const int32 Steps = std::round(RadiusDistance / Distribution);
 		const double RotationPerStep = Distribution/RadiusDistance;
 
 		TArray<FVector> SamplePoints;
-		SamplePoints.Add(Direction);
+		UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetNavigationSystem(World);
 		for(int32 j = 1; j < Steps; j++)
 		{
-			SamplePoints.Add(SourcePoint + Direction.RotateAngleAxisRad(RotationPerStep, FVector(0.f, 0.f, 1.f)));
+			FNavLocation ProjectedLocation;
+			if(NavigationSystem->ProjectPointToNavigation(SourcePoint + Direction, ProjectedLocation,
+				FVector(Distribution/2.f))) SamplePoints.Add(ProjectedLocation);
+			Direction.RotateAngleAxisRad(RotationPerStep, FVector(0.f, 0.f, 1.f));
 		}
-		FVector Result;
-		if(CheckSamplesForFirstValid(Result, SamplePoints, RelevantConstraints)) return Result;
+		if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, World,
+			DebuggingEnabled)) return true;
 	}
-	return {};
 }
 
 bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-                               const TArray<const FPositionalConstraint*>& RelevantConstraints)
+                               const TArray<const FPositionalConstraint*>& RelevantConstraints, UWorld* World,
+                               bool DebuggingEnabled)
 {
 	for(const FVector& SamplePoint : SamplePoints)
 	{
@@ -42,6 +57,16 @@ bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& Sampl
 				break;
 			}
 		}
+#if WITH_EDITORONLY_DATA
+		if(DebuggingEnabled)
+		{
+			GLog->Log("Print");
+			if(AreAllSatisfied) DrawDebugPoint(World, SamplePoint, 10.f, FColor(0, 0, 255),
+				false, 0.1, SDPG_Foreground);
+			else DrawDebugPoint(World, SamplePoint, 10.f, FColor(0, 255, 0), false, 0.1, SDPG_Foreground);
+		}
+#endif
+		
 		if(AreAllSatisfied)
 		{
 			ValidPoint = SamplePoint;

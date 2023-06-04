@@ -9,54 +9,60 @@
 /* For all constraints that are imposed by NPCs
  */
 USTRUCT()
-struct MAPROJECT_API FNpcRelativeConstraint : public FPositionalConstraint
+struct MAPROJECT_API FNpcRelativeConstraints : public FPositionalConstraint
 {
 	GENERATED_BODY();
 public:
-	UPROPERTY()
-	AActor* Npc;
 	
 	UPROPERTY(EditAnywhere)
 	FVector PositionOffset;	
 	
-	FNpcRelativeConstraint() : FPositionalConstraint(), Npc(nullptr){}
-	FNpcRelativeConstraint(AActor* SourceNpc) : FPositionalConstraint(), Npc(SourceNpc){}
+	FNpcRelativeConstraints() : FPositionalConstraint(){}
+	FNpcRelativeConstraints(AActor* SourceNpc) : FPositionalConstraint(SourceNpc){}
 };
 
 /* The constraint that is imposed by
  * NPCs not engaged in combat
  */
 USTRUCT()
-struct MAPROJECT_API FNonCombatConstraint : public FNpcRelativeConstraint
+struct MAPROJECT_API FNonCombatConstraint : public FNpcRelativeConstraints
 {
 	GENERATED_BODY();
 public:
 	UPROPERTY(EditAnywhere)
 	float Radius;
 
-	FNonCombatConstraint() : FNpcRelativeConstraint(), Radius(10.f){}
-	FNonCombatConstraint(AActor* SourceNpc) : FNpcRelativeConstraint(SourceNpc), Radius(10.f){}
+	FNonCombatConstraint() : FNpcRelativeConstraints(), Radius(10.f){}
+	FNonCombatConstraint(AActor* SourceNpc) : FNpcRelativeConstraints(SourceNpc), Radius(10.f){}
 	
 	virtual bool IsConstraintSatisfied(FVector Position) const override
-	{ return FVector::Distance(Npc->GetActorLocation() + PositionOffset, Position) > Radius; }
+	{ return FVector::Distance(Owner->GetActorLocation() + PositionOffset, Position) > Radius; }
+
+#if WITH_EDITORONLY_DATA
+	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
+#endif
 };
 
 /* The constraint that is imposed on
  * active combat participants
  */
 USTRUCT()
-struct MAPROJECT_API FActiveCombatConstraint : public FNpcRelativeConstraint
+struct MAPROJECT_API FActiveCombatConstraint : public FNpcRelativeConstraints
 {
 	GENERATED_BODY();
 public:
 	UPROPERTY(EditAnywhere)
 	float Radius;
 
-	FActiveCombatConstraint() : FNpcRelativeConstraint(), Radius(10.f){}
-	FActiveCombatConstraint(AActor* SourceNpc) : FNpcRelativeConstraint(SourceNpc), Radius(10.f){}
+	FActiveCombatConstraint() : FNpcRelativeConstraints(), Radius(10.f){}
+	FActiveCombatConstraint(AActor* SourceNpc) : FNpcRelativeConstraints(SourceNpc), Radius(10.f){}
 
 	virtual bool IsConstraintSatisfied(FVector Position) const override
-	{ return FVector::Distance(Npc->GetActorLocation() + PositionOffset, Position) > Radius; }
+	{ return FVector::Distance(Owner->GetActorLocation() + PositionOffset, Position) > Radius; }
+
+#if WITH_EDITORONLY_DATA
+	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
+#endif
 };
 
 /* The constraint that is imposed by
@@ -64,7 +70,7 @@ public:
  * (shaped like a bent rectangle)
  */
 USTRUCT()
-struct MAPROJECT_API FPassiveCombatConstraint : public FNpcRelativeConstraint
+struct MAPROJECT_API FPassiveCombatConstraint : public FNpcRelativeConstraints
 {
 	GENERATED_BODY();
 public:
@@ -80,4 +86,8 @@ public:
 	FPassiveCombatConstraint(AActor* SourceNpc, AActor* SourceOrientationCenter);
 
 	virtual bool IsConstraintSatisfied(FVector Position) const override;
+
+#if WITH_EDITORONLY_DATA
+	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
+#endif
 };

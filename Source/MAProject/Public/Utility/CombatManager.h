@@ -14,6 +14,10 @@ class APlayerCharacter;
 class APlayerPartyController;
 class AOpponentController;
 
+#if WITH_EDITORONLY_DATA
+DECLARE_MULTICAST_DELEGATE(FDrawDebugImagesDelegate);
+#endif
+
 struct FManageCombatParticipantsKey final
 {
 	friend AOpponentController;
@@ -56,8 +60,7 @@ public:
 	ACombatManager();
 
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
-	FVector GetAggressivenessDependantLocation(AOpponentCharacter* OwningCharacter);
-	void GetPositionalConstraints(TArray<const FPositionalConstraint*>& PositionalConstraints, const AOpponentCharacter* Excepted = nullptr);
+	bool GetAggressivenessDependantLocation(FVector& ResultingLocation, AOpponentCharacter* OwningCharacter);
 	bool IsParticipant(AFighterCharacter* Character) const;
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);
@@ -66,12 +69,19 @@ public:
 
 	void ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key);
 
+#if WITH_EDITORONLY_DATA
+	bool bIsDebugging = false;
+	virtual void Tick(float DeltaSeconds) override;
+#endif
+
 protected:
 	TArray<FAggressionData> ActiveRequests;
 	uint32 AvailableAggressionTokens;
 	
 	
 	FAggressionData AnticipatedActive;
+
+	TArray<const FPositionalConstraint*> PositionalConstraints;
 	
 	UPROPERTY()
 	APlayerCharacter* PlayerCharacter;
@@ -96,4 +106,10 @@ protected:
 
 	//Try to distribute the AvailableAggressionTokens so the highest scoring objects will be inserted
 	void AttemptDistributeRemainingTokens();
+
+#if WITH_EDITORONLY_DATA
+	TTuple<float, FDrawDebugImagesDelegate> DebugImagesToDraw;
+	UFUNCTION(CallInEditor)
+	void ToggleDebugging(){ bIsDebugging = !bIsDebugging; };
+#endif
 };
