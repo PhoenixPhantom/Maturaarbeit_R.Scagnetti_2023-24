@@ -137,7 +137,9 @@ void AOpponentController::UnregisterSensedPlayer(AActor* Player)
 
 void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
 {
-	//TODO: at the moment also detects opponents (fix that)
+	//TODO: expand functionality to also detect other opponents
+	const APlayerCharacter* DetectedPlayer = Cast<APlayerCharacter>(UpdatedActor);
+	if(!IsValid(DetectedPlayer)) return;
 	if(!Stimulus.WasSuccessfullySensed())
 	{
 		if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  

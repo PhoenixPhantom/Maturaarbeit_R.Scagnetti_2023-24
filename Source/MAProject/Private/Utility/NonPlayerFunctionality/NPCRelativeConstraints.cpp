@@ -6,6 +6,29 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+void DrawDebugCircularFrustum(UWorld* World, const FVector& Center, const FVector& Direction, float Radius1, float Radius2,
+	int32 NumSegments,
+	FLinearColor DebugColor, float ShowTime)
+{
+#if ENABLE_DRAW_DEBUG
+	const FVector Circle1Origin = Center + Direction*0.5f;
+	const FVector Circle2Origin = Center - Direction*0.5f;
+	UKismetSystemLibrary::DrawDebugCircle(World, Circle1Origin, Radius1, NumSegments, DebugColor, ShowTime);
+	UKismetSystemLibrary::DrawDebugCircle(World, Circle2Origin, Radius2, NumSegments, DebugColor, ShowTime);
+
+	const FVector OffsetDirection(0.f, 0.f, 1.f);
+	FVector RotationAxis = Direction;
+	RotationAxis.Normalize();
+	//TODO: Somehow only draws one single line
+	for(int32 i = 0; i < NumSegments; i++)
+	{
+		OffsetDirection.RotateAngleAxisRad(DOUBLE_PI*2.0/static_cast<double>(NumSegments)*static_cast<double>(i), RotationAxis);
+		UKismetSystemLibrary::DrawDebugLine(World, Circle1Origin + OffsetDirection * Radius1,
+			Circle2Origin + OffsetDirection * Radius2, DebugColor, ShowTime);
+	}
+#endif
+}
+
 #if WITH_EDITORONLY_DATA
 void FNonCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
 {
@@ -52,13 +75,14 @@ void FPassiveCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor D
 {
 	FVector Direction;
 	float DistanceFromCenter;
-	((Owner->GetActorLocation() + PositionOffset) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
+	const FVector FrustumLocation = Owner->GetActorLocation() + PositionOffset;
+	(FrustumLocation - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
 	DistanceFromCenter);
-	const float ActualRadius = DistanceFromCenter - VerticalSize/2.f;
+	//const float ActualRadius = DistanceFromCenter - VerticalSize/2.f;
 	const float Angle = 2.f * PI * std::min(HorizontalSize / (2.f * PI * DistanceFromCenter), 1.f);
-	UKismetSystemLibrary::DrawDebugCone(World, OrientationCenter->GetActorLocation(), Direction, DistanceFromCenter,
-		Angle, Angle, 20, DebugColor, ShowTime);
-		UKismetSystemLibrary::DrawDebugCone(World, OrientationCenter->GetActorLocation(), Direction, DistanceFromCenter + VerticalSize,
-		Angle, Angle, 20, DebugColor, ShowTime);
+	DrawDebugCircularFrustum(World,	Owner->GetActorLocation() + PositionOffset, Direction * VerticalSize,
+		(DistanceFromCenter + VerticalSize/2.f)*sinf(Angle),
+		(DistanceFromCenter - VerticalSize/2.f)*sinf(Angle), 50, DebugColor,
+		ShowTime);
 }
 #endif

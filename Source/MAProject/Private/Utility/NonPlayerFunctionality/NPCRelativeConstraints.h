@@ -6,6 +6,10 @@
 #include "PositionalConstraint.h"
 #include "NPCRelativeConstraints.generated.h"
 
+void DrawDebugCircularFrustum(UWorld* World, const FVector& Center, const FVector& Direction, float Radius1, float Radius2,
+	int32 NumSegments,
+	FLinearColor DebugColor, float ShowTime);
+
 /* For all constraints that are imposed by NPCs
  */
 USTRUCT()

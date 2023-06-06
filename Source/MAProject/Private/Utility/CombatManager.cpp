@@ -126,6 +126,8 @@ void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant
 	if(AnticipatedActive.Holder == Participant) AnticipatedActive = FAggressionData();
 	RemoveAggressionTokens(Participant);
 	PassiveParticipants.Remove(Participant);
+	PositionalConstraints.RemoveAll([Participant](const FPositionalConstraint* Constraint)
+					{ return Constraint->Owner == Participant; });
 }
 
 void ACombatManager::ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key)
