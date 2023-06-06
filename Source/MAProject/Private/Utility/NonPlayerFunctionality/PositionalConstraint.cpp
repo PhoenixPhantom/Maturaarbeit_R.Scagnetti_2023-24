@@ -24,18 +24,19 @@ bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoin
 				FVector(0, 1, 0), true);
 		}
 #endif*/
-		const double RadiusDistance = DOUBLE_PI * 2.0 * DirectionLength;
-		const int32 Steps = std::round(RadiusDistance / Distribution);
-		const double RotationPerStep = Distribution/RadiusDistance;
+		const int32 Steps = std::round(DOUBLE_PI * 2.0 * DirectionLength / Distribution);
+		const double RotationPerStep = Distribution/DirectionLength;
 
+		FVector ProjectionExtent(Distribution/2.f, Distribution/2.f, 100.f);
 		TArray<FVector> SamplePoints;
 		UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetNavigationSystem(World);
-		for(int32 j = 1; j < Steps; j++)
+		for(int32 j = 0; j < Steps; j++)
 		{
 			FNavLocation ProjectedLocation;
-			if(NavigationSystem->ProjectPointToNavigation(SourcePoint + Direction, ProjectedLocation,
-				FVector(Distribution/2.f))) SamplePoints.Add(ProjectedLocation);
-			Direction.RotateAngleAxisRad(RotationPerStep, FVector(0.f, 0.f, 1.f));
+			if(NavigationSystem->ProjectPointToNavigation(SourcePoint +
+				Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(j),
+					FVector(0.f, 0.f, 1.f)),ProjectedLocation, ProjectionExtent))
+						SamplePoints.Add(ProjectedLocation);
 		}
 		if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, World,
 			DebuggingEnabled)) return true;
@@ -60,10 +61,10 @@ bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& Sampl
 #if WITH_EDITORONLY_DATA
 		if(DebuggingEnabled)
 		{
-			GLog->Log("Print");
-			if(AreAllSatisfied) DrawDebugPoint(World, SamplePoint, 10.f, FColor(0, 0, 255),
-				false, 0.1, SDPG_Foreground);
-			else DrawDebugPoint(World, SamplePoint, 10.f, FColor(0, 255, 0), false, 0.1, SDPG_Foreground);
+			if(AreAllSatisfied) DrawDebugPoint(World, SamplePoint + FVector(0.f, 0.f, 20.f), 10.f, FColor(0, 255, 0),
+				false, 1, SDPG_World);
+			else DrawDebugPoint(World, SamplePoint + FVector(0.f, 0.f, 20.f), 10.f, FColor(0, 0, 255),
+				false, 0.1, SDPG_World);
 		}
 #endif
 		
