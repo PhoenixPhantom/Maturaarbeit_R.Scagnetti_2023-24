@@ -6,7 +6,6 @@
 #include "Characters/Fighters/FighterCharacter.h"
 #include "InputActionValue.h"
 #include "PlayerPartyController.h"
-#include "../../../../../../../../../../../Program Files/Epic Games/UE_5.1/Engine/Platforms/Hololens/Source/Runtime/Core/Public/Microsoft/AllowMicrosoftPlatformTypesPrivate.h"
 #include "PlayerCharacter.generated.h"
 
 class USphereComponent;

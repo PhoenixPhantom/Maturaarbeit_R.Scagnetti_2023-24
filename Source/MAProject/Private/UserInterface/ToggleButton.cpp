@@ -21,6 +21,6 @@ void UToggleButton::OnButtonClicked()
 	bIsOn = !bIsOn;
 
 	//make the other toggle be the current toggle
-	ToggleOther = WidgetStyle;
-	WidgetStyle = TargetStyle;
+	ToggleOther = GetStyle();
+	SetStyle(TargetStyle);
 }

@@ -28,7 +28,7 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 {
 	if(!IsParticipant(OwningCharacter))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Try getting egressiveness dependant location for a non-combat engaged entity."));
+		UE_LOG(LogTemp, Warning, TEXT("Try getting agressiveness dependant location for a non-combat engaged entity."));
 		return false;
 	}
 	const FVector OpponentLocation = OwningCharacter->GetActorLocation();
@@ -124,10 +124,12 @@ bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, 
 void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
 	if(AnticipatedActive.Holder == Participant) AnticipatedActive = FAggressionData();
+	//we can't use ReleaseAggressionTokens as this could lead to token redistribution and Participant not becoming passive
 	RemoveAggressionTokens(Participant);
 	PassiveParticipants.Remove(Participant);
 	PositionalConstraints.RemoveAll([Participant](const FPositionalConstraint* Constraint)
 					{ return Constraint->Owner == Participant; });
+	AttemptDistributeRemainingTokens();
 }
 
 void ACombatManager::ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key)

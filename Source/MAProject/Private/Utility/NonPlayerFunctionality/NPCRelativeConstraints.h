@@ -21,8 +21,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	FVector PositionOffset;	
 	
-	FNpcRelativeConstraints() : FPositionalConstraint(){}
-	FNpcRelativeConstraints(AActor* SourceNpc) : FPositionalConstraint(SourceNpc){}
+	FNpcRelativeConstraints() : FPositionalConstraint(), PositionOffset(0.f){}
+	FNpcRelativeConstraints(AActor* SourceNpc) : FPositionalConstraint(SourceNpc), PositionOffset(0.f){}
 };
 
 /* The constraint that is imposed by

@@ -15,16 +15,8 @@ bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoin
 		FVector Direction = SpacedStartDirection * i;
 		const double DirectionLength = Direction.Length();
 		if(DirectionLength > MaxSampleRange) return false;
-
-/*#if WITH_EDITORONLY_DATA
-		if(DebuggingEnabled)
-		{
-			UKismetSystemLibrary::DrawDebugCircle(World, SourcePoint, DirectionLength, 20,
-				FLinearColor(0, 0, 255), 0, 5.f, FVector(1, 0, 0),
-				FVector(0, 1, 0), true);
-		}
-#endif*/
-		const int32 Steps = std::round(DOUBLE_PI * 2.0 * DirectionLength / Distribution);
+		
+		const int32 Steps = round(DOUBLE_PI * 2.0 * DirectionLength / Distribution);
 		const double RotationPerStep = Distribution/DirectionLength;
 
 		FVector ProjectionExtent(Distribution/2.f, Distribution/2.f, 100.f);
