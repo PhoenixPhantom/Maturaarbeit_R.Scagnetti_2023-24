@@ -72,8 +72,8 @@ bool FPassiveCombatConstraint::IsConstraintSatisfied(FVector Position) const
 	const float ConstrainedAngle = 2.f * PI * std::min(HorizontalSize / (2.f * PI * OwnDistanceFromCenter), 1.f);
 
 	const float PositionDistanceFromCenter = FVector::Distance(OrientationCenter->GetActorLocation(), Position);
-	return (PositionDistanceFromCenter < ActualRadius || PositionDistanceFromCenter > (ActualRadius + VerticalSize)) &&
-		UKismetMathLibrary::Acos(DotProduct) <= ConstrainedAngle;
+	return UKismetMathLibrary::Acos(DotProduct) > ConstrainedAngle &&
+		(PositionDistanceFromCenter < ActualRadius || PositionDistanceFromCenter > (ActualRadius + VerticalSize));
 }
 
 #if WITH_EDITORONLY_DATA

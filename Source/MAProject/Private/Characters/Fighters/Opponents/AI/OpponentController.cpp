@@ -3,12 +3,12 @@
 
 #include "Characters/Fighters/Opponents/AI/OpponentController.h"
 
-#include "AI/NavigationSystemBase.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Utility/CombatManager.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"

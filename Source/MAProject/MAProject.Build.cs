@@ -20,7 +20,8 @@ public class MAProject : ModuleRules
 			"UMG",
 			"SlateCore",
 			"GameplayTasks",
-			"NavigationSystem"
+			"NavigationSystem",
+			"AIModule"
 		});
 	}
 }

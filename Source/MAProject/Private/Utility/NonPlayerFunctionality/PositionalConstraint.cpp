@@ -4,7 +4,6 @@
 #include "PositionalConstraint.h"
 
 #include "NavigationSystem.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
                            float Distribution, const TArray<const FPositionalConstraint*>& RelevantConstraints,

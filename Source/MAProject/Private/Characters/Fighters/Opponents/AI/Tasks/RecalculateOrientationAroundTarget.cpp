@@ -17,8 +17,8 @@ URecalculateOrientationAroundTarget::URecalculateOrientationAroundTarget() : Own
 EBTNodeResult::Type URecalculateOrientationAroundTarget::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	
-	if(!IsValid(OwningController)) OwningController = CastChecked<AOpponentController>(OwnerComp.GetAIOwner());
-	if(!IsValid(OwningCharacter)) OwningCharacter = CastChecked<AOpponentCharacter>(OwningController->GetPawn());
+	if(OwningController != OwnerComp.GetAIOwner()) OwningController = CastChecked<AOpponentController>(OwnerComp.GetAIOwner());
+	if(OwningCharacter != OwningController->GetPawn()) OwningCharacter = CastChecked<AOpponentCharacter>(OwningController->GetPawn());
 
 
 	FVector TargetLocation;

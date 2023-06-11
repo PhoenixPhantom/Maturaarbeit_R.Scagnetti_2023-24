@@ -15,7 +15,7 @@ bool FAggressionData::operator==(const FAggressionData& AggressionData) const
 }
 
 // Sets default values
-ACombatManager::ACombatManager()
+ACombatManager::ACombatManager() : MaxAggressionTokens(1), PreferBestScorePower(4.f)
 {
 #if WITH_EDITORONLY_DATA
 	PrimaryActorTick.bCanEverTick = true;
@@ -238,7 +238,6 @@ bool ACombatManager::MakePassiveParticipant(int32 Index)
 
 void ACombatManager::AttemptDistributeRemainingTokens()
 {
-	constexpr float PreferBestScorePower = 4.f;
 	if(IsValid(AnticipatedActive.Holder))
 	{
 		if(!GrantTokens(AnticipatedActive)) return;

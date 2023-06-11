@@ -4,10 +4,7 @@
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
 #include "Utility/CombatManager.h"
-#include "Characters/Fighters/Opponents/AI/OpponentController.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
-#include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
@@ -31,7 +28,7 @@ float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharac
 {
 	if(!bCanBecomeAggressive) return -1.f;
 	float Score = 0.f;
-	if(TargetInformationComponent->GetTargetState()) Score += 1.f; //TODO: replace arbitrary bonus
+	if(TargetInformationComponent->GetIsCurrentTarget()) Score += 1.5f;
 	//Aggression priority
 	if(AggressionRange > 0.f) Score += AggressionPriority * (1.f - std::min(FVector::Distance(PlayerCharacter->GetActorLocation(),
 			GetActorLocation())/AggressionRange, 1.0));

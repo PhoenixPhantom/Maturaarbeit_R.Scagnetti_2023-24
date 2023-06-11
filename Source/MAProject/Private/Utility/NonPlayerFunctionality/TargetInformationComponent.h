@@ -28,7 +28,7 @@ public:
 
 	float GetTargetPriority() const { return TargetPriority; }
 	void SetTargetState(bool TargetState, FSetTargetStateKey Key) { bIsCurrentTarget = TargetState; OnChangeTargetState.Broadcast(bIsCurrentTarget); }
-	bool GetTargetState() const { return bIsCurrentTarget; }
+	bool GetIsCurrentTarget() const { return bIsCurrentTarget; }
 
 protected:
 	UPROPERTY(EditAnywhere, meta=(Units="%", ToolTip="The priority with which the actor will be targeted. An actor with priority 2 is double as likely to be targeted as one with 1)"))

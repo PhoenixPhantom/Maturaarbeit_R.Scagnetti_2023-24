@@ -94,6 +94,9 @@ protected:
 	UPROPERTY(EditAnywhere)
 	uint32 MaxAggressionTokens;
 	
+	UPROPERTY(EditAnywhere)
+	float PreferBestScorePower;
+	
 	virtual void BeginPlay() override;
 
 	bool RemoveAggressionTokens(AOpponentCharacter* Participant);

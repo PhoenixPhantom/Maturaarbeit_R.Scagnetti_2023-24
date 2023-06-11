@@ -86,7 +86,7 @@ float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget)
 	float ActionRank = 0.f;
 	const float OffsetFromForward = FVector::DotProduct(EyesRotation.Vector(),
 		UKismetMathLibrary::GetDirectionUnitVector(EyesLocation, ActorCenter));
-	if(UKismetMathLibrary::DegAcos(OffsetFromForward) <= GetFieldOfView()/2.f) ActionRank += 1.f; //TODO: Replace arbitrary bonus
+	if(UKismetMathLibrary::DegAcos(OffsetFromForward) <= GetFieldOfView()/2.f) ActionRank += 1.5f;
 	ActionRank += 1.f + OffsetFromForward; //there should be no negative action ranks
 	
 	return ActionRank;
@@ -324,7 +324,7 @@ void APlayerCharacter::UpdateTargetSelection()
 			TotalScore += 3.f * FVector::DotProduct(InputDirection.Value,
 				UKismetMathLibrary::GetDirectionUnitVector(GetActorLocation(), ActorCenter));
 		TotalScore += 1.f - FVector::Distance(GetActorLocation(), ActorCenter)/AutotargetingRange;
-		if(TargetInfoComp->GetTargetState()) TotalScore += 0.5f;
+		if(TargetInfoComp->GetIsCurrentTarget()) TotalScore += 0.5f;
 		TotalScore *= TargetInfoComp->GetTargetPriority();
 
 		//only keep the best score
