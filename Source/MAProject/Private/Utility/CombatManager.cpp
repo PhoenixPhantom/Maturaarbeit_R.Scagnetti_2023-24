@@ -70,6 +70,7 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 #endif
 	
 	//We only have to expensively find a new location if the current one isn't good anymore
+	//TODO: Maybe check in a small radius to reduce noise
 	bool AreAllSatisfied = true;
 	for(const FPositionalConstraint* Constraint : RelevantConstraints)
 	{
@@ -244,7 +245,7 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 	}
 	
 	//Generate the aggression score for every passive participant
-	double TotalAggressionScoreSquared = 0.0;
+	float LowestScore = std::numeric_limits<float>::max();
 	TArray<FAggressionData> RelevantData;
 	for(AOpponentCharacter* Participant : PassiveParticipants)
 	{
@@ -256,19 +257,28 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
 		if(Score >= 0.f)
 		{
-			TotalAggressionScoreSquared += pow(Score, PreferBestScorePower);
+			if(LowestScore > Score) LowestScore = Score;
+			//TotalAggressionScoreSquared += pow(Score, PreferBestScorePower);
 			RelevantData.Add(FAggressionData(Score, Participant, RequestedTokens));
 		}
+	}
+	double TotalScoreAdjusted = 0.0;
+	for(FAggressionData& Data : RelevantData)
+	{
+		const double ScoreAdjusted = pow(Data.AggressionScore - LowestScore, PreferBestScorePower);
+		TotalScoreAdjusted += ScoreAdjusted;
+		//Save the adjusted score so we have the calculation in only one place (so changing it is more cumbersome)
+		Data.AggressionScore = ScoreAdjusted;
 	}
 	
 	while(AvailableAggressionTokens > 0 && !RelevantData.IsEmpty())
 	{
 		FAggressionData ChosenOption;
 		//we use double in the assignment because we could be dealing with very small numbers and we still want high accuracy
-		float RandomNumber = static_cast<double>(rand()) * TotalAggressionScoreSquared / static_cast<double>(RAND_MAX);
+		float RandomNumber = static_cast<double>(rand()) * TotalScoreAdjusted / static_cast<double>(RAND_MAX);
 		for(const FAggressionData& AggressionData : RelevantData)
 		{
-			RandomNumber -= pow(AggressionData.AggressionScore, PreferBestScorePower);
+			RandomNumber -= AggressionData.AggressionScore;
 			if(RandomNumber <= 0.f)
 			{
 				ChosenOption = AggressionData;
@@ -286,6 +296,6 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 		}
 		//if we were able to grant the token, the entity cannot be granted a token again for some time
 		RelevantData.Remove(ChosenOption);
-		TotalAggressionScoreSquared -= pow(ChosenOption.AggressionScore, PreferBestScorePower);
+		TotalScoreAdjusted -= ChosenOption.AggressionScore;
 	}
 }

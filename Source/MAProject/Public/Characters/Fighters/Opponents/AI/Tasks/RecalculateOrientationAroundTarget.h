@@ -28,4 +28,7 @@ protected:
 	
 	UPROPERTY()
 	AOpponentCharacter* OwningCharacter;
+
+	UPROPERTY(EditAnywhere)
+	float AllowedDeltaDistance;
 };

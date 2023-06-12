@@ -37,7 +37,8 @@ void DrawDebugCircularFrustum(UWorld* World, const FVector& Center, const FVecto
 #if WITH_EDITORONLY_DATA
 void FNonCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
 {
-	UKismetSystemLibrary::DrawDebugSphere(World, Owner->GetActorLocation() + PositionOffset, Radius,
+	UKismetSystemLibrary::DrawDebugSphere(World, Owner->GetActorLocation() +
+		Owner->GetActorRotation().RotateVector(PositionOffset), Radius,
 		50, DebugColor, ShowTime);
 }
 #endif
@@ -45,7 +46,8 @@ void FNonCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor Debug
 #if WITH_EDITORONLY_DATA
 void FActiveCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
 {
-	UKismetSystemLibrary::DrawDebugSphere(World, Owner->GetActorLocation() + PositionOffset, Radius,
+	UKismetSystemLibrary::DrawDebugSphere(World, Owner->GetActorLocation() +
+		Owner->GetActorRotation().RotateVector(PositionOffset), Radius,
 		50, DebugColor, ShowTime);
 }
 #endif
@@ -63,7 +65,7 @@ bool FPassiveCombatConstraint::IsConstraintSatisfied(FVector Position) const
 {
 	FVector Direction;
 	float OwnDistanceFromCenter;
-	((Owner->GetActorLocation() + PositionOffset) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
+	((Owner->GetActorLocation() + Owner->GetActorRotation().RotateVector(PositionOffset)) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
 		OwnDistanceFromCenter);
 	const float ActualRadius = OwnDistanceFromCenter - VerticalSize/2.f;
 	const float DotProduct = FVector::DotProduct(Direction,
@@ -81,12 +83,13 @@ void FPassiveCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor D
 {
 	FVector Direction;
 	float DistanceFromCenter;
-	const FVector FrustumLocation = Owner->GetActorLocation() + PositionOffset;
+	const FVector Location = Owner->GetActorLocation() + Owner->GetActorRotation().RotateVector(PositionOffset);
+	const FVector FrustumLocation = Location;
 	(FrustumLocation - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
 	DistanceFromCenter);
 	//const float ActualRadius = DistanceFromCenter - VerticalSize/2.f;
 	const float Angle = 2.f * PI * std::min(HorizontalSize / (2.f * PI * DistanceFromCenter), 1.f);
-	DrawDebugCircularFrustum(World,	Owner->GetActorLocation() + PositionOffset, Direction * VerticalSize,
+	DrawDebugCircularFrustum(World,	Location, Direction * VerticalSize,
 		(DistanceFromCenter + VerticalSize/2.f)*sinf(Angle),
 		(DistanceFromCenter - VerticalSize/2.f)*sinf(Angle), 20, DebugColor,
 		ShowTime);

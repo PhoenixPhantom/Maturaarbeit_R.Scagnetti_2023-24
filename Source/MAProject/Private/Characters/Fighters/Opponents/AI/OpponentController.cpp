@@ -32,7 +32,7 @@ void FAIMoveRequestExpanded::ForceSetGoalLocation(const FVector& InGoalLocation)
 
 AOpponentController::AOpponentController() : DefaultBehaviorTree(nullptr)
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true; //necessary for pawn orientation
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
 
 	//Register OnPerceptionUpdated delegate
@@ -43,6 +43,7 @@ AOpponentController::AOpponentController() : DefaultBehaviorTree(nullptr)
 FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
 {
 	if(!IsValid(MoveTarget)) return Super::MoveTo(MoveRequest, OutPath);
+
 	FAIMoveRequestExpanded ModifiedRequest = MoveRequest;
 	if(!MoveRequest.IsMoveToActorRequest())
 	{
@@ -146,7 +147,7 @@ void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAISti
 			GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, UpdatedActor]
 			{
 				UnregisterSensedPlayer(UpdatedActor);
-			}, 2.f, true);
+			}, 5.f, true);
 		}
 	}
 	else
