@@ -22,3 +22,4 @@ Creating interesting and intuitive combat is a difficult problem and many game s
 
 ### General
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
+* All about BTTasks in C++ - The Games Dev: https://www.thegames.dev/?p=70
