@@ -29,6 +29,8 @@ public:
 
 	FORCEINLINE bool IsWarping() const { return RemainingWarpTime > 0.f; }
 
+	void SetupReferences(AActor* RealOwner){ OwnerRef = RealOwner; }
+
 	//Sets the warp target and warps the rotation to MATCH the one of TargetComp
 	void SetWarpTarget(USceneComponent* TargetComp, bool ShouldFollow = false, FName BoneName = NAME_None,
 		bool AllowZAxisMovement = false, bool AllowOnlyYawRotation = true);
@@ -50,6 +52,7 @@ public:
 	FTransform MotionWarp(const FTransform& CurrentTransform, float DeltaSeconds);
 
 #if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere)
 	bool bIsDebugging = false;
 #endif
 	
@@ -63,8 +66,12 @@ protected:
 	UPROPERTY()
 	AActor* OwnerRef;
 
-	virtual void BeginPlay() override;
-
 	static FTransform GetTargetTransformFromComponent(const USceneComponent* Component, FName BoneName);
-	FORCEINLINE void StartWarpingInternal(float WarpTime){ RemainingWarpTime = TotalWarpTime = WarpTime; }
+	FORCEINLINE void StartWarpingInternal(float WarpTime);
 };
+
+void USuckToTargetComponent::StartWarpingInternal(float WarpTime)
+{
+	RemainingWarpTime = TotalWarpTime = WarpTime;
+	PrimaryComponentTick.SetTickFunctionEnable(true);
+}

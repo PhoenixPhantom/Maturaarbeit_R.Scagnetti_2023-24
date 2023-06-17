@@ -5,23 +5,28 @@
 
 #include "Utility/CombatManager.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
+#include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
-AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), RequestedAggressionTokens(1),
-	AggressionPriority(1.f), AggressionRange(1.f)
+AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPlayer(nullptr),
+	RequestedAggressionTokens(1), AggressionPriority(1.f), AggressionRange(1.f)
 {
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
-	TargetInformationComponent = CreateDefaultSubobject<UTargetInformationComponent>(TEXT("TargetInformationComp"));
-
-	TargetInformationComponent->SetupAttachment(RootComponent);
 }
 
-void AOpponentCharacter::RegisterPlayerOpponent(AActor* NewOpponent, FSetPlayerOpponentKey Key)
+void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key)
 {
-	PassiveCombatConstraint.OrientationCenter = NewOpponent;
-	ActivePlayerDistanceConstraint.Player = NewOpponent;
-	PassivePlayerDistanceConstraint.Player = NewOpponent;
+	if(!IsValid(NewOpponent))
+	{
+		TargetPlayer = PassiveCombatConstraint.OrientationCenter = DistanceFromTargetActive.Player =
+			DistanceFromTargetPassive.Player = nullptr;
+	}
+	else
+	{
+		TargetPlayer = PassiveCombatConstraint.OrientationCenter = DistanceFromTargetActive.Player =
+			DistanceFromTargetPassive.Player = NewOpponent;
+	}
 }
 
 float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const
@@ -43,8 +48,40 @@ void AOpponentCharacter::BeginPlay()
 	CharacterStats->FromBase(BaseStats, StatsModifiers, GetWorld());
 	ActiveCombatConstraint.Owner = this;
 	PassiveCombatConstraint.Owner = this;
-	ActivePlayerDistanceConstraint.Owner = this;
-	PassivePlayerDistanceConstraint.Owner = this;
+	DistanceFromTargetActive.Owner = this;
+	DistanceFromTargetPassive.Owner = this;
+	CharacterStats->OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
 	Super::BeginPlay();
+}
+
+void AOpponentCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)
+{
+	if(IsValid(TargetPlayer)){
+		UActorComponent* Component = TargetPlayer->GetPawn()->GetComponentByClass(UTargetInformationComponent::StaticClass());
+		if(IsValid(Component))
+		{
+			UTargetInformationComponent* TargetInfoComp = CastChecked<UTargetInformationComponent>(Component);
+			FVector Direction;
+			float Length;
+			(TargetInfoComp->GetComponentLocation() - GetActorLocation()).ToDirectionAndLength(Direction, Length);
+			if(Length <= Properties.MaximalMovementDistance)
+				SuckToTargetComponent->SetWarpTargetFaceTowards(TargetInfoComp);
+			else
+			{
+				SuckToTargetComponent->SetWarpTargetFaceTowards(
+					GetActorLocation() + Direction * Properties.DefaultMovementDistance, GetActorLocation());
+			}
+			return;
+		}
+		checkNoEntry();
+	}
+	FVector PlayerLocation;
+	FRotator PlayerRotation;
+	GetActorEyesViewPoint(PlayerLocation, PlayerRotation);
+	FVector CharacterForward = PlayerRotation.Vector();
+	CharacterForward.Z = 0.f;
+	CharacterForward.Normalize();
+	SuckToTargetComponent->SetWarpTargetFaceTowards(GetActorLocation() +
+		CharacterForward * Properties.DefaultMovementDistance, GetActorLocation());
 }
 

@@ -34,8 +34,8 @@ void FCharacterStats::ExecuteAttack(int32 Index)
 	if(!AvailableAttacks.IsValidIndex(Index) || AvailableAttacks[Index].GetIsOnCd()) return;
 	if(OnCheckCanExecuteAttack.IsBound() && !OnCheckCanExecuteAttack.Execute(AvailableAttacks[Index])) return;
 	CurrentAttack = &AvailableAttacks[Index];
-	AvailableAttacks[Index].Execute();
-	OnExecuteAttack.Broadcast(AvailableAttacks[Index]);
+	CurrentAttack->Execute();
+	OnExecuteAttack.Broadcast(*CurrentAttack);
 }
 
 float FCharacterStats::GetDamageOutput() const

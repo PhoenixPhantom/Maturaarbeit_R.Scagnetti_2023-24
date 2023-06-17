@@ -8,6 +8,7 @@
 USuckToTargetComponent::USuckToTargetComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 
@@ -15,7 +16,12 @@ void USuckToTargetComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                            FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if(IsWarping()) OwnerRef->SetActorTransform(MotionWarp(OwnerRef->GetActorTransform(), DeltaTime), true);
+	if(IsWarping())
+	{
+		const FTransform ResultingTransform = MotionWarp(OwnerRef->GetActorTransform(), DeltaTime);
+		OwnerRef->SetActorTransform(ResultingTransform, true);
+		
+	}
 }
 
 void USuckToTargetComponent::SetWarpTarget(USceneComponent* TargetComp, bool ShouldFollow, FName BoneName,
@@ -121,6 +127,7 @@ FTransform USuckToTargetComponent::MotionWarp(const FTransform& CurrentTransform
 		FColor(0, 255, 200));
 #endif
 	RemainingWarpTime -= DeltaSeconds;
+	if(RemainingWarpTime < 0.f) PrimaryComponentTick.SetTickFunctionEnable(false);
 	return Transform;
 }
 
@@ -129,12 +136,5 @@ FTransform USuckToTargetComponent::GetTargetTransformFromComponent(const USceneC
 	if(!IsValid(Component)) return FTransform::Identity;
 	if(BoneName == NAME_None) return Component->GetComponentTransform();
 	return Component->GetSocketTransform(BoneName);
-}
-
-void USuckToTargetComponent::BeginPlay()
-{
-	Super::BeginPlay();
-	OwnerRef = GetOwner();
-	check(IsValid(OwnerRef));
 }
 

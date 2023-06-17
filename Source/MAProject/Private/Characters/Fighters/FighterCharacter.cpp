@@ -4,15 +4,18 @@
 #include "Characters/Fighters/FighterCharacter.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Utility/Animation/SuckToTargetComponent.h"
+#include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
 AFighterCharacter::AFighterCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
-
 	GetMesh()->SetGenerateOverlapEvents(true);
+	
+	TargetInformationComponent = CreateDefaultSubobject<UTargetInformationComponent>(TEXT("TargetInformationComp"));
+	TargetInformationComponent->SetupAttachment(RootComponent);
 }
 
 void AFighterCharacter::Tick(float DeltaSeconds)
@@ -38,10 +41,10 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 }
 
 void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty,
-	bool AllowHitRecentVicitms, FMeleeControlsKey Key)
+	bool AllowHitRecentVictims, FMeleeControlsKey Key)
 {
 	if(StartEmpty) MeleeEnabledBones.Empty();
-	if(AllowHitRecentVicitms) RecentlyDamagedActors.Empty();
+	if(AllowHitRecentVictims) RecentlyDamagedActors.Empty();
 	MeleeEnabledBones.Append(BonesToEnable);
 }
 
@@ -95,6 +98,31 @@ void AFighterCharacter::CheckMeshOverlaps()
 	}
 }
 
+void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
+{
+	int32 Index = CurrentLimitIndex + 1;
+	if(!InputLimits.IsValidIndex(Index)) return;
+	AcceptedInputs.OnInputLimitsReset.AddLambda([InputLimits, Index, World = GetWorld(), this]
+		(bool IsLimitDurationOver, bool& HasBeenCleared)
+	{
+		AcceptedInputs.LimitAvailableInputs(InputLimits[Index], World);
+		if(!HasBeenCleared)
+		{
+			AcceptedInputs.OnInputLimitsReset.Clear();
+			HasBeenCleared = true;
+		}
+		QueueFollowUpLimit(InputLimits, Index);
+	});
+}
+
+bool AFighterCharacter::ExecuteAttack(const FAttackProperties& AttackProperties)
+{
+	const int32 Index = CharacterStats->AvailableAttacks.Find(AttackProperties);
+	if(Index == INDEX_NONE) return false;
+	ExecuteAttack(Index);
+	return true;
+}
+
 void AFighterCharacter::ExecuteAttack(int32 Index)
 {
 	CharacterStats->ExecuteAttack(Index);
@@ -104,6 +132,7 @@ void AFighterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	check(GetMesh()->GetRelativeTransform().GetMaximumAxisScale() == GetMesh()->GetRelativeTransform().GetMinimumAxisScale());
+	SuckToTargetComponent->SetupReferences(this);
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
 	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
@@ -114,14 +143,15 @@ void AFighterCharacter::BeginPlay()
 
 bool AFighterCharacter::OnCheckCanExecuteAttack(const FAttackProperties& Properties)
 {
-	return AcceptedInputs.CanOverrideCurrentInput(Properties.InitialLimits.LimiterType) && !GetCharacterMovement()->IsFalling();
+	return AcceptedInputs.CanOverrideCurrentInput(Properties.InputLimits[0].LimiterType) && !GetCharacterMovement()->IsFalling();
 }
 
 void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
 {
 	StopAnimMontage();
 	PlayAnimMontage(Properties.AtkAnimation);
-	AcceptedInputs.LimitAvailableInputs(Properties.InitialLimits, Properties.ReducedLimits, GetWorld());
+	AcceptedInputs.LimitAvailableInputs(Properties.InputLimits[0], GetWorld());
+	QueueFollowUpLimit(Properties.InputLimits);
 }
 
 void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
@@ -129,13 +159,18 @@ void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
 	if(!IsValid(GetHitAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Stagger)) return;
 	StopAnimMontage();
 	PlayAnimMontage(GetHitAnimation);
-	AcceptedInputs.LimitAvailableInputs(EInputType::Stagger, GetWorld());
+	AcceptedInputs.LimitAvailableInputs({EInputType::Stagger, GetHitAnimation->GetPlayLength()*0.9f}, GetWorld());
 }
 
 void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 {
 	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death)) return;
 	StopAnimMontage();
-	PlayAnimMontage(GetHitAnimation);
-	AcceptedInputs.LimitAvailableInputs(EInputType::Death, GetWorld());
+	PlayAnimMontage(DeathAnimation);
+	AcceptedInputs.LimitAvailableInputs({EInputType::Death, DeathAnimation->GetPlayLength()*0.9f}, GetWorld());
+	AcceptedInputs.OnInputLimitsReset.AddLambda([this](bool IsLimitDurationOver, bool& HasBeenCleared)
+	{
+		HasBeenCleared = true;
+		Destroy();
+	});
 }

@@ -20,14 +20,29 @@ void URotateToFaceBBEntryService::OnBecomeRelevant(UBehaviorTreeComponent& Owner
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 	OwningController = OwnerComp.GetAIOwner();
+	if(!IsValid(OwningController))
+	{
+		checkNoEntry();
+		bNotifyTick = false;
+	}
+	
 	if(BlackboardKey.SelectedKeyType->IsChildOf(UBlackboardKeyType_Object::StaticClass()))
 	{
-		TargetObject = Cast<AActor>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(BlackboardKey.SelectedKeyName));
-		if(!IsValid(TargetObject) || !IsValid(OwningController))
+		UObject* Object = OwnerComp.GetBlackboardComponent()->GetValueAsObject(BlackboardKey.SelectedKeyName);
+		TargetController = Cast<AController>(Object);
+		if(!IsValid(TargetController))
+		{
+			TargetController = nullptr;
+			bNotifyTick = false;
+		}
+		else return;
+		
+		TargetObject = Cast<AActor>(Object);
+		if(!IsValid(TargetObject))
 		{
 			checkNoEntry();
 			bNotifyTick = false;
-		}
+		}		
 	}
 	else if(BlackboardKey.SelectedKeyType->IsChildOf(UBlackboardKeyType_Vector::StaticClass()))
 	{
@@ -43,6 +58,7 @@ void URotateToFaceBBEntryService::OnBecomeRelevant(UBehaviorTreeComponent& Owner
 void URotateToFaceBBEntryService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
-	if(IsValid(TargetObject)) OwningController->SetFocus(TargetObject);
+	if(IsValid(TargetController)) OwningController->SetFocus(TargetController->GetPawn());
+	else if(IsValid(TargetObject)) OwningController->SetFocus(TargetObject);
 	else OwningController->SetFocalPoint(TargetLocation);
 }

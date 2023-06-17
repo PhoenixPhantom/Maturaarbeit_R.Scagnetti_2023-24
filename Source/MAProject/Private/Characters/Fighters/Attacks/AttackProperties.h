@@ -31,17 +31,17 @@ struct MAPROJECT_API FAttackProperties
 	UPROPERTY(EditAnywhere, Category = Combat,
 		meta=(Units="cm", ToolTip="Default distance that the animation will move the actor."))
 	float DefaultMovementDistance;
+	UPROPERTY(EditAnywhere, Category = Opponent, AdvancedDisplay)
+	float Priority;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
-	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay, meta=(ToolTip="The limits that will be applied on attack execution."))
-	FInputLimits InitialLimits;
-	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay, meta=(ToolTip="The limits that will be applied after the first set of limits expires. (e.g. to allow for a follow up attack but not character movement)"))
-	FInputLimits ReducedLimits;
+	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay, meta=(ToolTip="The limits that will be applied one after another in order of indices on attack execution."))
+	TArray<FInputLimits> InputLimits;
 
 
 	bool operator==(const FAttackProperties& AttackProperties) const;
 
-
+	float GetPriority(float DistanceFromTarget) const;
 	bool GetIsOnCd() const { return bIsOnCd; }
 	void Execute();
 	float CdTimeElapsed() const;

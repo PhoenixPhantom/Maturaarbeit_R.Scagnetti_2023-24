@@ -15,10 +15,10 @@ struct MAPROJECT_API FPlayerRelativeConstraint : public FPositionalConstraint
 	GENERATED_BODY();
 public:
 	UPROPERTY()
-	AActor* Player;
+	AController* Player;
 	
 	FPlayerRelativeConstraint() : FPositionalConstraint(), Player(nullptr){}
-	FPlayerRelativeConstraint(AActor* SourcePlayer) : FPositionalConstraint(), Player(SourcePlayer){}
+	FPlayerRelativeConstraint(AController* SourcePlayer) : FPositionalConstraint(), Player(SourcePlayer){}
 };
 
 
@@ -30,15 +30,23 @@ struct MAPROJECT_API FPlayerDistanceConstraint : public FPlayerRelativeConstrain
 {
 	GENERATED_BODY();
 public:
+	bool bRequireOptimal;
+
 	UPROPERTY(EditAnywhere)
 	float MaxRadius;
 	UPROPERTY(EditAnywhere)
 	float MinRadius;
-
-	FPlayerDistanceConstraint() : FPlayerRelativeConstraint(), MaxRadius(300.f), MinRadius(200.f){}
-	FPlayerDistanceConstraint(AActor* SourcePlayer) : FPlayerRelativeConstraint(SourcePlayer),
-		MaxRadius(300.f), MinRadius(200.f){}
 	
+	UPROPERTY(EditAnywhere, AdvancedDisplay)
+	float OptimalMaxRadius;
+	UPROPERTY(EditAnywhere, AdvancedDisplay)
+	float OptimalMinRadius;
+
+	
+
+	FPlayerDistanceConstraint();
+	FPlayerDistanceConstraint(AController* SourcePlayer);
+
 	virtual bool IsConstraintSatisfied(FVector Position) const override;
 
 #if WITH_EDITORONLY_DATA
@@ -68,7 +76,7 @@ public:
 
 	FPlayerRelativeWorldZoneConstraint() : FPlayerRelativeConstraint(), ConstraintZone(Invalid)	{}
 
-	FPlayerRelativeWorldZoneConstraint(AActor* SourcePlayer) : FPlayerRelativeConstraint(SourcePlayer),
+	FPlayerRelativeWorldZoneConstraint(AController* SourcePlayer) : FPlayerRelativeConstraint(SourcePlayer),
 	ConstraintZone(Invalid){}
 	
 	virtual bool IsConstraintSatisfied(FVector Position) const override{ return CalculateTargetZone(Position) == ConstraintZone; }

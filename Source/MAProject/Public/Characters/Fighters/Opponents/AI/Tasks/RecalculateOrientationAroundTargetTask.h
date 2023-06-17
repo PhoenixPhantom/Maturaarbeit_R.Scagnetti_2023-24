@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
-#include "RecalculateOrientationAroundTarget.generated.h"
+#include "RecalculateOrientationAroundTargetTask.generated.h"
 
 class AOpponentCharacter;
 class AOpponentController;
@@ -14,21 +14,10 @@ class AOpponentController;
  * this is done by executing the task and is works for both active and passive owners
  */
 UCLASS()
-class MAPROJECT_API URecalculateOrientationAroundTarget : public UBTTask_BlackboardBase
+class MAPROJECT_API URecalculateOrientationAroundTargetTask : public UBTTask_BlackboardBase
 {
 	GENERATED_BODY()
 public:
-	URecalculateOrientationAroundTarget();
+	URecalculateOrientationAroundTargetTask();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	
-protected:
-	
-	UPROPERTY()
-	AOpponentController* OwningController;
-	
-	UPROPERTY()
-	AOpponentCharacter* OwningCharacter;
-
-	UPROPERTY(EditAnywhere)
-	float AllowedDeltaDistance;
 };

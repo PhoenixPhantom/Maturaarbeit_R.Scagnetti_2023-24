@@ -27,6 +27,7 @@ public:
 	 * @return Weather the current input can be overridden by Type
 	 */
 	bool CanOverrideCurrentInput(EInputType Type) const { return AcceptedInputs.CanOverrideCurrentInput(Type); }
+	const FAcceptedInputs& GetAcceptedInputs() const { return AcceptedInputs; }
 
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 

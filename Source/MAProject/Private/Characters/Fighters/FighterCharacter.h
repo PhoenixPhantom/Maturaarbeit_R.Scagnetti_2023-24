@@ -7,6 +7,8 @@
 #include "Characters/GeneralCharacter.h"
 #include "FighterCharacter.generated.h"
 
+class UTargetInformationComponent;
+
 struct FMeleeControlsKey final
 {
 	friend class UMeleeAttackNotifyState;
@@ -30,8 +32,14 @@ public:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
 
-	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitRecentVicitms, FMeleeControlsKey Key);
+	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitRecentVictims,
+		FMeleeControlsKey Key);
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
+	FOnInputLimitsResetDelegate& OnInputLimitsResetDelegate(){ return AcceptedInputs.OnInputLimitsReset; }
+
+	void GetAvailableAttacks(TArray<FAttackProperties>& AvailableAttacks) const
+		{ AvailableAttacks = CharacterStats->AvailableAttacks; }
+	bool ExecuteAttack(const FAttackProperties& AttackProperties);
 	
 	UFUNCTION(BlueprintCallable, Category = Combat)
 	void ExecuteAttack(int32 Index);
@@ -42,6 +50,9 @@ protected:
 
 	UPROPERTY()
 	TArray<AActor*> RecentlyDamagedActors;
+	
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UTargetInformationComponent* TargetInformationComponent;
 	
 	UPROPERTY(EditAnywhere, Category = Combat)
 	FCharacterBaseStats BaseStats;
@@ -58,6 +69,8 @@ protected:
 	void SwitchMovementToRun() const;
 
 	void CheckMeshOverlaps();
+
+	void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex = 0);
 
 	UFUNCTION()
 	bool OnCheckCanExecuteAttack(const FAttackProperties& Properties);

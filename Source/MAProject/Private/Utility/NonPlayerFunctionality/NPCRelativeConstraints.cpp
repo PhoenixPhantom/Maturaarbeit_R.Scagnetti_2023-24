@@ -56,7 +56,7 @@ FPassiveCombatConstraint::FPassiveCombatConstraint() : FNpcRelativeConstraints()
                                                        VerticalSize(100.f), HorizontalSize(100.f)
 {}
 
-FPassiveCombatConstraint::FPassiveCombatConstraint(AActor* SourceNpc, AActor* SourceOrientationCenter) :
+FPassiveCombatConstraint::FPassiveCombatConstraint(AActor* SourceNpc, AController* SourceOrientationCenter) :
 	FNpcRelativeConstraints(SourceNpc), OrientationCenter(SourceOrientationCenter), VerticalSize(100.f),
 	HorizontalSize(100.f)
 {}
@@ -65,15 +65,17 @@ bool FPassiveCombatConstraint::IsConstraintSatisfied(FVector Position) const
 {
 	FVector Direction;
 	float OwnDistanceFromCenter;
-	((Owner->GetActorLocation() + Owner->GetActorRotation().RotateVector(PositionOffset)) - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
-		OwnDistanceFromCenter);
+	((Owner->GetActorLocation() + Owner->GetActorRotation().RotateVector(PositionOffset)) -
+		OrientationCenter->GetPawn()->GetActorLocation()).ToDirectionAndLength(Direction, OwnDistanceFromCenter);
 	const float ActualRadius = OwnDistanceFromCenter - VerticalSize/2.f;
 	const float DotProduct = FVector::DotProduct(Direction,
-	            UKismetMathLibrary::GetDirectionUnitVector(OrientationCenter->GetActorLocation(), Position));
+	            UKismetMathLibrary::GetDirectionUnitVector(OrientationCenter->GetPawn()->GetActorLocation(),
+	            	Position));
 
 	const float ConstrainedAngle = 2.f * PI * std::min(HorizontalSize / (2.f * PI * OwnDistanceFromCenter), 1.f);
 
-	const float PositionDistanceFromCenter = FVector::Distance(OrientationCenter->GetActorLocation(), Position);
+	const float PositionDistanceFromCenter = FVector::Distance(OrientationCenter->GetPawn()->GetActorLocation(),
+		Position);
 	return UKismetMathLibrary::Acos(DotProduct) > ConstrainedAngle &&
 		(PositionDistanceFromCenter < ActualRadius || PositionDistanceFromCenter > (ActualRadius + VerticalSize));
 }
@@ -85,7 +87,7 @@ void FPassiveCombatConstraint::DrawConstraintDebug(UWorld* World, FLinearColor D
 	float DistanceFromCenter;
 	const FVector Location = Owner->GetActorLocation() + Owner->GetActorRotation().RotateVector(PositionOffset);
 	const FVector FrustumLocation = Location;
-	(FrustumLocation - OrientationCenter->GetActorLocation()).ToDirectionAndLength(Direction,
+	(FrustumLocation - OrientationCenter->GetPawn()->GetActorLocation()).ToDirectionAndLength(Direction,
 	DistanceFromCenter);
 	//const float ActualRadius = DistanceFromCenter - VerticalSize/2.f;
 	const float Angle = 2.f * PI * std::min(HorizontalSize / (2.f * PI * DistanceFromCenter), 1.f);

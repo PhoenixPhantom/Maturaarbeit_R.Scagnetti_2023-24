@@ -365,13 +365,14 @@ void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Prop
 {
 	if(IsValid(CurrentTarget))
 	{
-		FVector Direction = CurrentTarget->GetComponentLocation() - GetActorLocation();
-		if(Direction.Length() <= Properties.MaximalMovementDistance)
+		const FVector DeltaLocation = CurrentTarget->GetComponentLocation() - GetActorLocation();
+		FVector Direction;
+		float Length;
+		DeltaLocation.ToDirectionAndLength(Direction, Length);
+		if(Length <= Properties.MaximalMovementDistance)
 			SuckToTargetComponent->SetWarpTargetFaceTowards(CurrentTarget);
-		
 		else
 		{
-			Direction.Normalize();
 			//MotionWarpingComponent->RemoveWarpTarget("AttackComponent");
 			SuckToTargetComponent->SetWarpTargetFaceTowards(
 				GetActorLocation() + Direction * Properties.DefaultMovementDistance, GetActorLocation());

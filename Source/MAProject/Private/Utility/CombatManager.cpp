@@ -42,12 +42,13 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 
 	
 	//Instead add the constraints that are specific to this entity
-	const FPlayerDistanceConstraint* PlayerDistanceConstraint;
-	if(ActiveParticipants.Contains(OwningCharacter)) PlayerDistanceConstraint = OwningCharacter->GetActivePlayerDistanceConstraint();
-	else PlayerDistanceConstraint = OwningCharacter->GetPassivePlayerDistanceConstraint();
-	RelevantConstraints.Add(PlayerDistanceConstraint);
+	FPlayerDistanceConstraint PlayerDistanceConstraint;
+	if(ActiveParticipants.Contains(OwningCharacter)) PlayerDistanceConstraint = *OwningCharacter->GetActivePlayerDistanceConstraint();
+	else PlayerDistanceConstraint = *OwningCharacter->GetPassivePlayerDistanceConstraint();
+	RelevantConstraints.Add(&PlayerDistanceConstraint);
 
-	FPlayerRelativeWorldZoneConstraint* PlayerZoneConstraint = new FPlayerRelativeWorldZoneConstraint(PlayerCharacter);
+	FPlayerRelativeWorldZoneConstraint* PlayerZoneConstraint =
+		new FPlayerRelativeWorldZoneConstraint(PlayerCharacter->GetController());
 	PlayerZoneConstraint->ConstraintZone = PlayerZoneConstraint->CalculateTargetZone(OpponentLocation);
 	RelevantConstraints.Add(PlayerZoneConstraint);
 
@@ -57,10 +58,10 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 		//Debug shapes should be shown for 10s (but only when there is no more recent debug shape)
 		DebugImagesToDraw.Key = 10.f;
 		DebugImagesToDraw.Value.Clear();
-		DebugImagesToDraw.Value.AddLambda([DistanceConstraint = *PlayerDistanceConstraint,
+		DebugImagesToDraw.Value.AddLambda([DistanceConstraint = PlayerDistanceConstraint,
 			ZoneConstraint = *PlayerZoneConstraint, World = GetWorld(),
-			DCPosition = PlayerDistanceConstraint->Player->GetActorLocation(),
-			ZCPosition = PlayerZoneConstraint->Player->GetActorLocation()]
+			DCPosition = PlayerDistanceConstraint.Player->GetPawn()->GetActorLocation(),
+			ZCPosition = PlayerZoneConstraint->Player->GetPawn()->GetActorLocation()]
 		{
 			DistanceConstraint.DrawOldConstraintDebug(World, DCPosition, FLinearColor(0, 255, 0), 0.f);
 			ZoneConstraint.DrawOldConstraintDebug(World, ZCPosition, FLinearColor(0, 255, 0), 0.f);
@@ -70,7 +71,6 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 #endif
 	
 	//We only have to expensively find a new location if the current one isn't good anymore
-	//TODO: Maybe check in a small radius to reduce noise
 	bool AreAllSatisfied = true;
 	for(const FPositionalConstraint* Constraint : RelevantConstraints)
 	{
@@ -92,6 +92,7 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 	FVector ProjectedRotation = Rotation.Vector();
 	ProjectedRotation.Z = 0;
 	ProjectedRotation.Normalize();
+	PlayerDistanceConstraint.bRequireOptimal = true;
 	return SampleGetClosestValid(ResultingLocation, OwningCharacter->GetActorLocation(),
 	                             ProjectedRotation * 100.f, 50.f, RelevantConstraints,
 	                             5000.f, GetWorld()

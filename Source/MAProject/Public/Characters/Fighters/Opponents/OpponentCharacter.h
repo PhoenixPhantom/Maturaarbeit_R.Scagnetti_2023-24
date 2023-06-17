@@ -45,12 +45,12 @@ public:
 
 	
 	const FActiveCombatConstraint* GetActivePositionConstraint() const{ return &ActiveCombatConstraint; };
-	const FPlayerDistanceConstraint* GetActivePlayerDistanceConstraint() const { return &ActivePlayerDistanceConstraint; };
+	const FPlayerDistanceConstraint* GetActivePlayerDistanceConstraint() const { return &DistanceFromTargetActive; };
 	const FPassiveCombatConstraint* GetPassivePositionConstraint() const{ return &PassiveCombatConstraint; };
-	const FPlayerDistanceConstraint* GetPassivePlayerDistanceConstraint() const{ return &PassivePlayerDistanceConstraint; };
+	const FPlayerDistanceConstraint* GetPassivePlayerDistanceConstraint() const{ return &DistanceFromTargetPassive; };
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
-	void RegisterPlayerOpponent(AActor* NewOpponent, FSetPlayerOpponentKey Key);
+	void RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key);
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
 
 	/**
@@ -62,9 +62,10 @@ public:
 
 protected:
 	uint8 bCanBecomeAggressive:1;
-
 	float LocalFieldOfView;
 
+	UPROPERTY()
+	AController* TargetPlayer;
 	
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers StatsModifiers;
@@ -72,20 +73,17 @@ protected:
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
 
-	UPROPERTY(EditAnywhere)
-	UTargetInformationComponent* TargetInformationComponent;
-
 	UPROPERTY(EditAnywhere, Category=Combat)
 	FActiveCombatConstraint ActiveCombatConstraint;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
-	FPlayerDistanceConstraint ActivePlayerDistanceConstraint;
+	FPlayerDistanceConstraint DistanceFromTargetActive;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
 	FPassiveCombatConstraint PassiveCombatConstraint;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
-	FPlayerDistanceConstraint PassivePlayerDistanceConstraint;
+	FPlayerDistanceConstraint DistanceFromTargetPassive;
 	
 	UPROPERTY(EditAnywhere, Category=AI)
 	uint32 RequestedAggressionTokens;
@@ -97,5 +95,8 @@ protected:
 	float AggressionRange;
 
 	virtual void BeginPlay() override;
+
 	
+	UFUNCTION()
+	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);	
 };

@@ -7,7 +7,8 @@ FAttackDamageEvent::FAttackDamageEvent(): StaggerChance(1), StaggerImpulse(10.f)
 {}
 
 FAttackDamageEvent::FAttackDamageEvent(const FAttackDamageEvent& AttackDamageEvent): Super(AttackDamageEvent),
-	StaggerChance(AttackDamageEvent.StaggerChance), StaggerImpulse(AttackDamageEvent.StaggerImpulse)
+	StaggerChance(AttackDamageEvent.StaggerChance), StaggerImpulse(AttackDamageEvent.StaggerImpulse),
+	HitDirection(AttackDamageEvent.HitDirection)
 {}
 
 bool FAttackDamageEvent::operator==(const FAttackDamageEvent& AttackDamageEvent) const

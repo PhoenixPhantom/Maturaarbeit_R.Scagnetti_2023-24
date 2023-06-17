@@ -69,8 +69,8 @@ protected:
 	virtual void BeginDestroy() override;
 	virtual void OnPossess(APawn* InPawn) override;
 
-	void RegisterSensedPlayer(AActor* Player);
-	void UnregisterSensedPlayer(AActor* Player);
+	void RegisterSensedPlayer(AController* Player);
+	void UnregisterSensedPlayer(AController* Player);
 
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);

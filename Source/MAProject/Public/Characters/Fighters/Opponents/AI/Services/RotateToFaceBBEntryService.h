@@ -25,5 +25,8 @@ protected:
 	AActor* TargetObject;
 
 	UPROPERTY()
+	AController* TargetController;
+
+	UPROPERTY()
 	AAIController* OwningController;
 };

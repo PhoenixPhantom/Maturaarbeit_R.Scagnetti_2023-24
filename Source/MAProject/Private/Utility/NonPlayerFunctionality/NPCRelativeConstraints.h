@@ -79,7 +79,7 @@ struct MAPROJECT_API FPassiveCombatConstraint : public FNpcRelativeConstraints
 	GENERATED_BODY();
 public:
 	UPROPERTY()
-	AActor* OrientationCenter;
+	AController* OrientationCenter;
 	
 	UPROPERTY(EditAnywhere)
 	float VerticalSize;
@@ -87,7 +87,7 @@ public:
 	float HorizontalSize;
 
 	FPassiveCombatConstraint();
-	FPassiveCombatConstraint(AActor* SourceNpc, AActor* SourceOrientationCenter);
+	FPassiveCombatConstraint(AActor* SourceNpc, AController* SourceOrientationCenter);
 
 	virtual bool IsConstraintSatisfied(FVector Position) const override;
 

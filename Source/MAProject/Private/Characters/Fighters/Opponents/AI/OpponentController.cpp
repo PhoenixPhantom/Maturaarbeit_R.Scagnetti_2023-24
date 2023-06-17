@@ -117,7 +117,7 @@ void AOpponentController::OnPossess(APawn* InPawn)
 	MoveTarget->SetActorLocation(GetPawn()->GetActorLocation());
 }
 
-void AOpponentController::RegisterSensedPlayer(AActor* Player)
+void AOpponentController::RegisterSensedPlayer(AController* Player)
 {
 	if(!IsValid(Player)) return;
 	if(!CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey())) return;
@@ -126,12 +126,13 @@ void AOpponentController::RegisterSensedPlayer(AActor* Player)
 	ControlledOpponent->RegisterPlayerOpponent(Player, FSetPlayerOpponentKey());
 }
 
-void AOpponentController::UnregisterSensedPlayer(AActor* Player)
+void AOpponentController::UnregisterSensedPlayer(AController* Player)
 {
 	if(!IsValid(Player)) return;
 	Blackboard->SetValueAsBool("IsActiveCombat", false);
 	Blackboard->SetValueAsBool("HasSensedPlayer", false);
 	Blackboard->ClearValue("TargetObject");
+	ControlledOpponent->RegisterPlayerOpponent(nullptr, FSetPlayerOpponentKey());
 	CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
 }
 
@@ -141,19 +142,20 @@ void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAISti
 	//TODO: expand functionality to also detect other opponents
 	const APlayerCharacter* DetectedPlayer = Cast<APlayerCharacter>(UpdatedActor);
 	if(!IsValid(DetectedPlayer)) return;
+	AController* Controller = DetectedPlayer->GetController();
 	if(!Stimulus.WasSuccessfullySensed())
 	{
 		if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
-			GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, UpdatedActor]
+			GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
 			{
-				UnregisterSensedPlayer(UpdatedActor);
+				UnregisterSensedPlayer(Controller);
 			}, 5.f, true);
 		}
 	}
 	else
 	{
 		if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
-		RegisterSensedPlayer(UpdatedActor);
+		RegisterSensedPlayer(Controller);
 	}
 }
 

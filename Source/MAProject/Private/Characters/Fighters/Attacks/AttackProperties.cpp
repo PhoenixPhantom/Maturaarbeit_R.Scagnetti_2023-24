@@ -4,34 +4,35 @@
 #include "AttackProperties.h"
 
 FAttackProperties::FAttackProperties() : DamagePercent(100.f), CdTime(0.f), MaximalMovementDistance(200.f),
-	DefaultMovementDistance(100.f), AtkAnimation(nullptr), InitialLimits(EInputType::Attack),
-	ReducedLimits(EInputType::Attack), World(nullptr),	bIsOnCd(false)
+	DefaultMovementDistance(100.f), Priority(1.f), AtkAnimation(nullptr), World(nullptr), bIsOnCd(false)
 {
-	//the second limiter (ReducedLimits) should normally be able to override the initial limits...
-	ReducedLimits.LimiterType = EInputType::Force;
-	//allow for attack strings
-	ReducedLimits.bCanAttack = true;
-	//allow for sprint/jump cancel
-	ReducedLimits.bCanSprint = true;
-	ReducedLimits.MovementProperties.bCanJump = true;
+	InputLimits.SetNum(0, true);
+	InputLimits.Add({EInputType::Attack, 1.f});
 }
 
 FAttackProperties::FAttackProperties(const FAttackProperties& Properties) : DamagePercent(Properties.DamagePercent),
-	CdTime(Properties.CdTime), DamageEvent(Properties.DamageEvent),
-	MaximalMovementDistance(Properties.MaximalMovementDistance),
-	DefaultMovementDistance(Properties.DefaultMovementDistance), AtkAnimation(Properties.AtkAnimation),
-	InitialLimits(Properties.InitialLimits), ReducedLimits(Properties.ReducedLimits), World(Properties.World),
-	bIsOnCd(Properties.bIsOnCd)
-{}
+            CdTime(Properties.CdTime), DamageEvent(Properties.DamageEvent),
+			MaximalMovementDistance(Properties.MaximalMovementDistance),
+			DefaultMovementDistance(Properties.DefaultMovementDistance), Priority(Properties.Priority),
+			AtkAnimation(Properties.AtkAnimation), InputLimits(Properties.InputLimits),
+			World(Properties.World), bIsOnCd(Properties.bIsOnCd)
+{
+}
 
 bool FAttackProperties::operator==(const FAttackProperties& AttackProperties) const
 {
 	return DamagePercent == AttackProperties.DamagePercent && CdTime == AttackProperties.CdTime &&
 		DamageEvent == AttackProperties.DamageEvent &&
+		MaximalMovementDistance == AttackProperties.MaximalMovementDistance &&
+		DefaultMovementDistance == AttackProperties.DefaultMovementDistance &&
+		Priority == AttackProperties.Priority && AtkAnimation == AttackProperties.AtkAnimation &&
+		InputLimits == AttackProperties.InputLimits;
+}
 
-			MaximalMovementDistance == AttackProperties.MaximalMovementDistance &&
-		AtkAnimation == AttackProperties.AtkAnimation && InitialLimits == AttackProperties.InitialLimits &&
-		ReducedLimits == AttackProperties.ReducedLimits;
+float FAttackProperties::GetPriority(float DistanceFromTarget) const
+{
+	return Priority / std::max(1.f,
+		(DistanceFromTarget-DefaultMovementDistance)/(MaximalMovementDistance-DefaultMovementDistance));
 }
 
 void FAttackProperties::Execute()
