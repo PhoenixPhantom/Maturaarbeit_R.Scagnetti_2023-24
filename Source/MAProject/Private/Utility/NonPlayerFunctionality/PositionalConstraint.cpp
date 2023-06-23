@@ -4,6 +4,7 @@
 #include "PositionalConstraint.h"
 
 #include "NavigationSystem.h"
+#include "Utility/Navigation/AvoidCharacterNavQueryFilter.h"
 
 bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
                            float Distribution, const TArray<const FPositionalConstraint*>& RelevantConstraints,
@@ -26,7 +27,8 @@ bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoin
 			FNavLocation ProjectedLocation;
 			if(NavigationSystem->ProjectPointToNavigation(SourcePoint +
 				Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(j),
-					FVector(0.f, 0.f, 1.f)),ProjectedLocation, ProjectionExtent))
+					FVector(0.f, 0.f, 1.f)),ProjectedLocation, ProjectionExtent), 0,
+					UAvoidCharacterNavQueryFilter::StaticClass())
 						SamplePoints.Add(ProjectedLocation);
 		}
 		if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, World,

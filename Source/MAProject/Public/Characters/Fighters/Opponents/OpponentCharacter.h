@@ -10,6 +10,8 @@
 #include "OpponentCharacter.generated.h"
 
 class ACombatManager;
+class USphereComponent;
+class UBoxComponent;
 class AOpponentController;
 class USavableObjectMarkerComponent;
 class UTargetInformationComponent;
@@ -73,6 +75,12 @@ protected:
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;
 
+	UPROPERTY(EditAnywhere)
+	USphereComponent* RequiredSpaceActiveCombat;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* RequiredSpacePassiveCombat;
+	
 	UPROPERTY(EditAnywhere, Category=Combat)
 	FActiveCombatConstraint ActiveCombatConstraint;
 

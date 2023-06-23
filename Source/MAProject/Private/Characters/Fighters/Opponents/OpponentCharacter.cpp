@@ -5,7 +5,11 @@
 
 #include "Utility/CombatManager.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
+#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
+#include "Utility/Navigation/CharacterNavigationArea.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
@@ -13,6 +17,24 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPla
 	RequestedAggressionTokens(1), AggressionPriority(1.f), AggressionRange(1.f)
 {
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
+	
+	RequiredSpaceActiveCombat = CreateDefaultSubobject<USphereComponent>(TEXT("ActiveCombatSize"));
+	RequiredSpaceActiveCombat->SetupAttachment(GetMesh());
+	RequiredSpaceActiveCombat->SetCollisionProfileName("Navigation");
+	RequiredSpaceActiveCombat->SetGenerateOverlapEvents(false);
+	RequiredSpaceActiveCombat->SetSphereRadius(160.f);
+	RequiredSpaceActiveCombat->SetCanEverAffectNavigation(false);
+	RequiredSpaceActiveCombat->bDynamicObstacle = true;
+	RequiredSpaceActiveCombat->SetAreaClassOverride(UCharacterNavigationArea::StaticClass());
+	
+	RequiredSpacePassiveCombat = CreateDefaultSubobject<UBoxComponent>(TEXT("PassiveCombatSize"));
+	RequiredSpacePassiveCombat->SetupAttachment(GetMesh());
+	RequiredSpacePassiveCombat->SetCollisionProfileName("Navigation");
+	RequiredSpacePassiveCombat->SetGenerateOverlapEvents(false);
+	RequiredSpacePassiveCombat->SetBoxExtent(FVector(50.f, 50.f, 100.f));
+	RequiredSpacePassiveCombat->SetCanEverAffectNavigation(false);
+	RequiredSpacePassiveCombat->bDynamicObstacle = true;
+	RequiredSpacePassiveCombat->SetAreaClassOverride(UCharacterNavigationArea::StaticClass());
 }
 
 void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key)

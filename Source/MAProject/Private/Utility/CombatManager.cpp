@@ -34,14 +34,15 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 	const FVector OpponentLocation = OwningCharacter->GetActorLocation();
 
 
-	TArray<const FPositionalConstraint*> RelevantConstraints = PositionalConstraints;
+	/*TArray<const FPositionalConstraint*> RelevantConstraints = PositionalConstraints;
 	//we have to remove all constraints imposed by the entity we want to move
 	//(otherwise, wherever it stands will not be valid as something (itself) is already there)
 	RelevantConstraints.RemoveAll([OwningCharacter](const FPositionalConstraint* Constraint)
-	{ return Constraint->Owner == OwningCharacter; });
+	{ return Constraint->Owner == OwningCharacter; });*/
 
-	
-	//Instead add the constraints that are specific to this entity
+
+	TArray<const FPositionalConstraint*> RelevantConstraints;
+	//Add the constraints that are specific to this entity
 	FPlayerDistanceConstraint PlayerDistanceConstraint;
 	if(ActiveParticipants.Contains(OwningCharacter)) PlayerDistanceConstraint = *OwningCharacter->GetActivePlayerDistanceConstraint();
 	else PlayerDistanceConstraint = *OwningCharacter->GetPassivePlayerDistanceConstraint();
