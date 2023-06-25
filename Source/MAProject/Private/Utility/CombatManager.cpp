@@ -203,7 +203,7 @@ bool ACombatManager::GrantTokens(const FAggressionData& AggressionData)
 	if(AggressionData.RequestedTokens > AvailableAggressionTokens) return false;
 	AvailableAggressionTokens -= AggressionData.RequestedTokens;
 	MakeActiveParticipant(PassiveParticipants.Find(AggressionData.Holder));
-	AggressionData.Holder->OnAggressionTokensGranted.Broadcast();
+	AggressionData.Holder->ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey());
 	return true;
 }
 

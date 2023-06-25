@@ -46,8 +46,6 @@ public:
 	//have a smooth interpolation when movement targets are changed on the fly instead of always stopping and then
 	//starting to walk every time we change the MoveTo target
 	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath = nullptr) override;
-
-	void ReleaseAggressionToken(FReleaseTokenKey Key);
 	
 	float GetFieldOfView() const;
 	ACombatManager* GetCombatManager() const{ return CombatManager; }
@@ -77,6 +75,9 @@ protected:
 
 	UFUNCTION()
 	void OnAggressionTokenGranted();
+
+	UFUNCTION()
+	void OnAggressionTokenReleased();
 
 
 #if WITH_EDITORONLY_DATA

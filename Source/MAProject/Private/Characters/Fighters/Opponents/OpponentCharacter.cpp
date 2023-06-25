@@ -73,7 +73,27 @@ void AOpponentCharacter::BeginPlay()
 	DistanceFromTargetActive.Owner = this;
 	DistanceFromTargetPassive.Owner = this;
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
+	OnAggressionTokensGranted.AddDynamic(this, &AOpponentCharacter::SetIsActiveCombat);
+	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetIsPassiveCombat);
 	Super::BeginPlay();
+}
+
+void AOpponentCharacter::SetIsActiveCombat()
+{
+	if(!RequiredSpaceActiveCombat->CanEverAffectNavigation())
+	{
+		RequiredSpaceActiveCombat->SetCanEverAffectNavigation(true);
+		RequiredSpacePassiveCombat->SetCanEverAffectNavigation(false);
+	}
+}
+
+void AOpponentCharacter::SetIsPassiveCombat()
+{
+	if(!RequiredSpacePassiveCombat->CanEverAffectNavigation())
+	{
+		RequiredSpaceActiveCombat->SetCanEverAffectNavigation(false);
+		RequiredSpacePassiveCombat->SetCanEverAffectNavigation(true);
+	}
 }
 
 void AOpponentCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)

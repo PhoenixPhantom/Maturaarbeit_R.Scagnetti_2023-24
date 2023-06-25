@@ -9,6 +9,7 @@
 #include "Utility/NonPlayerFunctionality/PlayerRelativeConstraints.h"
 #include "OpponentCharacter.generated.h"
 
+class UReleaseAggressionTokensTask;
 class ACombatManager;
 class USphereComponent;
 class UBoxComponent;
@@ -30,7 +31,29 @@ private:
 	FSetPlayerOpponentKey(){};
 };
 
+struct FEditOnAggressionTokensGrantedOrReleasedKey final
+{
+	friend AOpponentController;
+private:
+	FEditOnAggressionTokensGrantedOrReleasedKey(){}
+};
+
+struct FExecuteOnAggressionTokensGrantedKey final
+{
+	friend ACombatManager;
+private:
+	FExecuteOnAggressionTokensGrantedKey(){}
+};
+
+struct FExecuteOnAggressionTokensReleasedKey final
+{
+	friend UReleaseAggressionTokensTask;
+private:
+	FExecuteOnAggressionTokensReleasedKey(){}
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenGrantedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenRemovedDelegate);
 
 /**
  * 
@@ -39,15 +62,23 @@ UCLASS()
 class MAPROJECT_API AOpponentCharacter : public AFighterCharacter
 {
 	GENERATED_BODY()
-public:
-	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
-	
+public:	
 	AOpponentCharacter();
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
-
 	
+	FOnAggressionTokenGrantedDelegate& GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey)
+		{ return OnAggressionTokensGranted; }
+	FOnAggressionTokenRemovedDelegate& GetOnAggressionTokensReleased(FEditOnAggressionTokensGrantedOrReleasedKey)
+		{ return OnAggressionTokensRemoved; }
+	void ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey) const
+		{ OnAggressionTokensGranted.Broadcast(); }
+	void ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey) const
+		{ OnAggressionTokensRemoved.Broadcast(); }
+	
+	[[deprecated]]
 	const FActiveCombatConstraint* GetActivePositionConstraint() const{ return &ActiveCombatConstraint; };
 	const FPlayerDistanceConstraint* GetActivePlayerDistanceConstraint() const { return &DistanceFromTargetActive; };
+	[[deprecated]]
 	const FPassiveCombatConstraint* GetPassivePositionConstraint() const{ return &PassiveCombatConstraint; };
 	const FPlayerDistanceConstraint* GetPassivePlayerDistanceConstraint() const{ return &DistanceFromTargetPassive; };
 	
@@ -65,6 +96,9 @@ public:
 protected:
 	uint8 bCanBecomeAggressive:1;
 	float LocalFieldOfView;
+	
+	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
+	FOnAggressionTokenRemovedDelegate OnAggressionTokensRemoved;
 
 	UPROPERTY()
 	AController* TargetPlayer;
@@ -104,6 +138,12 @@ protected:
 
 	virtual void BeginPlay() override;
 
+
+	UFUNCTION()
+	void SetIsActiveCombat();
+
+	UFUNCTION()
+	void SetIsPassiveCombat();
 	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);	

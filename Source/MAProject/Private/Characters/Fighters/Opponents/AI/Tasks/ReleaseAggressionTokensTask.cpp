@@ -2,7 +2,9 @@
 
 
 #include "Characters/Fighters/Opponents/AI/Tasks/ReleaseAggressionTokensTask.h"
-#include "Characters/Fighters/Opponents/AI/OpponentController.h"
+
+#include "AIController.h"
+#include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
 UReleaseAggressionTokensTask::UReleaseAggressionTokensTask(FObjectInitializer const& ObjectInitializer)
 {
@@ -11,6 +13,7 @@ UReleaseAggressionTokensTask::UReleaseAggressionTokensTask(FObjectInitializer co
 
 EBTNodeResult::Type UReleaseAggressionTokensTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	CastChecked<AOpponentController>(OwnerComp.GetAIOwner())->ReleaseAggressionToken(FReleaseTokenKey());	
+	CastChecked<AOpponentCharacter>(OwnerComp.GetAIOwner()->GetPawn())->
+		ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey());	
 	return EBTNodeResult::Succeeded;
 }

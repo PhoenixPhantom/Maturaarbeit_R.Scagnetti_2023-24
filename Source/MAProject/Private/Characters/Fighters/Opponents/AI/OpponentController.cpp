@@ -61,12 +61,6 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 	return Super::MoveTo(ModifiedRequest, OutPath);
 }
 
-void AOpponentController::ReleaseAggressionToken(FReleaseTokenKey Key)
-{
-	Blackboard->SetValueAsBool("IsActiveCombat", false);
-	CombatManager->ReleaseAggressionTokens(ControlledOpponent, FManageAggressionTokensKey());
-}
-
 float AOpponentController::GetFieldOfView() const
 {
 	const UAISenseConfig_Sight* SightConfig = CastChecked<UAISenseConfig_Sight>(
@@ -102,7 +96,10 @@ void AOpponentController::OnPossess(APawn* InPawn)
 	
 	ControlledOpponent = CastChecked<AOpponentCharacter>(InPawn);
 	ControlledOpponent->SetLocalFieldOfView(GetFieldOfView(), FSetFieldOfViewKey());
-	ControlledOpponent->OnAggressionTokensGranted.AddDynamic(this, &AOpponentController::OnAggressionTokenGranted);
+	ControlledOpponent->GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey()).
+		AddDynamic(this, &AOpponentController::OnAggressionTokenGranted);
+	ControlledOpponent->GetOnAggressionTokensReleased(FEditOnAggressionTokensGrantedOrReleasedKey()).
+		AddDynamic(this, &AOpponentController::OnAggressionTokenReleased);
 
 	//Setup move target
 	if(!IsValid(MoveTarget))
@@ -162,6 +159,12 @@ void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAISti
 void AOpponentController::OnAggressionTokenGranted()
 {
 	Blackboard->SetValueAsBool("IsActiveCombat", true);
+}
+
+void AOpponentController::OnAggressionTokenReleased()
+{
+	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	CombatManager->ReleaseAggressionTokens(ControlledOpponent, FManageAggressionTokensKey());
 }
 
 #if WITH_EDITORONLY_DATA
