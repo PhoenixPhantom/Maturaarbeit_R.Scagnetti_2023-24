@@ -51,6 +51,14 @@ struct FAggressionData
 	float GetScorePerToken() const { return AggressionScore/static_cast<float>(RequestedTokens); }
 };
 
+enum class ECombatParticipantStatus : uint8
+{
+	NotRegistered,
+	Active,
+	Passive,
+	Player
+};
+
 UCLASS()
 class MAPROJECT_API ACombatManager : public AActor
 {
@@ -61,7 +69,7 @@ public:
 
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
 	bool GetAggressivenessDependantLocation(FVector& ResultingLocation, AOpponentCharacter* OwningCharacter);
-	bool IsParticipant(AFighterCharacter* Character) const;
+	ECombatParticipantStatus IsParticipant(AFighterCharacter* Character) const;
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);
 	bool RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key);

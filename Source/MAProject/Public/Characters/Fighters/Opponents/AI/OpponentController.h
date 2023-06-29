@@ -42,6 +42,9 @@ class MAPROJECT_API AOpponentController : public AAIController
 public:
 	AOpponentController();
 
+	
+	bool GetOptimalLocation(FVector& OptimalLocation) const;
+
 	//We override the built in MoveTo function to make all move to requests use the custom MoveTarget so we can
 	//have a smooth interpolation when movement targets are changed on the fly instead of always stopping and then
 	//starting to walk every time we change the MoveTo target
@@ -81,6 +84,7 @@ protected:
 
 
 #if WITH_EDITORONLY_DATA
+	bool bIsDebugging = false;
 	UFUNCTION(CallInEditor)
 	void ToggleDebugging() const;
 #endif	

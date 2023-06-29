@@ -9,7 +9,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
-#include "Utility/Navigation/CharacterNavigationArea.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
@@ -21,20 +20,22 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPla
 	RequiredSpaceActiveCombat = CreateDefaultSubobject<USphereComponent>(TEXT("ActiveCombatSize"));
 	RequiredSpaceActiveCombat->SetupAttachment(GetMesh());
 	RequiredSpaceActiveCombat->SetCollisionProfileName("Navigation");
-	RequiredSpaceActiveCombat->SetGenerateOverlapEvents(false);
+	RequiredSpaceActiveCombat->SetGenerateOverlapEvents(true);
 	RequiredSpaceActiveCombat->SetSphereRadius(160.f);
 	RequiredSpaceActiveCombat->SetCanEverAffectNavigation(false);
-	RequiredSpaceActiveCombat->bDynamicObstacle = true;
-	RequiredSpaceActiveCombat->SetAreaClassOverride(UCharacterNavigationArea::StaticClass());
 	
-	RequiredSpacePassiveCombat = CreateDefaultSubobject<UBoxComponent>(TEXT("PassiveCombatSize"));
-	RequiredSpacePassiveCombat->SetupAttachment(GetMesh());
-	RequiredSpacePassiveCombat->SetCollisionProfileName("Navigation");
-	RequiredSpacePassiveCombat->SetGenerateOverlapEvents(false);
-	RequiredSpacePassiveCombat->SetBoxExtent(FVector(50.f, 50.f, 100.f));
-	RequiredSpacePassiveCombat->SetCanEverAffectNavigation(false);
-	RequiredSpacePassiveCombat->bDynamicObstacle = true;
-	RequiredSpacePassiveCombat->SetAreaClassOverride(UCharacterNavigationArea::StaticClass());
+	RequiredSpacePassive = CreateDefaultSubobject<UBoxComponent>(TEXT("PassiveCombatSize"));
+	RequiredSpacePassive->SetupAttachment(GetMesh());
+	RequiredSpacePassive->SetCollisionProfileName("Navigation");
+	RequiredSpacePassive->SetGenerateOverlapEvents(true);
+	RequiredSpacePassive->SetBoxExtent(FVector(50.f, 50.f, 100.f));
+	RequiredSpacePassive->SetCanEverAffectNavigation(false);
+}
+
+UShapeComponent* AOpponentCharacter::GetRequiredSpace() const
+{
+	if(RequiredSpaceActiveCombat->ComponentTags.Contains(RequiredSpaceActiveTag)) return RequiredSpaceActiveCombat;
+	return RequiredSpacePassive;
 }
 
 void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key)
@@ -73,27 +74,23 @@ void AOpponentCharacter::BeginPlay()
 	DistanceFromTargetActive.Owner = this;
 	DistanceFromTargetPassive.Owner = this;
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
-	OnAggressionTokensGranted.AddDynamic(this, &AOpponentCharacter::SetIsActiveCombat);
-	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetIsPassiveCombat);
+	OnAggressionTokensGranted.AddDynamic(this, &AOpponentCharacter::SetUseActiveCombatSpace);
+	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetUsePassiveSpace);
+	SetUsePassiveSpace();
 	Super::BeginPlay();
 }
 
-void AOpponentCharacter::SetIsActiveCombat()
+void AOpponentCharacter::SetUseActiveCombatSpace()
 {
-	if(!RequiredSpaceActiveCombat->CanEverAffectNavigation())
-	{
-		RequiredSpaceActiveCombat->SetCanEverAffectNavigation(true);
-		RequiredSpacePassiveCombat->SetCanEverAffectNavigation(false);
-	}
+	
+	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
+	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }
 
-void AOpponentCharacter::SetIsPassiveCombat()
+void AOpponentCharacter::SetUsePassiveSpace()
 {
-	if(!RequiredSpacePassiveCombat->CanEverAffectNavigation())
-	{
-		RequiredSpaceActiveCombat->SetCanEverAffectNavigation(false);
-		RequiredSpacePassiveCombat->SetCanEverAffectNavigation(true);
-	}
+	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
+	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }
 
 void AOpponentCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)

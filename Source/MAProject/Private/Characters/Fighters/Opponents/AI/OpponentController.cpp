@@ -7,6 +7,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Utility/CombatManager.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
+#include "Components/ShapeComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
@@ -38,6 +39,84 @@ AOpponentController::AOpponentController() : DefaultBehaviorTree(nullptr)
 	//Register OnPerceptionUpdated delegate
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AOpponentController::OnTargetPerceptionUpdated);
 	
+}
+
+bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
+{
+	//If the controlled character is participating in combat
+	if(const ECombatParticipantStatus ParticipantStatus = CombatManager->IsParticipant(ControlledOpponent);
+		ParticipantStatus != ECombatParticipantStatus::NotRegistered)
+	{
+		//Add the constraints that are specific to this entity
+		FPlayerDistanceConstraint PlayerDistanceConstraint;
+		switch(ParticipantStatus)
+		{
+		case ECombatParticipantStatus::Active:
+			{
+				PlayerDistanceConstraint = *ControlledOpponent->GetActivePlayerDistanceConstraint();
+				break;
+			}
+		case ECombatParticipantStatus::Passive:
+			{
+				
+				PlayerDistanceConstraint = *ControlledOpponent->GetPassivePlayerDistanceConstraint();
+				break;
+			}
+		default: checkNoEntry();
+		}
+
+
+		//Firstly we check whether the current position has an acceptable distance to the target
+		bool IsCurrentPositionValid = true;
+		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
+		UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
+		if(PlayerDistanceConstraint.IsConstraintSatisfied(CurrentLocation)){
+			TArray<UPrimitiveComponent*> OverlappingComponents;
+			RequiredSpace->GetOverlappingComponents(OverlappingComponents);
+			for(const UPrimitiveComponent* Component : RequiredSpace)
+			{
+				if(!Component->ComponentTags.Contains(AOpponentCharacter::RequiredSpaceActiveTag) || Component->GetOwner()
+					== ControlledOpponent) continue;
+				IsCurrentPositionValid = false;
+				break;
+			}
+		}
+		else IsCurrentPositionValid = false;
+		
+		if(IsCurrentPositionValid)
+		{
+			OptimalLocation = CurrentLocation;
+			return true;
+		}
+
+		FPlayerRelativeWorldZoneConstraint* PlayerZoneConstraint =
+			new FPlayerRelativeWorldZoneConstraint(CombatManager->GetPlayerCharacter()->GetController());
+		PlayerZoneConstraint->ConstraintZone = PlayerZoneConstraint->CalculateTargetZone(CurrentLocation);
+
+		FVector Location;
+		FRotator Rotation;
+		ControlledOpponent->GetActorEyesViewPoint(Location, Rotation);
+		FVector ProjectedRotation = Rotation.Vector();
+		ProjectedRotation.Z = 0;
+		ProjectedRotation.Normalize();
+		PlayerDistanceConstraint.bRequireOptimal = true; //if the position has to be changed anyway, the new one should at least be optimal
+
+		//TODO: Maybe try again without the zone constraint if that fails
+		const bool FoundLocation = SampleGetClosestValid(OptimalLocation, RequiredSpace, Location,
+		                                                 ProjectedRotation * 100.f, 50.f,
+		                                                 {&PlayerDistanceConstraint, PlayerZoneConstraint},
+		                                                 5000.f, GetWorld()
+#if WITH_EDITORONLY_DATA
+		                                                 , bIsDebugging
+#endif
+		);
+		return FoundLocation;
+	}
+	else
+	{
+		UE_LOG(LogController, Warning, TEXT("Getting optimal location in non-combat is not yet supported"));
+		return false;
+	}
 }
 
 FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
@@ -170,6 +249,7 @@ void AOpponentController::OnAggressionTokenReleased()
 #if WITH_EDITORONLY_DATA
 void AOpponentController::ToggleDebugging() const
 {
-	MoveTarget->SetIsDebugging(!MoveTarget->GetIsDebugging());
+	bIsDebugging = !bIsDebugging();
+	MoveTarget->SetIsDebugging(bIsDebugging);
 }
 #endif

@@ -19,8 +19,7 @@ EBTNodeResult::Type URecalculateOrientationAroundTargetTask::ExecuteTask(UBehavi
 	AOpponentCharacter* OwningCharacter = CastChecked<AOpponentCharacter>(OwningController->GetPawn());
 	
 	FVector TargetLocation;
-	if(!OwningController->GetCombatManager()->
-		GetAggressivenessDependantLocation(TargetLocation, OwningCharacter)) return EBTNodeResult::Failed;
+	if(!OwningController->GetOptimalLocation(TargetLocation)) return EBTNodeResult::Failed;
 	
 	OwnerComp.GetBlackboardComponent()->SetValueAsVector(BlackboardKey.SelectedKeyName, TargetLocation);
 	return EBTNodeResult::Succeeded;

@@ -62,8 +62,11 @@ UCLASS()
 class MAPROJECT_API AOpponentCharacter : public AFighterCharacter
 {
 	GENERATED_BODY()
-public:	
+public:
+	inline static FName RequiredSpaceActiveTag = "RSActive";
+	
 	AOpponentCharacter();
+	
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
 	
 	FOnAggressionTokenGrantedDelegate& GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey)
@@ -74,6 +77,8 @@ public:
 		{ OnAggressionTokensGranted.Broadcast(); }
 	void ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey) const
 		{ OnAggressionTokensRemoved.Broadcast(); }
+
+	UShapeComponent* GetRequiredSpace() const;
 	
 	[[deprecated]]
 	const FActiveCombatConstraint* GetActivePositionConstraint() const{ return &ActiveCombatConstraint; };
@@ -113,7 +118,7 @@ protected:
 	USphereComponent* RequiredSpaceActiveCombat;
 
 	UPROPERTY(EditAnywhere)
-	UBoxComponent* RequiredSpacePassiveCombat;
+	UBoxComponent* RequiredSpacePassive;
 	
 	UPROPERTY(EditAnywhere, Category=Combat)
 	FActiveCombatConstraint ActiveCombatConstraint;
@@ -140,10 +145,10 @@ protected:
 
 
 	UFUNCTION()
-	void SetIsActiveCombat();
+	void SetUseActiveCombatSpace();
 
 	UFUNCTION()
-	void SetIsPassiveCombat();
+	void SetUsePassiveSpace();
 	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);	

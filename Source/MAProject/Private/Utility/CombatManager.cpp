@@ -26,7 +26,7 @@ ACombatManager::ACombatManager() : MaxAggressionTokens(1), PreferBestScorePower(
 
 bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocation, AOpponentCharacter* OwningCharacter)
 {
-	if(!IsParticipant(OwningCharacter))
+	if(ECombatParticipantStatus::NotRegistered == IsParticipant(OwningCharacter))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Try getting agressiveness dependant location for a non-combat engaged entity."));
 		return false;
@@ -103,11 +103,12 @@ bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocati
 	);
 }
 
-bool ACombatManager::IsParticipant(AFighterCharacter* Character) const
+ECombatParticipantStatus ACombatManager::IsParticipant(AFighterCharacter* Character) const
 {
-	if(Character == PlayerCharacter) return true;
-	if(PassiveParticipants.Contains(Character)) return true;
-	return ActiveParticipants.Contains(Character);
+	if(Character == PlayerCharacter) return ECombatParticipantStatus::Player;
+	if(PassiveParticipants.Contains(Character)) return ECombatParticipantStatus::Passive;
+	if(ActiveParticipants.Contains(Character)) return ECombatParticipantStatus::Active;
+	return ECombatParticipantStatus::NotRegistered;
 }
 
 void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key)
@@ -117,7 +118,7 @@ void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipa
 
 bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
-	if(IsParticipant(Participant)) return false;
+	if(ECombatParticipantStatus::NotRegistered != IsParticipant(Participant)) return false;
 	PositionalConstraints.Add(Participant->GetPassivePositionConstraint());
 	PassiveParticipants.Add(Participant);
 	AttemptDistributeRemainingTokens();
