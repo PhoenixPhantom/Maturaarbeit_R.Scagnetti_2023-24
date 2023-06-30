@@ -34,7 +34,8 @@ bool ShapeTraceMultiByProfile(UWorld* WorldContext, UShapeComponent* ShapeCompon
 
 bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* RequiredSpace, const FVector& SourcePoint,
 	const FVector& SpacedStartDirection, float Distribution,
-	const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange, UWorld* World,
+	const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange, float ProjectionHalfHeight,
+	UWorld* World,
 	bool DebuggingEnabled)
 {
 	for(uint32 i = 1; true; i++)
@@ -46,7 +47,7 @@ bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* Required
 		const int32 Steps = round(DOUBLE_PI * 2.0 * DirectionLength / Distribution);
 		const double RotationPerStep = Distribution/DirectionLength;
 
-		FVector ProjectionExtent(Distribution/2.f, Distribution/2.f, 100.f);
+		FVector ProjectionExtent(Distribution/4.f, Distribution/4.f, ProjectionHalfHeight);
 		TArray<FVector> SamplePoints;
 		UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetNavigationSystem(World);
 		for(int32 j = 0; j < Steps; j++)
@@ -56,8 +57,14 @@ bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* Required
 				Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(j),
 					FVector(0.f, 0.f, 1.f)),ProjectedLocation, ProjectionExtent)) continue;
 			TArray<FHitResult> HitResults;
-			if(!ShapeTraceMultiByProfile(World, RequiredSpace, "Navigation", {}, HitResults))
-				SamplePoints.Add(ProjectedLocation);
+			ShapeTraceMultiByProfile(World, RequiredSpace, "Navigation", {}, HitResults);
+			bool IsValidLocation = true;
+			for(const FHitResult HitResult : HitResults)
+			{
+				if(RequiredSpace->GetOwner() == HitResult.GetActor()) continue;
+				IsValidLocation = false;
+			}
+			if(IsValidLocation) SamplePoints.Add(ProjectedLocation);
 		}
 		if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, World,
 			DebuggingEnabled)) return true;

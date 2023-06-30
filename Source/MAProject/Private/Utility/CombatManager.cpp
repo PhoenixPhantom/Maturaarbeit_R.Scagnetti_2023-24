@@ -24,85 +24,6 @@ ACombatManager::ACombatManager() : MaxAggressionTokens(1), PreferBestScorePower(
 #endif
 }
 
-bool ACombatManager::GetAggressivenessDependantLocation(FVector& ResultingLocation, AOpponentCharacter* OwningCharacter)
-{
-	if(ECombatParticipantStatus::NotRegistered == IsParticipant(OwningCharacter))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Try getting agressiveness dependant location for a non-combat engaged entity."));
-		return false;
-	}
-	const FVector OpponentLocation = OwningCharacter->GetActorLocation();
-
-
-	/*TArray<const FPositionalConstraint*> RelevantConstraints = PositionalConstraints;
-	//we have to remove all constraints imposed by the entity we want to move
-	//(otherwise, wherever it stands will not be valid as something (itself) is already there)
-	RelevantConstraints.RemoveAll([OwningCharacter](const FPositionalConstraint* Constraint)
-	{ return Constraint->Owner == OwningCharacter; });*/
-
-
-	TArray<const FPositionalConstraint*> RelevantConstraints;
-	//Add the constraints that are specific to this entity
-	FPlayerDistanceConstraint PlayerDistanceConstraint;
-	if(ActiveParticipants.Contains(OwningCharacter)) PlayerDistanceConstraint = *OwningCharacter->GetActivePlayerDistanceConstraint();
-	else PlayerDistanceConstraint = *OwningCharacter->GetPassivePlayerDistanceConstraint();
-	RelevantConstraints.Add(&PlayerDistanceConstraint);
-
-	FPlayerRelativeWorldZoneConstraint* PlayerZoneConstraint =
-		new FPlayerRelativeWorldZoneConstraint(PlayerCharacter->GetController());
-	PlayerZoneConstraint->ConstraintZone = PlayerZoneConstraint->CalculateTargetZone(OpponentLocation);
-	RelevantConstraints.Add(PlayerZoneConstraint);
-
-#if WITH_EDITORONLY_DATA
-	if(bIsDebugging)
-	{
-		//Debug shapes should be shown for 10s (but only when there is no more recent debug shape)
-		DebugImagesToDraw.Key = 10.f;
-		DebugImagesToDraw.Value.Clear();
-		DebugImagesToDraw.Value.AddLambda([DistanceConstraint = PlayerDistanceConstraint,
-			ZoneConstraint = *PlayerZoneConstraint, World = GetWorld(),
-			DCPosition = PlayerDistanceConstraint.Player->GetPawn()->GetActorLocation(),
-			ZCPosition = PlayerZoneConstraint->Player->GetPawn()->GetActorLocation()]
-		{
-			DistanceConstraint.DrawOldConstraintDebug(World, DCPosition, FLinearColor(0, 255, 0), 0.f);
-			ZoneConstraint.DrawOldConstraintDebug(World, ZCPosition, FLinearColor(0, 255, 0), 0.f);
-		});
-		
-	}
-#endif
-	
-	//We only have to expensively find a new location if the current one isn't good anymore
-	bool AreAllSatisfied = true;
-	for(const FPositionalConstraint* Constraint : RelevantConstraints)
-	{
-		if(!Constraint->IsConstraintSatisfied(OpponentLocation))
-		{
-			AreAllSatisfied = false;
-			break;
-		}
-	}
-	if(AreAllSatisfied)
-	{
-		ResultingLocation = OpponentLocation;
-		return true;
-	}
-
-	FVector Location;
-	FRotator Rotation;
-	OwningCharacter->GetActorEyesViewPoint(Location, Rotation);
-	FVector ProjectedRotation = Rotation.Vector();
-	ProjectedRotation.Z = 0;
-	ProjectedRotation.Normalize();
-	PlayerDistanceConstraint.bRequireOptimal = true;
-	return SampleGetClosestValid(ResultingLocation, OwningCharacter->GetActorLocation(),
-	                             ProjectedRotation * 100.f, 50.f, RelevantConstraints,
-	                             5000.f, GetWorld()
-#if WITH_EDITORONLY_DATA
-	                             , bIsDebugging
-#endif
-	);
-}
-
 ECombatParticipantStatus ACombatManager::IsParticipant(AFighterCharacter* Character) const
 {
 	if(Character == PlayerCharacter) return ECombatParticipantStatus::Player;
@@ -147,11 +68,6 @@ void ACombatManager::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if(bIsDebugging)
 	{
-		for(const FPositionalConstraint* Constraint : PositionalConstraints)
-		{
-			Constraint->DrawConstraintDebug(GetWorld(), FLinearColor(0, 0, 0), 0);
-		}
-
 		for(const AOpponentCharacter* OpponentCharacter : PassiveParticipants)
 		{
 			UKismetSystemLibrary::DrawDebugCircle(GetWorld(), OpponentCharacter->GetActorLocation(), 100.f,
@@ -163,12 +79,6 @@ void ACombatManager::Tick(float DeltaSeconds)
 			UKismetSystemLibrary::DrawDebugCircle(GetWorld(), OpponentCharacter->GetActorLocation(), 100.f,
 		50, FLinearColor(255, 0, 0), 0, 20.f, FVector(0, 1, 0),
 		FVector(1, 0, 0));
-		}
-		
-		if(DebugImagesToDraw.Key > 0.f)
-		{
-			DebugImagesToDraw.Key -= DeltaSeconds;
-			DebugImagesToDraw.Value.Broadcast();
 		}
 	}
 }

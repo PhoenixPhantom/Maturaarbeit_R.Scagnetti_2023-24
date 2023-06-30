@@ -31,7 +31,7 @@ void FAIMoveRequestExpanded::ForceSetGoalLocation(const FVector& InGoalLocation)
 	bInitialized = true;
 }
 
-AOpponentController::AOpponentController() : DefaultBehaviorTree(nullptr)
+AOpponentController::AOpponentController() : ForwardSampleNumber(25.f), DefaultBehaviorTree(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = true; //necessary for pawn orientation
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
@@ -73,7 +73,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		if(PlayerDistanceConstraint.IsConstraintSatisfied(CurrentLocation)){
 			TArray<UPrimitiveComponent*> OverlappingComponents;
 			RequiredSpace->GetOverlappingComponents(OverlappingComponents);
-			for(const UPrimitiveComponent* Component : RequiredSpace)
+			for(const UPrimitiveComponent* Component : OverlappingComponents)
 			{
 				if(!Component->ComponentTags.Contains(AOpponentCharacter::RequiredSpaceActiveTag) || Component->GetOwner()
 					== ControlledOpponent) continue;
@@ -102,10 +102,12 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		PlayerDistanceConstraint.bRequireOptimal = true; //if the position has to be changed anyway, the new one should at least be optimal
 
 		//TODO: Maybe try again without the zone constraint if that fails
+		const FVector OpponentToTarget = CombatManager->GetPlayerCharacter()->GetActorLocation() - CurrentLocation;
+		const float SampleRange = 500.0 + OpponentToTarget.Length();
 		const bool FoundLocation = SampleGetClosestValid(OptimalLocation, RequiredSpace, Location,
-		                                                 ProjectedRotation * 100.f, 50.f,
+		                                                 ProjectedRotation * SampleRange / ForwardSampleNumber, 50.f,
 		                                                 {&PlayerDistanceConstraint, PlayerZoneConstraint},
-		                                                 5000.f, GetWorld()
+		                                                 SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld()
 #if WITH_EDITORONLY_DATA
 		                                                 , bIsDebugging
 #endif
@@ -247,9 +249,9 @@ void AOpponentController::OnAggressionTokenReleased()
 }
 
 #if WITH_EDITORONLY_DATA
-void AOpponentController::ToggleDebugging() const
+void AOpponentController::ToggleDebugging()
 {
-	bIsDebugging = !bIsDebugging();
+	bIsDebugging = !bIsDebugging;
 	MoveTarget->SetIsDebugging(bIsDebugging);
 }
 #endif

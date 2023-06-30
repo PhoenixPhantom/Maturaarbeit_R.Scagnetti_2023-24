@@ -64,6 +64,9 @@ protected:
 	AOpponentCharacter* ControlledOpponent;
 
 	UPROPERTY(EditAnywhere)
+	float ForwardSampleNumber;
+	
+	UPROPERTY(EditAnywhere)
 	UBehaviorTree* DefaultBehaviorTree;
 
 	virtual void BeginPlay() override;
@@ -86,6 +89,6 @@ protected:
 #if WITH_EDITORONLY_DATA
 	bool bIsDebugging = false;
 	UFUNCTION(CallInEditor)
-	void ToggleDebugging() const;
+	void ToggleDebugging();
 #endif	
 };

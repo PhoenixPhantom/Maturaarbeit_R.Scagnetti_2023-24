@@ -38,13 +38,14 @@ static bool ShapeTraceMultiByProfile(UWorld* WorldContext, UShapeComponent* Shap
  * @param Distribution How far the sample points are from each other
  * @param RelevantConstraints The constraints that have to be met for a point to be considered valid
  * @param MaxSampleRange The maximal range in which samples will be taken
+ * @param ProjectionHalfHeight the height the samples can be distant from the navmesh to stay valid
  * @param World The world context object
  * @param DebuggingEnabled whether debugging elements should be drawn
  * @return whether a valid point was found*/
 bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* RequiredSpace, const FVector& SourcePoint,
 	const FVector& SpacedStartDirection, float Distribution,
-	const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange, UWorld* World,
-	bool DebuggingEnabled = false);
+	const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange, float ProjectionHalfHeight,
+	UWorld* World, bool DebuggingEnabled = false);
 
 bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
 	const TArray<const FPositionalConstraint*>& RelevantConstraints, UWorld* World = nullptr, bool DebuggingEnabled = false);
