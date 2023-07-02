@@ -19,14 +19,14 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPla
 	
 	RequiredSpaceActiveCombat = CreateDefaultSubobject<USphereComponent>(TEXT("ActiveCombatSize"));
 	RequiredSpaceActiveCombat->SetupAttachment(GetMesh());
-	RequiredSpaceActiveCombat->SetCollisionProfileName("Navigation");
+	RequiredSpaceActiveCombat->SetCollisionProfileName("PawnScanner");
 	RequiredSpaceActiveCombat->SetGenerateOverlapEvents(true);
 	RequiredSpaceActiveCombat->SetSphereRadius(160.f);
 	RequiredSpaceActiveCombat->SetCanEverAffectNavigation(false);
 	
 	RequiredSpacePassive = CreateDefaultSubobject<UBoxComponent>(TEXT("PassiveCombatSize"));
 	RequiredSpacePassive->SetupAttachment(GetMesh());
-	RequiredSpacePassive->SetCollisionProfileName("Navigation");
+	RequiredSpacePassive->SetCollisionProfileName("PawnScanner");
 	RequiredSpacePassive->SetGenerateOverlapEvents(true);
 	RequiredSpacePassive->SetBoxExtent(FVector(50.f, 50.f, 100.f));
 	RequiredSpacePassive->SetCanEverAffectNavigation(false);
@@ -34,7 +34,7 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPla
 
 UShapeComponent* AOpponentCharacter::GetRequiredSpace() const
 {
-	if(RequiredSpaceActiveCombat->ComponentTags.Contains(RequiredSpaceActiveTag)) return RequiredSpaceActiveCombat;
+	if(RequiredSpaceActiveCombat->ComponentHasTag(RequiredSpaceActiveTag)) return RequiredSpaceActiveCombat;
 	return RequiredSpacePassive;
 }
 
@@ -42,13 +42,11 @@ void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPl
 {
 	if(!IsValid(NewOpponent))
 	{
-		TargetPlayer = PassiveCombatConstraint.OrientationCenter = DistanceFromTargetActive.Player =
-			DistanceFromTargetPassive.Player = nullptr;
+		TargetPlayer = DistanceFromTargetActive.AnchorController = DistanceFromTargetPassive.AnchorController = nullptr;
 	}
 	else
 	{
-		TargetPlayer = PassiveCombatConstraint.OrientationCenter = DistanceFromTargetActive.Player =
-			DistanceFromTargetPassive.Player = NewOpponent;
+		TargetPlayer = DistanceFromTargetActive.AnchorController = DistanceFromTargetPassive.AnchorController = NewOpponent;
 	}
 }
 
@@ -69,10 +67,6 @@ void AOpponentCharacter::BeginPlay()
 {
 	CharacterStats = new FCharacterStats();
 	CharacterStats->FromBase(BaseStats, StatsModifiers, GetWorld());
-	ActiveCombatConstraint.Owner = this;
-	PassiveCombatConstraint.Owner = this;
-	DistanceFromTargetActive.Owner = this;
-	DistanceFromTargetPassive.Owner = this;
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
 	OnAggressionTokensGranted.AddDynamic(this, &AOpponentCharacter::SetUseActiveCombatSpace);
 	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetUsePassiveSpace);

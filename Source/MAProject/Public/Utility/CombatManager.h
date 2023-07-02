@@ -88,8 +88,6 @@ protected:
 	
 	
 	FAggressionData AnticipatedActive;
-
-	TArray<const FPositionalConstraint*> PositionalConstraints;
 	
 	UPROPERTY()
 	APlayerCharacter* PlayerCharacter;

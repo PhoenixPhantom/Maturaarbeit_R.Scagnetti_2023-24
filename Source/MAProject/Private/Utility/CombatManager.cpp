@@ -40,7 +40,6 @@ void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipa
 bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
 	if(ECombatParticipantStatus::NotRegistered != IsParticipant(Participant)) return false;
-	PositionalConstraints.Add(Participant->GetPassivePositionConstraint());
 	PassiveParticipants.Add(Participant);
 	AttemptDistributeRemainingTokens();
 	return true;
@@ -52,8 +51,6 @@ void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant
 	//we can't use ReleaseAggressionTokens as this could lead to token redistribution and Participant not becoming passive
 	RemoveAggressionTokens(Participant);
 	PassiveParticipants.Remove(Participant);
-	PositionalConstraints.RemoveAll([Participant](const FPositionalConstraint* Constraint)
-					{ return Constraint->Owner == Participant; });
 	AttemptDistributeRemainingTokens();
 }
 
@@ -125,10 +122,6 @@ bool ACombatManager::MakeActiveParticipant(int32 Index)
 		checkNoEntry();
 		return false;
 	}
-	PositionalConstraints.RemoveAll(
-		[Participant = PassiveParticipants[Index]](const FPositionalConstraint* Constraint)
-					{ return Constraint->Owner == Participant; });
-	PositionalConstraints.Add(PassiveParticipants[Index]->GetActivePositionConstraint());
 	ActiveParticipants.Add(PassiveParticipants[Index]);
 	PassiveParticipants.RemoveAt(Index);
 	return true;
@@ -141,10 +134,6 @@ bool ACombatManager::MakePassiveParticipant(int32 Index)
 		checkNoEntry();
 		return false;
 	}
-	PositionalConstraints.RemoveAll(
-		[Participant = ActiveParticipants[Index]](const FPositionalConstraint* Constraint)
-					{ return Constraint->Owner == Participant; });
-	PositionalConstraints.Add(ActiveParticipants[Index]->GetPassivePositionConstraint());
 	PassiveParticipants.Add(ActiveParticipants[Index]);
 	ActiveParticipants.RemoveAt(Index);
 	return true;

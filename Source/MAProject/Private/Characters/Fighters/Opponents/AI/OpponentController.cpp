@@ -75,7 +75,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 			RequiredSpace->GetOverlappingComponents(OverlappingComponents);
 			for(const UPrimitiveComponent* Component : OverlappingComponents)
 			{
-				if(!Component->ComponentTags.Contains(AOpponentCharacter::RequiredSpaceActiveTag) || Component->GetOwner()
+				if(Component->GetOwner() == CombatManager->GetPlayerCharacter() || Component->GetOwner()
 					== ControlledOpponent) continue;
 				IsCurrentPositionValid = false;
 				break;
@@ -89,9 +89,8 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 			return true;
 		}
 
-		FPlayerRelativeWorldZoneConstraint* PlayerZoneConstraint =
-			new FPlayerRelativeWorldZoneConstraint(CombatManager->GetPlayerCharacter()->GetController());
-		PlayerZoneConstraint->ConstraintZone = PlayerZoneConstraint->CalculateTargetZone(CurrentLocation);
+		FPlayerRelativeWorldZoneConstraint PlayerZoneConstraint(CombatManager->GetPlayerCharacter()->GetController(),
+			CurrentLocation);
 
 		FVector Location;
 		FRotator Rotation;
@@ -99,17 +98,17 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		FVector ProjectedRotation = Rotation.Vector();
 		ProjectedRotation.Z = 0;
 		ProjectedRotation.Normalize();
-		PlayerDistanceConstraint.bRequireOptimal = true; //if the position has to be changed anyway, the new one should at least be optimal
-
+		
 		//TODO: Maybe try again without the zone constraint if that fails
 		const FVector OpponentToTarget = CombatManager->GetPlayerCharacter()->GetActorLocation() - CurrentLocation;
-		const float SampleRange = 500.0 + OpponentToTarget.Length();
-		const bool FoundLocation = SampleGetClosestValid(OptimalLocation, RequiredSpace, Location,
-		                                                 ProjectedRotation * SampleRange / ForwardSampleNumber, 50.f,
-		                                                 {&PlayerDistanceConstraint, PlayerZoneConstraint},
-		                                                 SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld()
+		const float SampleRange = 500.f + OpponentToTarget.Length();
+		const bool FoundLocation = CustomHelperFunctions::SampleGetClosestValid(OptimalLocation, RequiredSpace,
+			ControlledOpponent,{CombatManager->GetPlayerCharacter()}, Location,
+			ProjectedRotation * SampleRange / ForwardSampleNumber, 50.f,
+			{&PlayerDistanceConstraint, &PlayerZoneConstraint},
+			SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld()
 #if WITH_EDITORONLY_DATA
-		                                                 , bIsDebugging
+			, bIsDebugging
 #endif
 		);
 		return FoundLocation;

@@ -5,8 +5,7 @@
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
-#include "Utility/NonPlayerFunctionality/NPCRelativeConstraints.h"
-#include "Utility/NonPlayerFunctionality/PlayerRelativeConstraints.h"
+#include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "OpponentCharacter.generated.h"
 
 class UReleaseAggressionTokensTask;
@@ -80,11 +79,7 @@ public:
 
 	UShapeComponent* GetRequiredSpace() const;
 	
-	[[deprecated]]
-	const FActiveCombatConstraint* GetActivePositionConstraint() const{ return &ActiveCombatConstraint; };
 	const FPlayerDistanceConstraint* GetActivePlayerDistanceConstraint() const { return &DistanceFromTargetActive; };
-	[[deprecated]]
-	const FPassiveCombatConstraint* GetPassivePositionConstraint() const{ return &PassiveCombatConstraint; };
 	const FPlayerDistanceConstraint* GetPassivePlayerDistanceConstraint() const{ return &DistanceFromTargetPassive; };
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
@@ -119,15 +114,9 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	UBoxComponent* RequiredSpacePassive;
-	
-	UPROPERTY(EditAnywhere, Category=Combat)
-	FActiveCombatConstraint ActiveCombatConstraint;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
 	FPlayerDistanceConstraint DistanceFromTargetActive;
-
-	UPROPERTY(EditAnywhere, Category=Combat)
-	FPassiveCombatConstraint PassiveCombatConstraint;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
 	FPlayerDistanceConstraint DistanceFromTargetPassive;
