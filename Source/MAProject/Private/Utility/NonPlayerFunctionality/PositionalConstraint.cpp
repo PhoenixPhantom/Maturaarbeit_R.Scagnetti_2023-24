@@ -25,7 +25,7 @@ uint8 FPlayerDistanceConstraint::GetMatchLevel(const FVector& Position) const
 {
 	const float Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
 	if(Distance <= OptimalMaxRadius && Distance >= OptimalMinRadius) return 2;
-	if(Distance <= MaxRadius && Distance >= MinRadius) return 1;
+	if(Distance <= MaxRadius && Distance >= MinRadius)	return 1;
 	return 0;
 }
 
@@ -196,9 +196,15 @@ namespace CustomHelperFunctions
 			for(int32 j = 0; j < Steps; j++)
 			{
 				FNavLocation ProjectedLocation;
-				if(!NavigationSystem->ProjectPointToNavigation(SourcePoint +
+				const FVector TestLocation = SourcePoint +
 					Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(j),
-						FVector(0.f, 0.f, 1.f)),ProjectedLocation, ProjectionExtent)) continue;
+						FVector(0.f, 0.f, 1.f));
+				if(!NavigationSystem->ProjectPointToNavigation(TestLocation ,ProjectedLocation, ProjectionExtent))
+				{
+					if(DebuggingEnabled) DrawDebugPoint(World, TestLocation + FVector(0.f, 0.f, 20.f),
+						10.f, FColor(255, 0, 0),false, 1, SDPG_World);
+					continue;
+				}
 				TArray<FHitResult> HitResults;
 				ShapeTraceMultiByProfile(World, RequiredSpace, ProjectedLocation, "PawnScanner",
 					ActorsToIgnore, HitResults);

@@ -43,6 +43,8 @@ public:
 	AOpponentController();
 
 	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
 	bool GetOptimalLocation(FVector& OptimalLocation) const;
 
 	//We override the built in MoveTo function to make all move to requests use the custom MoveTarget so we can
@@ -70,7 +72,6 @@ protected:
 	UBehaviorTree* DefaultBehaviorTree;
 
 	virtual void BeginPlay() override;
-	virtual void BeginDestroy() override;
 	virtual void OnPossess(APawn* InPawn) override;
 
 	void RegisterSensedPlayer(AController* Player);

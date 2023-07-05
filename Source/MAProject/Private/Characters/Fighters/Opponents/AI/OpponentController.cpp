@@ -41,6 +41,18 @@ AOpponentController::AOpponentController() : ForwardSampleNumber(25.f), DefaultB
 	
 }
 
+void AOpponentController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	if(EndPlayReason == EEndPlayReason::Destroyed)
+	{
+		if(IsValid(CombatManager))
+			CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
+		if(IsValid(MoveTarget)) MoveTarget->Destroy();
+	}
+}
+
 bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 {
 	//If the controlled character is participating in combat
@@ -48,18 +60,18 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		ParticipantStatus != ECombatParticipantStatus::NotRegistered)
 	{
 		//Add the constraints that are specific to this entity
-		FPlayerDistanceConstraint PlayerDistanceConstraint;
+		const FPlayerDistanceConstraint* PlayerDistanceConstraint = nullptr;
 		switch(ParticipantStatus)
 		{
 		case ECombatParticipantStatus::Active:
 			{
-				PlayerDistanceConstraint = *ControlledOpponent->GetActivePlayerDistanceConstraint();
+				PlayerDistanceConstraint = ControlledOpponent->GetActivePlayerDistanceConstraint();
 				break;
 			}
 		case ECombatParticipantStatus::Passive:
 			{
 				
-				PlayerDistanceConstraint = *ControlledOpponent->GetPassivePlayerDistanceConstraint();
+				PlayerDistanceConstraint = ControlledOpponent->GetPassivePlayerDistanceConstraint();
 				break;
 			}
 		default: checkNoEntry();
@@ -70,7 +82,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		bool IsCurrentPositionValid = true;
 		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
 		UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
-		if(PlayerDistanceConstraint.IsConstraintSatisfied(CurrentLocation)){
+		if(PlayerDistanceConstraint->IsConstraintSatisfied(CurrentLocation)){
 			TArray<UPrimitiveComponent*> OverlappingComponents;
 			RequiredSpace->GetOverlappingComponents(OverlappingComponents);
 			for(const UPrimitiveComponent* Component : OverlappingComponents)
@@ -99,13 +111,12 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		ProjectedRotation.Z = 0;
 		ProjectedRotation.Normalize();
 		
-		//TODO: Maybe try again without the zone constraint if that fails
 		const FVector OpponentToTarget = CombatManager->GetPlayerCharacter()->GetActorLocation() - CurrentLocation;
 		const float SampleRange = 500.f + OpponentToTarget.Length();
 		const bool FoundLocation = CustomHelperFunctions::SampleGetClosestValid(OptimalLocation, RequiredSpace,
-			ControlledOpponent,{CombatManager->GetPlayerCharacter()}, Location,
-			ProjectedRotation * SampleRange / ForwardSampleNumber, 50.f,
-			{&PlayerDistanceConstraint, &PlayerZoneConstraint},
+			ControlledOpponent,{CombatManager->GetPlayerCharacter()}, CurrentLocation,
+			ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
+			{PlayerDistanceConstraint, &PlayerZoneConstraint},
 			SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld()
 #if WITH_EDITORONLY_DATA
 			, bIsDebugging
@@ -155,13 +166,6 @@ void AOpponentController::BeginPlay()
 	TArray<AActor*> Actors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACombatManager::StaticClass(), Actors);
 	CombatManager = CastChecked<ACombatManager>(Actors[0]);
-}
-
-void AOpponentController::BeginDestroy()
-{
-	Super::BeginDestroy();
-	if(IsValid(CombatManager))
-		CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
 }
 
 void AOpponentController::OnPossess(APawn* InPawn)

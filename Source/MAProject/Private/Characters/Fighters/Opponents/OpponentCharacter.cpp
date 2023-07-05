@@ -32,6 +32,15 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPla
 	RequiredSpacePassive->SetCanEverAffectNavigation(false);
 }
 
+void AOpponentCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	if(EndPlayReason == EEndPlayReason::Destroyed)
+	{
+		if(IsValid(Controller))	Controller->Destroy();
+	}
+}
+
 UShapeComponent* AOpponentCharacter::GetRequiredSpace() const
 {
 	if(RequiredSpaceActiveCombat->ComponentHasTag(RequiredSpaceActiveTag)) return RequiredSpaceActiveCombat;

@@ -47,7 +47,7 @@ public:
 	float RequestActionRank(const AActor* RankGenerationTarget);
 	
 	///@return CameraBoom sub-object
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE USpringArmComponent* GetSpringArm() const { return SpringArm; }
 	///@return FollowCamera sub-object
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
@@ -102,7 +102,7 @@ protected:
 
 	//Camera boom positioning the camera behind the character
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;
+	USpringArmComponent* SpringArm;
 
 	//Follow camera
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))

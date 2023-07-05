@@ -37,6 +37,13 @@ private:
 	FEditOnAggressionTokensGrantedOrReleasedKey(){}
 };
 
+struct FEditOnOpponentDespawnedKey final
+{
+	friend AOpponentController;
+private:
+	FEditOnOpponentDespawnedKey(){}
+};
+
 struct FExecuteOnAggressionTokensGrantedKey final
 {
 	friend ACombatManager;
@@ -66,6 +73,7 @@ public:
 	
 	AOpponentCharacter();
 	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
 	
 	FOnAggressionTokenGrantedDelegate& GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey)
@@ -96,9 +104,10 @@ public:
 protected:
 	uint8 bCanBecomeAggressive:1;
 	float LocalFieldOfView;
-	
+
 	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
 	FOnAggressionTokenRemovedDelegate OnAggressionTokensRemoved;
+
 
 	UPROPERTY()
 	AController* TargetPlayer;

@@ -19,7 +19,7 @@ public:
 	virtual ~FPositionalConstraint(){};
 	
 	bool IsConstraintSatisfied(const FVector& Position, const uint8 RequiredMatchLevel = 1) const
-	{ return RequiredMatchLevel >= GetMatchLevel(Position); }
+	{ return RequiredMatchLevel <= GetMatchLevel(Position); }
 
 	virtual uint8 GetMaxMatchLevel() const { return 0; }	
 	virtual uint8 GetMatchLevel(const FVector& Position) const { unimplemented(); return 0; };
