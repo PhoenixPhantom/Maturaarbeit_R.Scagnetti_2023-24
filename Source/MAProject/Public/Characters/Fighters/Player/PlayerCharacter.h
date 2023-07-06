@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <functional>
+
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
 #include "InputActionValue.h"
@@ -15,6 +17,22 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 
+template<typename F, typename S, typename T>
+struct TTriple
+{
+	TTriple() : bIsValid(false){}
+	TTriple(F NewFirst, S NewSecond, T NewThird) : bIsValid(true), First(NewFirst), Second(NewSecond), Third(NewThird){}
+	bool bIsValid;
+	F First;
+	S Second;
+	T Third;
+
+	template<typename F2, typename S2, typename T2>
+	TTriple operator=(const TTriple<F2, S2, T2>& Other){ bIsValid = Other.bIsValid; First = Other.First;
+		Second = Other.Second; Third = Other.Third; return *this; }
+};
+
+DECLARE_DELEGATE(FOnInputRepeatedDelegate);
 
 struct FPreSpawnSetupKey final
 {
@@ -44,7 +62,7 @@ public:
 	 * as well as whether the target is on-screen 
 	 * @param RankGenerationTarget the target for which we calculate the action rank 
 	 * @return the score calculated >= 0.f*/
-	float RequestActionRank(const AActor* RankGenerationTarget);
+	float RequestActionRank(const AActor* RankGenerationTarget) const;
 	
 	///@return CameraBoom sub-object
 	FORCEINLINE USpringArmComponent* GetSpringArm() const { return SpringArm; }
@@ -59,6 +77,9 @@ protected:
 	FTimerHandle ResetPlayerVisibilityHandle;
 	TTuple<double, FVector> InputDirection;
 	FPlayerUserSettings* PlayerUserSettings;
+	TTriple<double, EInputType, std::function<void()>> LastInput;
+
+	
 
 	UPROPERTY()
 	UTargetInformationComponent* CurrentTarget;
@@ -67,7 +88,10 @@ protected:
 	float AutotargetingRange;
 
 	UPROPERTY(EditAnywhere, Category = Input, AdvancedDisplay)
-	double RememberInputDirectionTime = 0.5;
+	double RememberInputDirectionTime;
+
+	UPROPERTY(EditAnywhere, Category = Input, AdvancedDisplay)
+	double RememberLastInputTime;
 	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;
@@ -111,6 +135,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex) override;
+	
 	void TryJump();
 	void EndJump();
 	

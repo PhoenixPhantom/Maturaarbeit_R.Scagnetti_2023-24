@@ -14,7 +14,8 @@
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
-APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f)
+APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f),
+RememberInputDirectionTime(0.5), RememberLastInputTime(0.1)
 {
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -70,7 +71,7 @@ void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerU
 	PlayerUserSettings = PlayerUserSettingsSource;
 }
 
-float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget)
+float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget) const
 {
 	//whether the target is on screen
 	FVector EyesLocation;
@@ -131,9 +132,27 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Triggered, this, &APlayerCharacter::OpenPauseMenu);
 }
 
+void APlayerCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
+{
+	Super::QueueFollowUpLimit(InputLimits, CurrentLimitIndex);
+	if(LastInput.bIsValid == true &&  GetWorld()->GetRealTimeSeconds() - LastInput.First <= RememberLastInputTime
+		&& AcceptedInputs.CanOverrideCurrentInput(LastInput.Second))
+	{
+		std::invoke(LastInput.Third);
+	}
+}
+
 void APlayerCharacter::TryJump()
 {
-	if(AcceptedInputs.MovementProperties.bCanJump && !bHasJumped)
+	if(!AcceptedInputs.MovementProperties.bCanJump)
+	{
+		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+			LastInput.Second = EInputType::Jump, [this]{ TryJump(); });
+		return;
+	}
+	
+	LastInput.bIsValid = false;
+	if(!bHasJumped)
 	{
 		bHasJumped = true;
 		Jump();
@@ -148,27 +167,66 @@ void APlayerCharacter::EndJump()
 
 void APlayerCharacter::LightAttack()
 {
+	if(!AcceptedInputs.bCanAttack)
+	{
+		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+			LastInput.Second = EInputType::Attack, [this]{ LightAttack(); });
+		return;
+	}
+	
+	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Light);
 }
 
 void APlayerCharacter::HeavyAttack()
 {
+	if(!AcceptedInputs.bCanAttack)
+	{
+		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+			LastInput.Second = EInputType::Attack, [this]{ HeavyAttack(); });
+		return;
+	}
+	
+	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Heavy);
 }
 
 void APlayerCharacter::SkillAttack()
 {
+	if(!AcceptedInputs.bCanAttack)
+	{
+		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+			LastInput.Second = EInputType::Attack, [this]{ SkillAttack(); });
+		return;
+	}
+	
+	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Skill);
 }
 
 void APlayerCharacter::UltimateAttack()
 {
+	if(!AcceptedInputs.bCanAttack)
+	{
+		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+			LastInput.Second = EInputType::Attack, [this]{ UltimateAttack(); });
+		return;
+	}
+	
+	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Ultimate);
 }
 
 void APlayerCharacter::SpeedUpDash()
 {
-	if(!AcceptedInputs.bCanSprint) return;
+	if(!AcceptedInputs.bCanSprint)
+	{
+		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+			LastInput.Second = EInputType::Sprint, [this]{ SpeedUpDash(); });
+		return;
+	}
+	
+	LastInput.bIsValid = false;
 	//we only have (and should only) to set variables one time
 	if(!bIsRunning)
 	{
@@ -216,20 +274,34 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 		InputDirection.Key = GetWorld()->RealTimeSeconds;
 		InputDirection.Value = ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X;
 		InputDirection.Value.Normalize();
-		if(AcceptedInputs.MovementProperties.bCanWalk)
+		if(!bIsRunning && AcceptedInputs.MovementProperties.bCanWalk || bIsRunning && AcceptedInputs.bCanSprint)
 		{
-			// add movement 
+			// add movement
+			LastInput.bIsValid = false;
 			AddMovementInput(ForwardDirection, MovementVector.Y);
 			AddMovementInput(RightDirection, MovementVector.X);
+		}
+		else
+		{
+			LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+				LastInput.Second = EInputType::Attack, [this, Value]{ Move(Value); });
 		}
 	}
 }
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
-	const FVector2D LookAxisVector = Value.Get<FVector2D>();
-	if (IsValid(Controller) && AcceptedInputs.bFreeCameraAdjustment)
+	
+	if (IsValid(Controller))
 	{
+		if(!AcceptedInputs.bFreeCameraAdjustment)
+		{
+			LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
+				LastInput.Second = EInputType::Attack, [this, Value]{ Look(Value); });
+			return;
+		}
+		LastInput.bIsValid = false;
+		const FVector2D LookAxisVector = Value.Get<FVector2D>();
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);

@@ -70,7 +70,7 @@ protected:
 
 	void CheckMeshOverlaps();
 
-	void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex = 0);
+	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex = 0);
 
 	UFUNCTION()
 	bool OnCheckCanExecuteAttack(const FAttackProperties& Properties);
