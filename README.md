@@ -20,6 +20,11 @@ Creating interesting and intuitive combat is a difficult problem and many game s
 * Evolving Combat in 'God of War' for a New Perspective - GDC (by Santa Monica Studio's Mihir Sheth): https://www.youtube.com/watch?v=hE5tWF-Ou2k
 * Dreamscaper: Killer Combat on an Indie Budget - GDC (by Afterburner Studios' Ian Cofino): https://www.youtube.com/watch?v=3Omb5exWpd4
 
+### Visual FX
+* UE4 Niagara Generate Particle at Dissolve Edge - Alex Huang: https://www.youtube.com/watch?v=woN7Iz1h2dk
+* Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA
+
 ### General
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
 * All about BTTasks in C++ - The Games Dev: https://www.thegames.dev/?p=70
+
