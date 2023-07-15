@@ -4,7 +4,7 @@
 #include "Characters/Fighters/FighterCharacter.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
