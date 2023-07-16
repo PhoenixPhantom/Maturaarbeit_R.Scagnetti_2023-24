@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Utility/Animation/BlendVisibilityNotifyState.h"
+#include "Utility/Animation/AnimNotifyState_BlendVisibility.h"
 
 #include "AnimationEditorPreviewActor.h"
 
@@ -13,13 +13,13 @@ FMeshInterpolationUnit::FMeshInterpolationUnit(UMaterialInstanceDynamic* NewInst
                                                                      StartingVisibility(NewStartingVisibility),IncreaseRate(NewIncreaseRate)
 {}
 
-UBlendVisibilityNotifyState::UBlendVisibilityNotifyState() : PassedTime(0.f), FinalVisibility(0.5f)
+UAnimNotifyState_BlendVisibility::UAnimNotifyState_BlendVisibility() : PassedTime(0.f), FinalVisibility(0.5f)
 {
 	bShouldFireInEditor = true;
 	NotifyColor = FColor(255, 0, 255);
 }
 
-void UBlendVisibilityNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+void UAnimNotifyState_BlendVisibility::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                               float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
@@ -40,7 +40,7 @@ void UBlendVisibilityNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, 
 	}
 }
 
-void UBlendVisibilityNotifyState::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+void UAnimNotifyState_BlendVisibility::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
@@ -55,13 +55,13 @@ void UBlendVisibilityNotifyState::NotifyTick(USkeletalMeshComponent* MeshComp, U
 }
 
 
-UInEditorResetVisibilityNotify::UInEditorResetVisibilityNotify()
+UAnimNotify_InEditorResetVisibility::UAnimNotify_InEditorResetVisibility()
 {
 	bShouldFireInEditor = true;
 	NotifyColor = FColor(50, 50, 50, 100);
 }
 
-void UInEditorResetVisibilityNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+void UAnimNotify_InEditorResetVisibility::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                               const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);

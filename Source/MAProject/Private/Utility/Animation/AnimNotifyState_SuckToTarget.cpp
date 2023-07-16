@@ -1,18 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Utility/Animation/SuckToTargetNotifyState.h"
+#include "Utility/Animation/AnimNotifyState_SuckToTarget.h"
 
 #include "Characters/GeneralCharacter.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 
-USuckToTargetNotifyState::USuckToTargetNotifyState()
+UAnimNotifyState_SuckToTarget::UAnimNotifyState_SuckToTarget()
 {
 	bShouldFireInEditor = false;
 	NotifyColor = FColor(0, 255, 0);
 }
 
-void USuckToTargetNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+void UAnimNotifyState_SuckToTarget::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                                   float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);

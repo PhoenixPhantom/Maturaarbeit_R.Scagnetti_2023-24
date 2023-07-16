@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
-#include "BlendVisibilityNotifyState.generated.h"
+#include "AnimNotifyState_BlendVisibility.generated.h"
 
 struct FMeshInterpolationUnit
 {
@@ -21,11 +21,11 @@ struct FMeshInterpolationUnit
  * 
  */
 UCLASS()
-class MAPROJECT_API UBlendVisibilityNotifyState : public UAnimNotifyState
+class MAPROJECT_API UAnimNotifyState_BlendVisibility : public UAnimNotifyState
 {
 	GENERATED_BODY()
 public:
-	UBlendVisibilityNotifyState();
+	UAnimNotifyState_BlendVisibility();
 	
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration,
 							 const FAnimNotifyEventReference& EventReference) override;
@@ -45,12 +45,12 @@ protected:
 };
 
 
-UCLASS(meta=(ToolTip="Used to set the visibility to 1 in the animation editor (use UBlendVisibilityNotifyState instead to do this In-Game)"))
-class MAPROJECT_API UInEditorResetVisibilityNotify : public UAnimNotify
+UCLASS(meta=(ToolTip="Used to set the visibility to 1 in the animation editor (use UAnimNotifyState_BlendVisibility instead to do this In-Game)"))
+class MAPROJECT_API UAnimNotify_InEditorResetVisibility : public UAnimNotify
 {
 	GENERATED_BODY()
 public:
-	UInEditorResetVisibilityNotify();
+	UAnimNotify_InEditorResetVisibility();
 	virtual bool IsEditorOnly() const override{ return false; };
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 		const FAnimNotifyEventReference& EventReference) override;

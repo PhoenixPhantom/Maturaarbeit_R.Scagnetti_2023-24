@@ -9,7 +9,7 @@
 
 struct FStartMotionWarpingKey final
 {
-	friend class USuckToTargetNotifyState;
+	friend class UAnimNotifyState_SuckToTarget;
 private:
 		FStartMotionWarpingKey(){}
 };

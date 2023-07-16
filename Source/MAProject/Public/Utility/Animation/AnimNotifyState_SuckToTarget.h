@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
-#include "SuckToTargetNotifyState.generated.h"
+#include "AnimNotifyState_SuckToTarget.generated.h"
 
 class AGeneralCharacter;
 
@@ -12,11 +12,11 @@ class AGeneralCharacter;
  * 
  */
 UCLASS()
-class MAPROJECT_API USuckToTargetNotifyState : public UAnimNotifyState
+class MAPROJECT_API UAnimNotifyState_SuckToTarget : public UAnimNotifyState
 {
 	GENERATED_BODY()
 public:
-	USuckToTargetNotifyState();
+	UAnimNotifyState_SuckToTarget();
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration,
 	                         const FAnimNotifyEventReference& EventReference) override;
 };
