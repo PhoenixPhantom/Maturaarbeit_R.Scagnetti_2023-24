@@ -8,16 +8,16 @@
 
 
 USTRUCT()
-struct FObjectParameter
+struct FMaterialParameter
 {
 	GENERATED_BODY()
-	FObjectParameter(): Object(nullptr){}
+	FMaterialParameter(): Material(nullptr)	{}
 
 	UPROPERTY(EditAnywhere)
-	FString VariableName;
+	FName VariableName;
 
 	UPROPERTY(EditAnywhere)
-	UObject* Object;
+	UMaterialInterface* Material;
 };
 
 USTRUCT()
@@ -27,7 +27,7 @@ struct FFloatParameter
 	FFloatParameter(): Value(0.f){}
 
 	UPROPERTY(EditAnywhere)
-	FString VariableName;
+	FName VariableName;
 
 	UPROPERTY(EditAnywhere)
 	float Value;
@@ -53,10 +53,10 @@ protected:
 	TArray<FFloatParameter> FloatParameters;
 	
 	UPROPERTY(EditAnywhere)
-	TArray<FObjectParameter> ObjectParameters;
+	TArray<FMaterialParameter> MaterialParameters;
 
 	UPROPERTY(EditAnywhere, meta=(ToolTip="Name of the Niagara variable that stores the desired playback length (leave empty if none exists)"))
-	FString PlayLengthName;
+	FName PlayLengthName;
 
 	virtual UFXSystemComponent* SpawnEffect(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) const override;
 };

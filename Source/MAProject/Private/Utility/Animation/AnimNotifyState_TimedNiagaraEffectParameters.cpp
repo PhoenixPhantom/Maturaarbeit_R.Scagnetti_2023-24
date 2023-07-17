@@ -26,16 +26,16 @@ UFXSystemComponent* UAnimNotifyState_TimedNiagaraEffectParameters::SpawnEffect(U
 	UNiagaraComponent* NiagaraSystem =  UNiagaraFunctionLibrary::SpawnSystemAttached(Template, MeshComp,
 		SocketName, LocationOffset, RotationOffset, EAttachLocation::KeepRelativeOffset, !bDestroyAtEnd);
 
-	if(!PlayLengthName.IsEmpty()) NiagaraSystem->SetNiagaraVariableFloat(PlayLengthName, NotifyTime);
+	if(!PlayLengthName.IsNone()) NiagaraSystem->SetVariableFloat(PlayLengthName, NotifyTime);
 
 	for(const FFloatParameter& Parameter : FloatParameters)
 	{
-		NiagaraSystem->SetNiagaraVariableFloat(Parameter.VariableName, Parameter.Value);	
+		NiagaraSystem->SetVariableFloat(Parameter.VariableName, Parameter.Value);	
 	}
 	
-	for(const FObjectParameter& Parameter : ObjectParameters)
+	for(const FMaterialParameter& Parameter : MaterialParameters)
 	{
-		NiagaraSystem->SetNiagaraVariableObject(Parameter.VariableName, Parameter.Object);
+		NiagaraSystem->SetVariableMaterial(Parameter.VariableName, Parameter.Material);
 	}
 	
 	return NiagaraSystem;
