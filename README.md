@@ -22,7 +22,9 @@ Creating interesting and intuitive combat is a difficult problem and many game s
 
 ### Visual FX
 * UE4 Niagara Generate Particle at Dissolve Edge - Alex Huang: https://www.youtube.com/watch?v=woN7Iz1h2dk
-* Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA
+* Animal Bite:
+    * Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA
+    * Original Reference - Olivier Deplanque: https://www.artstation.com/artwork/b5XEod
 
 ### General
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
