@@ -64,6 +64,7 @@ struct FCharacterStats : public FGeneralObjectStats
 	TArray<FAttackProperties> AvailableAttacks;
 
 	void FromBase(const FCharacterBaseStats& Stats, const FSavableCharacterModifiers& Modifiers, UWorld* World);
+	
 	void ExecuteAttack(int32 Index);
 
 	virtual float GetDamageOutput() const override;

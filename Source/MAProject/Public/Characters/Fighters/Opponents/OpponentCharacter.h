@@ -86,9 +86,9 @@ public:
 		{ OnAggressionTokensRemoved.Broadcast(); }
 
 	UShapeComponent* GetRequiredSpace() const;
-	
-	const FPlayerDistanceConstraint* GetActivePlayerDistanceConstraint() const { return &DistanceFromTargetActive; };
-	const FPlayerDistanceConstraint* GetPassivePlayerDistanceConstraint() const{ return &DistanceFromTargetPassive; };
+
+	FCircularDistanceConstraint GetActivePlayerDistanceConstraint() const;
+	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; };
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
 	void RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key);
@@ -98,7 +98,7 @@ public:
 	 * @brief Generate a score for the importance of the opponent to the player. Screen centered-ness,
 	 * distance from player and opponent preferences as well as opponent importance are taken into account
 	 * @param PlayerCharacter The player in regards to which the score is generated
-	 * @return the score >= 0.f if the opponent is allowed to become aggressive*/
+	 * @return the score is always >= 0.f if the opponent is allowed to become aggressive*/
 	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const;
 
 protected:
@@ -125,10 +125,7 @@ protected:
 	UBoxComponent* RequiredSpacePassive;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
-	FPlayerDistanceConstraint DistanceFromTargetActive;
-
-	UPROPERTY(EditAnywhere, Category=Combat)
-	FPlayerDistanceConstraint DistanceFromTargetPassive;
+	FCircularDistanceConstraint DistanceFromTargetPassive;
 	
 	UPROPERTY(EditAnywhere, Category=AI)
 	uint32 RequestedAggressionTokens;
@@ -140,6 +137,8 @@ protected:
 	float AggressionRange;
 
 	virtual void BeginPlay() override;
+
+	bool CanAttack() const;
 
 
 	UFUNCTION()

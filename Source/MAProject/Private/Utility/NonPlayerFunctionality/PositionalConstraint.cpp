@@ -10,32 +10,41 @@
 #include "Kismet/GameplayStatics.h"
 
 
-FPlayerDistanceConstraint::FPlayerDistanceConstraint(): MaxRadius(300.f), MinRadius(200.f), OptimalMaxRadius(0),
-														OptimalMinRadius(0)
+FPlayerDistanceConstraint::FPlayerDistanceConstraint()
 {
+	
 }
 
-FPlayerDistanceConstraint::FPlayerDistanceConstraint(AController* Anchor): FPositionalConstraint(Anchor),
-                                                                            MaxRadius(300.f), MinRadius(200.f),
-																			OptimalMaxRadius(0), OptimalMinRadius(0)
+FPlayerDistanceConstraint::FPlayerDistanceConstraint(AController* Anchor) : FPositionalConstraint(Anchor)
 {
+	
 }
 
 uint8 FPlayerDistanceConstraint::GetMatchLevel(const FVector& Position) const
 {
-	const float Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
-	if(Distance <= OptimalMaxRadius && Distance >= OptimalMinRadius) return 2;
-	if(Distance <= MaxRadius && Distance >= MinRadius)	return 1;
-	return 0;
+	return SatisfiesOptimal(Position) ? 2 : SatisfiesMinimal(Position) ? 1 : 0;
+}
+
+
+
+FCircularDistanceConstraint::FCircularDistanceConstraint(): MaxRadius(300.f), MinRadius(200.f), OptimalMaxRadius(0),
+														OptimalMinRadius(0)
+{
+}
+
+FCircularDistanceConstraint::FCircularDistanceConstraint(AController* Anchor): FPlayerDistanceConstraint(Anchor),
+																			MaxRadius(300.f), MinRadius(200.f),
+																			OptimalMaxRadius(0), OptimalMinRadius(0)
+{
 }
 
 #if WITH_EDITORONLY_DATA
-void FPlayerDistanceConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
+void FCircularDistanceConstraint::DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const
 {
 	DrawOldConstraintDebug(World, AnchorController->GetPawn()->GetActorLocation(), DebugColor, ShowTime);
 }
 
-void FPlayerDistanceConstraint::DrawOldConstraintDebug(UWorld* World, const FVector& Position, FLinearColor DebugColor,
+void FCircularDistanceConstraint::DrawOldConstraintDebug(UWorld* World, const FVector& Position, FLinearColor DebugColor,
                                                        float ShowTime) const
 {
 	UKismetSystemLibrary::DrawDebugSphere(World, Position, OptimalMinRadius, 50, DebugColor,ShowTime);
@@ -46,6 +55,18 @@ void FPlayerDistanceConstraint::DrawOldConstraintDebug(UWorld* World, const FVec
 		(DebugColor + FLinearColor(0.f, 0.f, 0.f))/2.f, ShowTime);	
 }
 #endif
+
+bool FCircularDistanceConstraint::SatisfiesOptimal(const FVector& Position) const
+{
+	const float Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
+	return Distance <= OptimalMaxRadius && Distance >= OptimalMinRadius;
+}
+
+bool FCircularDistanceConstraint::SatisfiesMinimal(const FVector& Position) const
+{
+	const float Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
+	return Distance <= MaxRadius && Distance >= MinRadius;
+}
 
 
 

@@ -47,21 +47,48 @@ UShapeComponent* AOpponentCharacter::GetRequiredSpace() const
 	return RequiredSpacePassive;
 }
 
+FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstraint() const
+{
+	FCircularDistanceConstraint DistanceConstraint(TargetPlayer);
+	float TotalDistance = 0;
+	float MaxDistance = std::numeric_limits<float>::lowest();
+	float NumValidAttacks = 0;
+	for(const FAttackProperties& AttackProperties : CharacterStats->AvailableAttacks)
+	{
+		if(AttackProperties.GetIsOnCd()) continue;
+		NumValidAttacks += 1;
+		if(MaxDistance < AttackProperties.MaximalMovementDistance)
+		{
+			MaxDistance = AttackProperties.MaximalMovementDistance;
+		}
+		TotalDistance += AttackProperties.DefaultMovementDistance;
+	}
+	const float DistanceAverage = CharacterStats->AvailableAttacks.IsEmpty() ? -1.f :
+		TotalDistance/static_cast<float>(CharacterStats->AvailableAttacks.Num());
+	
+	DistanceConstraint.MaxRadius = MaxDistance*0.9f;
+	DistanceConstraint.MinRadius = 0.f;
+	DistanceConstraint.OptimalMaxRadius = DistanceAverage*0.9f;
+	DistanceConstraint.OptimalMinRadius = 0.f;
+	return DistanceConstraint;
+}
+
 void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key)
 {
 	if(!IsValid(NewOpponent))
 	{
-		TargetPlayer = DistanceFromTargetActive.AnchorController = DistanceFromTargetPassive.AnchorController = nullptr;
+		TargetPlayer = DistanceFromTargetPassive.AnchorController = nullptr;
 	}
 	else
 	{
-		TargetPlayer = DistanceFromTargetActive.AnchorController = DistanceFromTargetPassive.AnchorController = NewOpponent;
+		TargetPlayer = DistanceFromTargetPassive.AnchorController = NewOpponent;
 	}
 }
 
 float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const
 {
 	if(!bCanBecomeAggressive) return -1.f;
+	if(!CanAttack()) return 0.f;
 	float Score = 0.f;
 	if(TargetInformationComponent->GetIsCurrentTarget()) Score += 1.5f;
 	//Aggression priority
@@ -81,6 +108,16 @@ void AOpponentCharacter::BeginPlay()
 	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetUsePassiveSpace);
 	SetUsePassiveSpace();
 	Super::BeginPlay();
+}
+
+bool AOpponentCharacter::CanAttack() const
+{
+	for(const FAttackProperties& AttackProperties : CharacterStats->AvailableAttacks)
+	{
+		//Only if there is any attack to be executed, the opponent can become aggressive
+		if(!AttackProperties.GetIsOnCd()) return true;
+	}
+	return false;
 }
 
 void AOpponentCharacter::SetUseActiveCombatSpace()

@@ -30,11 +30,27 @@ public:
 };
 
 
-/* The constraint imposed by the distance
- * from player in both max and min
+/* Limitation: Distance from the player (with support minimal & optimal requirements)
  */
 USTRUCT()
 struct MAPROJECT_API FPlayerDistanceConstraint : public FPositionalConstraint
+{
+	GENERATED_BODY();
+public:
+	FPlayerDistanceConstraint();
+	FPlayerDistanceConstraint(AController* Anchor);
+	
+	virtual uint8 GetMaxMatchLevel() const override { return 2; }	
+	virtual uint8 GetMatchLevel(const FVector& Position) const override;
+protected:
+	virtual bool SatisfiesOptimal(const FVector& Position) const{ checkNoEntry(); return false; }
+	virtual bool SatisfiesMinimal(const FVector& Position) const{ checkNoEntry(); return false; }
+};
+
+/* Limitation: Inside a circular ring around the player (with support for minimal & optimal requirements)
+ */
+USTRUCT()
+struct MAPROJECT_API FCircularDistanceConstraint : public FPlayerDistanceConstraint
 {
 	GENERATED_BODY();
 public:
@@ -50,16 +66,17 @@ public:
 
 	
 
-	FPlayerDistanceConstraint();
-	FPlayerDistanceConstraint(AController* SourcePlayer);
-
-	virtual uint8 GetMaxMatchLevel() const override { return 2; }	
-	virtual uint8 GetMatchLevel(const FVector& Position) const override;
+	FCircularDistanceConstraint();
+	FCircularDistanceConstraint(AController* Anchor);
 
 #if WITH_EDITORONLY_DATA
 	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
 	void DrawOldConstraintDebug(UWorld* World, const FVector& Position, FLinearColor DebugColor, float ShowTime) const;
 #endif
+	
+protected:
+	virtual bool SatisfiesOptimal(const FVector& Position) const override;
+	virtual bool SatisfiesMinimal(const FVector& Position) const override;
 };
 
 enum class EWorldConstraintZone : uint8

@@ -78,6 +78,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Input, AdvancedDisplay)
 	double RememberLastInputTime;
+
+	UPROPERTY(EditAnywhere)
+	UCapsuleComponent* HorizontalCapsule;
 	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;

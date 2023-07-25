@@ -24,7 +24,10 @@ EBTNodeResult::Type UExecuteAttackTask::ExecuteTask(UBehaviorTreeComponent& Owne
 
 	const AController* TargetController =
 		Cast<AController>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(BlackboardKey.SelectedKeyName));
-	if(!IsValid(TargetController)) return EBTNodeResult::Failed;
+	if(!IsValid(TargetController))
+	{
+		return EBTNodeResult::Failed;
+	}
 
 	const float Distance = FVector::Distance(TargetController->GetPawn()->GetActorLocation(),
 		OwningCharacter->GetActorLocation());
@@ -67,6 +70,7 @@ EBTNodeResult::Type UExecuteAttackTask::ExecuteTask(UBehaviorTreeComponent& Owne
 	FDelegateHandle Handle = OwningCharacter->OnInputLimitsResetDelegate().AddUObject(this, &UExecuteAttackTask::OnAttackFinished);
 	if(OwningCharacter->ExecuteAttack(ChosenAttack)) return EBTNodeResult::InProgress;
 	OwningCharacter->OnInputLimitsResetDelegate().Remove(Handle);
+	GLog->Log("Failed");
 	return EBTNodeResult::Failed;
 }
 

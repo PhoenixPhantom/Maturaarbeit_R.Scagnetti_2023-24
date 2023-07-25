@@ -123,7 +123,7 @@ FTransform USuckToTargetComponent::MotionWarp(const FTransform& CurrentTransform
 {
 	const FTransform Transform = GetNextTransform(CurrentTransform, DeltaSeconds);
 #if WITH_EDITORONLY_DATA
-	if(bIsDebugging) DrawDebugBox(GetWorld(), Transform.GetLocation(), Transform.GetScale3D()*20.f,
+	if(bIsDebugging) DrawDebugBox(GetWorld(), Transform.GetLocation(), Transform.GetScale3D() * 20.f,
 		FColor(0, 255, 200));
 #endif
 	RemainingWarpTime -= DeltaSeconds;

@@ -7,6 +7,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -22,6 +23,15 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
 	SpringArm->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+
+	HorizontalCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("HorizontalCapsuleComp"));
+	HorizontalCapsule->SetupAttachment(GetCapsuleComponent());
+	HorizontalCapsule->CanCharacterStepUpOn = ECanBeCharacterBase::ECB_No;
+	HorizontalCapsule->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
+	HorizontalCapsule->SetCollisionResponseToAllChannels(ECR_Ignore);
+	HorizontalCapsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	HorizontalCapsule->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Block);
+	HorizontalCapsule->SetGenerateOverlapEvents(false);
 
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));

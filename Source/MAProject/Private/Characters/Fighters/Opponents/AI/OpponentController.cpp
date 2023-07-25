@@ -60,7 +60,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		ParticipantStatus != ECombatParticipantStatus::NotRegistered)
 	{
 		//Add the constraints that are specific to this entity
-		const FPlayerDistanceConstraint* PlayerDistanceConstraint = nullptr;
+		FCircularDistanceConstraint PlayerDistanceConstraint;
 		switch(ParticipantStatus)
 		{
 		case ECombatParticipantStatus::Active:
@@ -82,7 +82,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		bool IsCurrentPositionValid = true;
 		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
 		UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
-		if(PlayerDistanceConstraint->IsConstraintSatisfied(CurrentLocation)){
+		if(PlayerDistanceConstraint.IsConstraintSatisfied(CurrentLocation)){
 			TArray<UPrimitiveComponent*> OverlappingComponents;
 			RequiredSpace->GetOverlappingComponents(OverlappingComponents);
 			for(const UPrimitiveComponent* Component : OverlappingComponents)
@@ -116,7 +116,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		const bool FoundLocation = CustomHelperFunctions::SampleGetClosestValid(OptimalLocation, RequiredSpace,
 			ControlledOpponent,{CombatManager->GetPlayerCharacter()}, CurrentLocation,
 			ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
-			{PlayerDistanceConstraint, &PlayerZoneConstraint},
+			{&PlayerDistanceConstraint, &PlayerZoneConstraint},
 			SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld()
 #if WITH_EDITORONLY_DATA
 			, bIsDebugging
