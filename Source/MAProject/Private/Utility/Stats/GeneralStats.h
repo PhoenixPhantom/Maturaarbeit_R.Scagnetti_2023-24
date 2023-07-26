@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "CustomDamageEvent.h"
-#include "Engine/DamageEvents.h"
 #include "GeneralStats.generated.h"
 
 template<typename Value, typename Percentage>
@@ -104,6 +103,6 @@ struct FGeneralObjectStats
 	void FromBase(const FGeneralBaseStats& Stats, const FSavableModifiersBase& Modifiers);
 
 	virtual float GetDamageOutput() const;
-	virtual FCustomDamageEvent* GenerateDamageEvent(const FHitResult& HitResult = FHitResult()) const = 0;
+	virtual const FCustomDamageEvent& GenerateDamageEvent(const FHitResult& HitResult = FHitResult()) const = 0;
 	uint32 ReceiveDamage(float Damage, const FCustomDamageEvent& DamageInfo);
 };

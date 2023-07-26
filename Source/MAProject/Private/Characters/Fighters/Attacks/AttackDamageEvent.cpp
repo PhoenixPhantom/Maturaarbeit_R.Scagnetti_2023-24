@@ -3,16 +3,18 @@
 
 #include "AttackDamageEvent.h"
 
-FAttackDamageEvent::FAttackDamageEvent(): StaggerChance(1), StaggerImpulse(10.f)
+FAttackDamageEvent::FAttackDamageEvent(): StaggerChance(1), StaggerImpulse(10.f), HitFXScale(1.f)
 {}
 
 FAttackDamageEvent::FAttackDamageEvent(const FAttackDamageEvent& AttackDamageEvent): Super(AttackDamageEvent),
 	StaggerChance(AttackDamageEvent.StaggerChance), StaggerImpulse(AttackDamageEvent.StaggerImpulse),
-	HitDirection(AttackDamageEvent.HitDirection)
+	HitFXScale(AttackDamageEvent.HitFXScale), HitDirection(AttackDamageEvent.HitDirection),
+	HitLocation(AttackDamageEvent.HitLocation)
 {}
 
 bool FAttackDamageEvent::operator==(const FAttackDamageEvent& AttackDamageEvent) const
 {
 	return Super::operator==(AttackDamageEvent) && StaggerChance == AttackDamageEvent.StaggerChance &&
-		StaggerImpulse == AttackDamageEvent.StaggerImpulse && HitDirection == AttackDamageEvent.HitDirection;
+		StaggerImpulse == AttackDamageEvent.StaggerImpulse && HitFXScale == AttackDamageEvent.HitFXScale &&
+		HitDirection == AttackDamageEvent.HitDirection && HitLocation == AttackDamageEvent.HitLocation;
 }

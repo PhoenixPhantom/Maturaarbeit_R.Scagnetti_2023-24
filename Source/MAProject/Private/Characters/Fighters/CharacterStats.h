@@ -68,7 +68,7 @@ struct FCharacterStats : public FGeneralObjectStats
 	void ExecuteAttack(int32 Index);
 
 	virtual float GetDamageOutput() const override;
-	virtual FCustomDamageEvent* GenerateDamageEvent(const FHitResult& HitResult = FHitResult()) const override;
+	virtual const FCustomDamageEvent& GenerateDamageEvent(const FHitResult& HitResult = FHitResult()) const override;
 	uint32 ReceiveDamage(float Damage, const FAttackDamageEvent& DamageInfo);
 
 	

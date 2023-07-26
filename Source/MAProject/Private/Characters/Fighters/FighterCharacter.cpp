@@ -3,12 +3,14 @@
 
 #include "Characters/Fighters/FighterCharacter.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
-AFighterCharacter::AFighterCharacter()
+AFighterCharacter::AFighterCharacter() : HitFXScale(1.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -32,8 +34,23 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	{
 		FDamageEvent* Event = const_cast<FDamageEvent*>(&DamageEvent);
 		if(DamageEvent.IsOfType(FAttackDamageEvent::ClassID))
-			RemainingHealth = CharacterStats->ReceiveDamage(DamageAmount,
-				*static_cast<FAttackDamageEvent*>(Event));
+		{
+			const FAttackDamageEvent AttackDamageEvent = *static_cast<FAttackDamageEvent*>(Event);
+			RemainingHealth = CharacterStats->ReceiveDamage(DamageAmount, AttackDamageEvent);
+
+			//Spawn get hit FX
+			FFXSystemSpawnParameters SpawnParameters;
+			SpawnParameters.SystemTemplate = GetHitFX;
+			SpawnParameters.Location = AttackDamageEvent.HitLocation;
+			SpawnParameters.Scale = FVector(HitFXScale * AttackDamageEvent.HitFXScale);
+			SpawnParameters.bAutoActivate = true;
+			SpawnParameters.bAutoDestroy = true;
+			SpawnParameters.WorldContextObject = GetWorld();
+			UNiagaraComponent* NiagaraComponent =
+				UNiagaraFunctionLibrary::SpawnSystemAtLocationWithParams(SpawnParameters);
+			NiagaraComponent->SetVariableLinearColor("BaseColor", FLinearColor(1, 1, 1));
+		}
+			
 		else RemainingHealth = CharacterStats->FGeneralObjectStats::ReceiveDamage(DamageAmount,
 			*static_cast<FCustomDamageEvent*>(Event));
 	}
@@ -91,7 +108,7 @@ void AFighterCharacter::CheckMeshOverlaps()
 					TraceResult.GetActor() != Target) continue;
 				RecentlyDamagedActors.Add(Target);
 				Target->TakeDamage(CharacterStats->GetDamageOutput(),
-					*CharacterStats->GenerateDamageEvent(TraceResult), GetController(), this);
+					CharacterStats->GenerateDamageEvent(TraceResult), GetController(), this);
 				break;
 			}
 		}

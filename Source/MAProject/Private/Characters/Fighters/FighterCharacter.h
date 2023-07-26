@@ -8,6 +8,7 @@
 #include "FighterCharacter.generated.h"
 
 class UTargetInformationComponent;
+class UNiagaraSystem;
 
 struct FMeleeControlsKey final
 {
@@ -62,6 +63,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* DeathAnimation;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UNiagaraSystem* GetHitFX;
+	
+	UPROPERTY(EditAnywhere, Category = Combat, meta=(ForceUnits="x"))
+	float HitFXScale;
 
 	virtual void BeginPlay() override;
 	

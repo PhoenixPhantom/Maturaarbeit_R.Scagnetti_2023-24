@@ -20,8 +20,11 @@ public:
 	uint32 StaggerChance;
 	UPROPERTY(EditDefaultsOnly, meta=(Units="m/s"))
 	float StaggerImpulse;
+	UPROPERTY(EditDefaultsOnly, meta=(ForceUnits="x"))
+	float HitFXScale;
 	
 	FVector HitDirection;
+	FVector HitLocation;
 	
 	static const int32 ClassID = 11;
 
