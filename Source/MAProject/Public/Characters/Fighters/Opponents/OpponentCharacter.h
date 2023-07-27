@@ -8,7 +8,7 @@
 #include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "OpponentCharacter.generated.h"
 
-class UReleaseAggressionTokensTask;
+class UBTTask_ReleaseAggressionTokens;
 class ACombatManager;
 class USphereComponent;
 class UBoxComponent;
@@ -53,7 +53,7 @@ private:
 
 struct FExecuteOnAggressionTokensReleasedKey final
 {
-	friend UReleaseAggressionTokensTask;
+	friend UBTTask_ReleaseAggressionTokens;
 private:
 	FExecuteOnAggressionTokensReleasedKey(){}
 };

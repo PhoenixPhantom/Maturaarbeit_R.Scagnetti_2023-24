@@ -13,7 +13,7 @@ class ACombatManager;
 
 struct FReleaseTokenKey final
 {
-	friend class UReleaseAggressionTokensTask;
+	friend class UBTTask_ReleaseAggressionTokens;
 private:
 	FReleaseTokenKey(){};
 };

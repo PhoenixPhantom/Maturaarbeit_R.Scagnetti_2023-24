@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
-#include "ExecuteAttackTask.generated.h"
+#include "BTTask_ExecuteAttackTask.generated.h"
 
 class AOpponentCharacter;
 
@@ -12,11 +12,11 @@ class AOpponentCharacter;
  * 
  */
 UCLASS()
-class MAPROJECT_API UExecuteAttackTask : public UBTTask_BlackboardBase
+class MAPROJECT_API UBTTask_ExecuteAttackTask : public UBTTask_BlackboardBase
 {
 	GENERATED_BODY()
 public:
-	UExecuteAttackTask();
+	UBTTask_ExecuteAttackTask();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	
 protected:
@@ -29,4 +29,7 @@ protected:
 
 	UFUNCTION()
 	void OnAttackFinished(bool IsLimitDurationOver, bool& HasBeenCleared);
+
+	UFUNCTION()
+	void OnReactionFinished(bool IsLimitDurationOver, bool& HasBeenCleared);
 };

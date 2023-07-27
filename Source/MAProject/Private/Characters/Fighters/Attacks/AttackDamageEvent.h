@@ -21,7 +21,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, meta=(Units="m/s"))
 	float StaggerImpulse;
 	UPROPERTY(EditDefaultsOnly, meta=(ForceUnits="x"))
-	float HitFXScale;
+	float HitFXScaleFactor;
 	
 	FVector HitDirection;
 	FVector HitLocation;

@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "ReleaseAggressionTokensTask.generated.h"
+#include "BTTask_ReleaseAggressionTokens.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class MAPROJECT_API UReleaseAggressionTokensTask : public UBTTaskNode
+class MAPROJECT_API UBTTask_ReleaseAggressionTokens : public UBTTaskNode
 {
 	GENERATED_BODY()
 
 public:
-	UReleaseAggressionTokensTask(FObjectInitializer const& ObjectInitializer);
+	UBTTask_ReleaseAggressionTokens(FObjectInitializer const& ObjectInitializer);
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	

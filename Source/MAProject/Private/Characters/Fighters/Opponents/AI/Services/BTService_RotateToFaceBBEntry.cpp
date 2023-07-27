@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Characters/Fighters/Opponents/AI/Services/RotateToFaceBBEntryService.h"
+#include "Characters/Fighters/Opponents/AI/Services/BTService_RotateToFaceBBEntry.h"
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -9,14 +9,14 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 
-URotateToFaceBBEntryService::URotateToFaceBBEntryService() : TargetObject(nullptr), OwningController(nullptr)
+UBTService_RotateToFaceBBEntry::UBTService_RotateToFaceBBEntry() : TargetObject(nullptr), OwningController(nullptr)
 {
 	NodeName = "Rotate To Face BB Entry";
 	bNotifyBecomeRelevant = true;
 	bNotifyTick = true;
 }
 
-void URotateToFaceBBEntryService::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+void UBTService_RotateToFaceBBEntry::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 	OwningController = OwnerComp.GetAIOwner();
@@ -55,7 +55,7 @@ void URotateToFaceBBEntryService::OnBecomeRelevant(UBehaviorTreeComponent& Owner
 	}
 }
 
-void URotateToFaceBBEntryService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService_RotateToFaceBBEntry::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 	if(IsValid(TargetController)) OwningController->SetFocus(TargetController->GetPawn());

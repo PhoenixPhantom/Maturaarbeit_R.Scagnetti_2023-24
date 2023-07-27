@@ -4,17 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/Services/BTService_BlackboardBase.h"
-#include "CheckIsInRangeService.generated.h"
+#include "BTService_RotateToFaceBBEntry.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class MAPROJECT_API UCheckIsInRangeService : public UBTService_BlackboardBase
+class MAPROJECT_API UBTService_RotateToFaceBBEntry : public UBTService_BlackboardBase
 {
 	GENERATED_BODY()
 public:
-	UCheckIsInRangeService();
+	UBTService_RotateToFaceBBEntry();
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
@@ -22,11 +22,11 @@ protected:
 	FVector TargetLocation;
 	
 	UPROPERTY()
-	AActor* Target;
+	AActor* TargetObject;
 
 	UPROPERTY()
-	AActor* OwningCharacter;
-	
-	UPROPERTY(EditAnywhere)
-	float MaximalDistance;
+	AController* TargetController;
+
+	UPROPERTY()
+	AAIController* OwningController;
 };

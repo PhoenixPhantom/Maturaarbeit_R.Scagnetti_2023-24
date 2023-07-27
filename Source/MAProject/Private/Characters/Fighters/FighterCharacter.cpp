@@ -10,7 +10,7 @@
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
-AFighterCharacter::AFighterCharacter() : HitFXScale(1.f)
+AFighterCharacter::AFighterCharacter() : HitFXRadius(50.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -39,16 +39,18 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 			RemainingHealth = CharacterStats->ReceiveDamage(DamageAmount, AttackDamageEvent);
 
 			//Spawn get hit FX
+			constexpr float RealRadius = 75.f;
 			FFXSystemSpawnParameters SpawnParameters;
 			SpawnParameters.SystemTemplate = GetHitFX;
 			SpawnParameters.Location = AttackDamageEvent.HitLocation;
-			SpawnParameters.Scale = FVector(HitFXScale * AttackDamageEvent.HitFXScale);
+			SpawnParameters.Scale = FVector(HitFXRadius/RealRadius * AttackDamageEvent.HitFXScaleFactor);
+			SpawnParameters.AttachToComponent = GetRootComponent();
 			SpawnParameters.bAutoActivate = true;
 			SpawnParameters.bAutoDestroy = true;
 			SpawnParameters.WorldContextObject = GetWorld();
 			UNiagaraComponent* NiagaraComponent =
-				UNiagaraFunctionLibrary::SpawnSystemAtLocationWithParams(SpawnParameters);
-			NiagaraComponent->SetVariableLinearColor("BaseColor", FLinearColor(1, 1, 1));
+				UNiagaraFunctionLibrary::SpawnSystemAttachedWithParams(SpawnParameters);
+			NiagaraComponent->SetVariableLinearColor("BaseColor", FLinearColor(0.5f, 0.5f, 0.5f));
 		}
 			
 		else RemainingHealth = CharacterStats->FGeneralObjectStats::ReceiveDamage(DamageAmount,
@@ -57,8 +59,27 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	return RemainingHealth;
 }
 
+bool AFighterCharacter::IsMovingOnFloor() const
+{
+	return GetCharacterMovement()->MovementMode == MOVE_Walking ||
+		GetCharacterMovement()->MovementMode == MOVE_NavWalking;
+}
+
+bool AFighterCharacter::IsWalking() const
+{
+	return IsMovingOnFloor() &&
+		GetCharacterMovement()->GetMaxSpeed() == CharacterStats->WalkSpeed.GetResulting();
+}
+
+bool AFighterCharacter::IsRunning() const
+{
+	return IsMovingOnFloor() &&
+		GetCharacterMovement()->GetMaxSpeed() == CharacterStats->RunSpeed.GetResulting();
+
+}
+
 void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty,
-	bool AllowHitRecentVictims, FMeleeControlsKey Key)
+                                           bool AllowHitRecentVictims, FMeleeControlsKey Key)
 {
 	if(StartEmpty) MeleeEnabledBones.Empty();
 	if(AllowHitRecentVictims) RecentlyDamagedActors.Empty();

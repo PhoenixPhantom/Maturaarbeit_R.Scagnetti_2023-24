@@ -33,6 +33,10 @@ public:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
 
+	bool IsMovingOnFloor() const;
+	bool IsWalking() const;
+	bool IsRunning() const;
+	
 	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitRecentVictims,
 		FMeleeControlsKey Key);
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
@@ -67,8 +71,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UNiagaraSystem* GetHitFX;
 	
-	UPROPERTY(EditAnywhere, Category = Combat, meta=(ForceUnits="x"))
-	float HitFXScale;
+	UPROPERTY(EditAnywhere, Category = Combat, meta=(Units="cm"))
+	float HitFXRadius;
 
 	virtual void BeginPlay() override;
 	
