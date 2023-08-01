@@ -7,10 +7,9 @@
 #include "NiagaraFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
-AFighterCharacter::AFighterCharacter() : HitFXRadius(50.f)
+AFighterCharacter::AFighterCharacter() : bIsInvincible(false),  HitFXRadius(50.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -30,7 +29,7 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
                                     AActor* DamageCauser)
 {
 	uint32 RemainingHealth = CharacterStats->Health;
-	if(DamageEvent.IsOfType(FCustomDamageEvent::ClassID))
+	if(DamageEvent.IsOfType(FCustomDamageEvent::ClassID) && !bIsInvincible)
 	{
 		FDamageEvent* Event = const_cast<FDamageEvent*>(&DamageEvent);
 		if(DamageEvent.IsOfType(FAttackDamageEvent::ClassID))
@@ -57,6 +56,17 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 			*static_cast<FCustomDamageEvent*>(Event));
 	}
 	return RemainingHealth;
+}
+
+void AFighterCharacter::StopAnimMontage(UAnimMontage* AnimMontage)
+{
+	if(IsValid(GetCurrentMontage()))
+	{
+		//Prevent melee enabled bones from not being disabled when the animation ends
+		RecentlyDamagedActors.Empty();
+		MeleeEnabledBones.Empty();
+	}
+	Super::StopAnimMontage(AnimMontage);
 }
 
 bool AFighterCharacter::IsMovingOnFloor() const
@@ -103,6 +113,21 @@ void AFighterCharacter::SwitchMovementToRun() const
 	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->RunSpeed.GetResulting();
 }
 
+void AFighterCharacter::MakeInvincible(float InvincibilityTime)
+{
+	bIsInvincible = true;	
+	if(GetWorld()->GetTimerManager().TimerExists(InvincibilityHandle))
+		GetWorld()->GetTimerManager().ClearTimer(InvincibilityHandle);
+	
+	GetWorld()->GetTimerManager().SetTimer(InvincibilityHandle,
+		[this]{ EndInvincibility(); }, InvincibilityTime, false);
+}
+
+void AFighterCharacter::EndInvincibility()
+{
+	bIsInvincible = false;
+}
+
 void AFighterCharacter::CheckMeshOverlaps()
 {
 	TArray<AActor*> OverlappingActors;
@@ -140,7 +165,8 @@ void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimi
 {
 	int32 Index = CurrentLimitIndex + 1;
 	if(!InputLimits.IsValidIndex(Index)) return;
-	AcceptedInputs.OnInputLimitsReset.AddLambda([InputLimits, Index, World = GetWorld(), this]
+	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
+		[InputLimits, Index, World = GetWorld(), this]
 		(bool IsLimitDurationOver, bool& HasBeenCleared)
 	{
 		AcceptedInputs.LimitAvailableInputs(InputLimits[Index], World);
@@ -170,7 +196,6 @@ void AFighterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	check(GetMesh()->GetRelativeTransform().GetMaximumAxisScale() == GetMesh()->GetRelativeTransform().GetMinimumAxisScale());
-	SuckToTargetComponent->SetupReferences(this);
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
 	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
@@ -206,9 +231,9 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 	StopAnimMontage();
 	PlayAnimMontage(DeathAnimation);
 	AcceptedInputs.LimitAvailableInputs({EInputType::Death, DeathAnimation->GetPlayLength()*0.9f}, GetWorld());
-	AcceptedInputs.OnInputLimitsReset.AddLambda([this](bool IsLimitDurationOver, bool& HasBeenCleared)
+	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
+		[this](bool IsLimitDurationOver, bool& HasBeenCleared)
 	{
-		HasBeenCleared = true;
 		Destroy();
 	});
 }

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RootMotionModifier.h"
 #include "Components/ActorComponent.h"
 #include "SuckToTargetComponent.generated.h"
 
@@ -12,6 +11,49 @@ struct FStartMotionWarpingKey final
 	friend class UAnimNotifyState_SuckToTarget;
 private:
 		FStartMotionWarpingKey(){}
+};
+
+enum class EWarpType : uint8
+{
+	None,
+	LocationOnly,
+	RotationOnly,
+	LocationAndRotation
+};
+
+enum class EWarpSource : uint8
+{
+	None,
+	FaceLocation,
+	MatchLocAndRot,
+	FaceTargetObject,
+	MatchTargetObject
+};
+
+struct FWarpInformation
+{
+	FWarpInformation();
+	//Determines what parts of the transform will be modified
+	EWarpType WarpType;
+	//Sets which given parameters will be used to influence the resulting transform
+	EWarpSource WarpSource;
+
+	FVector TargetLocation;
+	FRotator TargetRotation;
+	
+	USceneComponent* TargetObject;
+	FName TargetBoneName;
+	uint8 bFollowTarget:1;
+
+	uint8 bMovementX:1;
+	uint8 bMovementY:1;
+	uint8 bMovementZ:1;
+	//Around Y axis
+	uint8 bRotationPitch:1;
+	//Around Z axis
+	uint8 bRotationYaw:1;
+	//around X axis
+	uint8 bRotationRoll:1;
 };
 
 UCLASS(ClassGroup=(Custom))
@@ -29,27 +71,11 @@ public:
 
 	FORCEINLINE bool IsWarping() const { return RemainingWarpTime > 0.f; }
 
-	void SetupReferences(AActor* RealOwner){ OwnerRef = RealOwner; }
-
-	//Sets the warp target and warps the rotation to MATCH the one of TargetComp
-	void SetWarpTarget(USceneComponent* TargetComp, bool ShouldFollow = false, FName BoneName = NAME_None,
-		bool AllowZAxisMovement = false, bool AllowOnlyYawRotation = true);
-	//Sets the warp target and warps the rotation to FACE TargetComp (doesn't follow TargetComp)
-	void SetWarpTargetFaceTowards(USceneComponent* TargetComp, FVector CurrentLocation, FName BoneName = NAME_None,
-		bool AllowZAxisMovement = false, bool AllowOnlyYawRotation = true);
-	//Sets the warp target and warps the rotation to FACE TargetComp (follows TargetComp)
-	void SetWarpTargetFaceTowards(USceneComponent* TargetComp, FName BoneName = NAME_None,
-		bool AllowZAxisMovement = false, bool AllowOnlyYawRotation = true);
-	void SetWarpTarget(FVector TargetLocation, FRotator TargetRotation, bool AllowZAxisMovement = false,
-		bool AllowOnlyYawRotation = true);
-	void SetWarpTargetFaceTowards(FVector TargetLocation, FVector CurrentLocation, bool AllowZAxisMovement = false,
-		bool AllowOnlyYawRotation = true);
+	void SetOrUpdateWarpTarget(const FWarpInformation& WarpInformation);
 	
 	FVector GetNextLocation(const FTransform& CurrentTransform, float DeltaSeconds) const;
 	FRotator GetNextRotation(const FTransform& CurrentTransform, float DeltaSeconds) const;
 	FTransform GetNextTransform(const FTransform& CurrentTransform, float DeltaSeconds) const;
-	
-	FTransform MotionWarp(const FTransform& CurrentTransform, float DeltaSeconds);
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere)
@@ -59,19 +85,40 @@ public:
 protected:
 	float RemainingWarpTime;
 	float TotalWarpTime;
-	bool bAllowZAxisMovement;
-	bool bAllowOnlyYawRotation;
-	FMotionWarpingTarget MotionWarpingTarget;
+
+	EWarpSource WarpSource;
+	
+	FVector TargetLocation;
+	FRotator TargetRotation;
 
 	UPROPERTY()
-	AActor* OwnerRef;
+	USceneComponent* TargetObject;
+	FName TargetBoneName;
+	
+	uint8 bWarpLocation:1;
+	uint8 bMovementX:1;
+	uint8 bMovementY:1;
+	
+	uint8 bWarpRotation:1;
+	uint8 bMovementZ:1;
+	//Around Y axis
+	uint8 bRotationPitch:1;
+	//Around Z axis
+	uint8 bRotationYaw:1;
+	//around X axis
+	uint8 bRotationRoll:1;
+
+
+	FORCEINLINE void StartWarpingInternal(float WarpTime);
+	FTransform MotionWarpInternal(float DeltaSeconds);
+
+	void SetFromWarpingTypeInternal(const FWarpInformation& WarpInformation);
+	void SetFromWarpingSourceInternal(const FWarpInformation& WarpInformation);
+	
+	void SetFaceLocationInternal(const FWarpInformation& WarpInformation);
+	void SetMatchLocAndRotInternal(const FWarpInformation& WarpInformation);
+	void SetFaceTargetObjectInternal(const FWarpInformation& WarpInformation);
+	void SetMatchTargetObjectInternal(const FWarpInformation& WarpInformation);
 
 	static FTransform GetTargetTransformFromComponent(const USceneComponent* Component, FName BoneName);
-	FORCEINLINE void StartWarpingInternal(float WarpTime);
 };
-
-void USuckToTargetComponent::StartWarpingInternal(float WarpTime)
-{
-	RemainingWarpTime = TotalWarpTime = WarpTime;
-	PrimaryComponentTick.SetTickFunctionEnable(true);
-}

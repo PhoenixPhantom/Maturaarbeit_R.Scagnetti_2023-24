@@ -143,13 +143,19 @@ void AOpponentCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Pr
 			FVector Direction;
 			float Length;
 			(TargetInfoComp->GetComponentLocation() - GetActorLocation()).ToDirectionAndLength(Direction, Length);
-			if(Length <= Properties.MaximalMovementDistance)
-				SuckToTargetComponent->SetWarpTargetFaceTowards(TargetInfoComp);
+
+			FWarpInformation WarpInformation;
+			if (Length <= Properties.MaximalMovementDistance)
+			{
+				WarpInformation.WarpSource = EWarpSource::FaceTargetObject;
+				WarpInformation.TargetObject = TargetInfoComp;
+			}
 			else
 			{
-				SuckToTargetComponent->SetWarpTargetFaceTowards(
-					GetActorLocation() + Direction * Properties.DefaultMovementDistance, GetActorLocation());
+				WarpInformation.WarpSource = EWarpSource::FaceLocation;
+				WarpInformation.TargetLocation = GetActorLocation() + Direction * Properties.DefaultMovementDistance;
 			}
+			SuckToTargetComponent->SetOrUpdateWarpTarget(WarpInformation);
 			return;
 		}
 		checkNoEntry();
@@ -160,7 +166,9 @@ void AOpponentCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Pr
 	FVector CharacterForward = PlayerRotation.Vector();
 	CharacterForward.Z = 0.f;
 	CharacterForward.Normalize();
-	SuckToTargetComponent->SetWarpTargetFaceTowards(GetActorLocation() +
-		CharacterForward * Properties.DefaultMovementDistance, GetActorLocation());
+	FWarpInformation WarpInformation;
+	WarpInformation.WarpSource = EWarpSource::FaceLocation;
+	WarpInformation.TargetLocation = GetActorLocation() + CharacterForward * Properties.DefaultMovementDistance;
+	SuckToTargetComponent->SetOrUpdateWarpTarget(WarpInformation);
 }
 

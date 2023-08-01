@@ -39,6 +39,8 @@ public:
 
 	virtual float GetFieldOfView() const override;
 
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
+
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
 	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FPreSpawnSetupKey Key);
 
@@ -77,7 +79,7 @@ protected:
 	double RememberInputDirectionTime;
 
 	UPROPERTY(EditAnywhere, Category = Input, AdvancedDisplay)
-	double RememberLastInputTime;
+	double MaximalInputWindowTime;
 
 	UPROPERTY(EditAnywhere)
 	UCapsuleComponent* HorizontalCapsule;
@@ -125,6 +127,10 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex) override;
+
+	virtual void CharacterLanded();
+	virtual void CharacterInAir();
+
 	
 	void TryJump();
 	void EndJump();
@@ -134,8 +140,8 @@ protected:
 	void SkillAttack();
 	void UltimateAttack();
 
-	void SpeedUpDash();
-	void SlowDown();
+	void DashStartRunning();
+	void StopRunning();
 	void Move(const FInputActionValue& Value);
 	
 	void Look(const FInputActionValue& Value);

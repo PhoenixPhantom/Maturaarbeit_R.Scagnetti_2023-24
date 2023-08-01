@@ -6,13 +6,13 @@
 bool FCharacterBaseStats::operator==(const FCharacterBaseStats& CharacterBaseStats) const
 {
 	return Super::operator==(CharacterBaseStats) && BaseWalkSpeed == CharacterBaseStats.BaseWalkSpeed &&
-		DashSpeedup == CharacterBaseStats.DashSpeedup &&
+		RunSpeedup == CharacterBaseStats.RunSpeedup && DashFactor == CharacterBaseStats.DashFactor &&
 		BaseInterruptionResistance == CharacterBaseStats.BaseInterruptionResistance;
 }
 
 FCharacterStats::FCharacterStats() :
 	WalkSpeed(0.f, 0.f, 0.f), RunSpeed(0.f, 0.f, 0.f),
-	InterruptionResistance(0.f, 0.f, 0.f), CurrentAttack(nullptr)
+	DashFactor(2.f), InterruptionResistance(0.f, 0.f, 0.f), CurrentAttack(nullptr)
 {
 }
 
@@ -21,7 +21,8 @@ void FCharacterStats::FromBase(const FCharacterBaseStats& Stats, const FSavableC
 {
 	FGeneralObjectStats::FromBase(Stats, Modifiers);
 	WalkSpeed.Base = Stats.BaseWalkSpeed;
-	RunSpeed.Base = (1.f + Stats.DashSpeedup/100.f) * Stats.BaseWalkSpeed;
+	RunSpeed.Base = (1.f + Stats.RunSpeedup/100.f) * Stats.BaseWalkSpeed;
+	DashFactor = Stats.DashFactor;
 
 	InterruptionResistance.Base = Stats.BaseInterruptionResistance;
 	AvailableAttacks = Stats.AvailableAttacks;
@@ -60,5 +61,6 @@ uint32 FCharacterStats::ReceiveDamage(float Damage, const FAttackDamageEvent& Da
 bool FCharacterStats::operator==(const FCharacterStats& CharacterStats) const
 {
 	return FGeneralObjectStats::operator==(CharacterStats) && WalkSpeed == CharacterStats.WalkSpeed &&
-		RunSpeed == CharacterStats.RunSpeed && InterruptionResistance == CharacterStats.InterruptionResistance;
+		RunSpeed == CharacterStats.RunSpeed && DashFactor == CharacterStats.DashFactor &&
+		InterruptionResistance == CharacterStats.InterruptionResistance;
 }

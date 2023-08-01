@@ -47,6 +47,7 @@ void AOpponentController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if(EndPlayReason == EEndPlayReason::Destroyed)
 	{
+		GetWorld()->GetTimerManager().ClearTimer(LostPerceptionHandle);
 		if(IsValid(CombatManager))
 			CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
 		if(IsValid(MoveTarget)) MoveTarget->Destroy();

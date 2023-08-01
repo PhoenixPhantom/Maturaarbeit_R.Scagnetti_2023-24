@@ -33,6 +33,8 @@ public:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
 		AActor* DamageCauser) override;
 
+	virtual void StopAnimMontage(UAnimMontage* AnimMontage = nullptr) override;
+
 	bool IsMovingOnFloor() const;
 	bool IsWalking() const;
 	bool IsRunning() const;
@@ -50,8 +52,10 @@ public:
 	void ExecuteAttack(int32 Index);
 	
 protected:
+	bool bIsInvincible;
 	TArray<FName> MeleeEnabledBones;
 	FCharacterStats* CharacterStats;
+	FTimerHandle InvincibilityHandle;
 
 	UPROPERTY()
 	TArray<AActor*> RecentlyDamagedActors;
@@ -79,6 +83,9 @@ protected:
 	void SwitchMovementToWalk() const;
 	void SwitchMovementToRun() const;
 
+	virtual void MakeInvincible(float InvincibilityTime);
+	void EndInvincibility();
+	
 	void CheckMeshOverlaps();
 
 	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex = 0);

@@ -16,7 +16,7 @@
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
 APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f),
-                                       RememberInputDirectionTime(0.5), RememberLastInputTime(0.1)
+                                       RememberInputDirectionTime(0.5), MaximalInputWindowTime(0.1)
 {
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -38,7 +38,7 @@ APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr)
 	FollowCamera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	// Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-	
+
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -74,6 +74,18 @@ float APlayerCharacter::GetFieldOfView() const
 	return FollowCamera->FieldOfView;
 }
 
+void APlayerCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+	if(GetCharacterMovement()->MovementMode == MOVE_Falling || GetCharacterMovement()->MovementMode == MOVE_Flying)
+		CharacterInAir();
+	if ((PrevMovementMode == MOVE_Falling || PrevMovementMode == MOVE_Flying) &&
+		GetCharacterMovement()->MovementMode == MOVE_Walking ||
+		GetCharacterMovement()->MovementMode == MOVE_NavWalking ||
+		GetCharacterMovement()->MovementMode == MOVE_Swimming)
+		CharacterLanded();
+}
+
 void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
                                      FPreSpawnSetupKey Key)
 {
@@ -94,10 +106,11 @@ float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget) co
 
 	float ActionRank = 0.f;
 	const float OffsetFromForward = FVector::DotProduct(EyesRotation.Vector(),
-		UKismetMathLibrary::GetDirectionUnitVector(EyesLocation, ActorCenter));
-	if(UKismetMathLibrary::DegAcos(OffsetFromForward) <= GetFieldOfView()/2.f) ActionRank += 1.5f;
+	                                                    UKismetMathLibrary::GetDirectionUnitVector(
+		                                                    EyesLocation, ActorCenter));
+	if (UKismetMathLibrary::DegAcos(OffsetFromForward) <= GetFieldOfView() / 2.f) ActionRank += 1.5f;
 	ActionRank += 1.f + OffsetFromForward; //there should be no negative action ranks
-	
+
 	return ActionRank;
 }
 
@@ -114,7 +127,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (const APlayerController* PlayerController = Cast<APlayerController>(Controller); IsValid(PlayerController))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()); IsValid(Subsystem))
+				ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+			IsValid(Subsystem))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
@@ -124,138 +138,177 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	//Character specific input
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::TryJump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::EndJump);
-	
-	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::LightAttack);
-	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Triggered, this, &APlayerCharacter::HeavyAttack);
-	EnhancedInputComponent->BindAction(SkillAction, ETriggerEvent::Triggered, this, &APlayerCharacter::SkillAttack);
-	EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Triggered, this, &APlayerCharacter::UltimateAttack);
 
-	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Triggered,this, &APlayerCharacter::SpeedUpDash);
-	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Completed, this, &APlayerCharacter::SlowDown); 
+	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Triggered, this,
+	                                   &APlayerCharacter::LightAttack);
+	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Triggered, this,
+	                                   &APlayerCharacter::HeavyAttack);
+	EnhancedInputComponent->BindAction(SkillAction, ETriggerEvent::Triggered, this, &APlayerCharacter::SkillAttack);
+	EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Triggered, this,
+	                                   &APlayerCharacter::UltimateAttack);
+
+	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Triggered, this, &APlayerCharacter::DashStartRunning);
+	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopRunning);
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
-	
+
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 	EnhancedInputComponent->BindAction(CameraZoomAction, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraZoom);
 	EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Aim);
-	
+
 	//UI input
-	EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Triggered, this, &APlayerCharacter::OpenPauseMenu);
+	EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Triggered, this,
+	                                   &APlayerCharacter::OpenPauseMenu);
 }
 
 void APlayerCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
 {
 	Super::QueueFollowUpLimit(InputLimits, CurrentLimitIndex);
-	if(LastInput.bIsValid == true &&  GetWorld()->GetRealTimeSeconds() - LastInput.First <= RememberLastInputTime
+	if (LastInput.bIsValid == true && GetWorld()->GetRealTimeSeconds() - LastInput.First <= MaximalInputWindowTime
 		&& AcceptedInputs.CanOverrideCurrentInput(LastInput.Second))
 	{
 		std::invoke(LastInput.Third);
 	}
 }
 
+void APlayerCharacter::CharacterLanded()
+{
+	//Resets any input limits imposed by a previous state (Flying, Jumping)
+	AcceptedInputs.LimitAvailableInputs(EInputType::Reset, GetWorld());
+}
+
+void APlayerCharacter::CharacterInAir()
+{
+	AcceptedInputs.LimitAvailableInputs(FInputLimits(EInputType::Jump, 0.f), GetWorld());
+}
+
 void APlayerCharacter::TryJump()
 {
-	if(!AcceptedInputs.MovementProperties.bCanJump)
+	if (!AcceptedInputs.MovementProperties.bCanJump)
 	{
 		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-			LastInput.Second = EInputType::Jump, [this]{ TryJump(); });
+		                    EInputType::Jump, [this] { TryJump(); });
 		return;
 	}
-	
+
 	LastInput.bIsValid = false;
-	if(!bHasJumped)
-	{
-		bHasJumped = true;
-		Jump();
-	}
+	if (AcceptedInputs.CanOverrideCurrentInput(EInputType::Jump)) Jump();
 }
 
 void APlayerCharacter::EndJump()
 {
-	bHasJumped = false;
- 	StopJumping();
+	StopJumping();
 }
 
 void APlayerCharacter::LightAttack()
 {
-	if(!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.bCanAttack)
 	{
 		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-			LastInput.Second = EInputType::Attack, [this]{ LightAttack(); });
+		                    EInputType::Attack, [this] { LightAttack(); });
 		return;
 	}
-	
+
 	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Light);
 }
 
 void APlayerCharacter::HeavyAttack()
 {
-	if(!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.bCanAttack)
 	{
 		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-			LastInput.Second = EInputType::Attack, [this]{ HeavyAttack(); });
+		                    EInputType::Attack, [this] { HeavyAttack(); });
 		return;
 	}
-	
+
 	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Heavy);
 }
 
 void APlayerCharacter::SkillAttack()
 {
-	if(!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.bCanAttack)
 	{
 		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-			LastInput.Second = EInputType::Attack, [this]{ SkillAttack(); });
+		                    EInputType::Attack, [this] { SkillAttack(); });
 		return;
 	}
-	
+
 	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Skill);
 }
 
 void APlayerCharacter::UltimateAttack()
 {
-	if(!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.bCanAttack)
 	{
 		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-			LastInput.Second = EInputType::Attack, [this]{ UltimateAttack(); });
+		                    EInputType::Attack, [this] { UltimateAttack(); });
 		return;
 	}
-	
+
 	LastInput.bIsValid = false;
 	CharacterStats->ExecuteAttack(EAttackType::Ultimate);
 }
 
-void APlayerCharacter::SpeedUpDash()
+void APlayerCharacter::DashStartRunning()
 {
-	if(!AcceptedInputs.bCanSprint)
+	if (!AcceptedInputs.bCanSprint)
 	{
 		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-			LastInput.Second = EInputType::Sprint, [this]{ SpeedUpDash(); });
+		                    EInputType::Sprint, [this] { DashStartRunning(); });
 		return;
 	}
-	
 	LastInput.bIsValid = false;
-	//we only have (and should only) to set variables one time
-	if(!bIsRunning)
+
+	//the first seconds of run are a dash
+	if (!bIsRunning)
 	{
-		SwitchMovementToRun();
-	
-		//Since on ongoing: dash will be called, we can assume that the player moves every time you dash, so
-		//a dash will always allows you to walk after execution because you've already been displaced)
+		FVector Direction = InputDirection.Value;
+		if (GetWorld()->RealTimeSeconds - InputDirection.Key > RememberInputDirectionTime)
+		{
+			Direction = GetFollowCamera()->GetForwardVector();
+			Direction.Z = 0.f;
+			if (!Direction.Normalize())
+			{
+				FVector OutLocation;
+				FRotator OutRotation;
+				GetActorEyesViewPoint(OutLocation, OutRotation);
+				Direction = OutRotation.Vector();
+				Direction.Z = 0;
+				if (!Direction.Normalize()) Direction = FVector(0.f);
+			}
+		}
+
+		//Launch character doesn't work here since it sets the player's movement state to "falling" which causes it to
+		//play the falling animation.
+		GetCharacterMovement()->Velocity = FVector(Direction * CharacterStats->GetDashSpeed()) +
+			FVector::ZAxisVector * GetCharacterMovement()->Velocity.Z;
+
+
+		GetWorld()->GetTimerManager().SetTimerForNextTick(
+			[this, OldRotationRate = GetCharacterMovement()->RotationRate]
+			{
+				GetCharacterMovement()->RotationRate = OldRotationRate;
+			});
+		GetCharacterMovement()->RotationRate = FRotator(0.f, -1.f, 0.f);
+
+		MakeInvincible(1.f);
+
+		//Since the player has already been displaced after a dash, we can always allow it to walk afterwards
 		AcceptedInputs.MovementProperties.bCanWalk = true;
 		bIsRunning = true;
+
+		SwitchMovementToRun();
 	}
-	else
-	{
-		//Prevent having two inputs (from wasd keys and mouse) at the same time
-		ConsumeMovementInputVector();
-		Move(FVector2D(0.f, 1.f));
-	}
+
+	//Prevent having two inputs (from wasd keys and mouse) at the same time
+	FVector Direction = ConsumeMovementInputVector();
+	if (Direction.IsNearlyZero()) Direction = FVector::YAxisVector;
+	Move(Direction);
 }
 
-void APlayerCharacter::SlowDown()
+void APlayerCharacter::StopRunning()
 {
 	bIsRunning = false;
 	SwitchMovementToWalk();
@@ -273,18 +326,18 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
 		//Prevent having two inputs (from wasd keys and mouse) at the same time
-		if(bIsRunning) ConsumeMovementInputVector();
-		
+		if (bIsRunning) ConsumeMovementInputVector();
+
 		// get forward vector
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	
+
 		// get right vector 
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
 		InputDirection.Key = GetWorld()->RealTimeSeconds;
 		InputDirection.Value = ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X;
 		InputDirection.Value.Normalize();
-		if(!bIsRunning && AcceptedInputs.MovementProperties.bCanWalk || bIsRunning && AcceptedInputs.bCanSprint)
+		if (!bIsRunning && AcceptedInputs.MovementProperties.bCanWalk || bIsRunning && AcceptedInputs.bCanSprint)
 		{
 			// add movement
 			LastInput.bIsValid = false;
@@ -294,20 +347,19 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 		else
 		{
 			LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-				LastInput.Second = EInputType::Attack, [this, Value]{ Move(Value); });
+			                    EInputType::Attack, [this, Value] { Move(Value); });
 		}
 	}
 }
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
-	
 	if (IsValid(Controller))
 	{
-		if(!AcceptedInputs.bFreeCameraAdjustment)
+		if (!AcceptedInputs.bFreeCameraAdjustment)
 		{
 			LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
-				LastInput.Second = EInputType::Attack, [this, Value]{ Look(Value); });
+			                    EInputType::Attack, [this, Value] { Look(Value); });
 			return;
 		}
 		LastInput.bIsValid = false;
@@ -321,13 +373,13 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 void APlayerCharacter::CameraZoom(const FInputActionValue& Value)
 {
 	const float Movement = Value.Get<float>();
-	if(AcceptedInputs.bFreeCameraAdjustment)
+	if (AcceptedInputs.bFreeCameraAdjustment)
 		SpringArm->TargetArmLength += Movement * PlayerUserSettings->CameraZoomSpeed;
 }
 
 void APlayerCharacter::Aim(const FInputActionValue& Value)
 {
-	if(AcceptedInputs.bFreeCameraAdjustment) unimplemented();
+	if (AcceptedInputs.bFreeCameraAdjustment) unimplemented();
 }
 
 void APlayerCharacter::OpenPauseMenu()
@@ -335,7 +387,7 @@ void APlayerCharacter::OpenPauseMenu()
 	UGameplayStatics::SetGamePaused(GetWorld(), true);
 	UUserWidget* PauseMenu = CreateWidget<UUserWidget>(GetWorld(), PauseMenuClass);
 	PauseMenu->AddToViewport();
-	
+
 	FInputModeUIOnly InputMode;
 	InputMode.SetWidgetToFocus(PauseMenu->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -349,25 +401,26 @@ void APlayerCharacter::UpdateTargetSelection()
 	TArray<FHitResult> TraceResults;
 	//tracing on TraceTypeQuery6 (== Destructible)
 	UKismetSystemLibrary::SphereTraceMulti(GetWorld(), GetActorLocation(), GetActorLocation(),
-	AutotargetingRange, ETraceTypeQuery::TraceTypeQuery6,
-	true, {this, Owner}, EDrawDebugTrace::None, TraceResults, true);
+	                                       AutotargetingRange, ETraceTypeQuery::TraceTypeQuery6,
+	                                       true, {this, Owner}, EDrawDebugTrace::None, TraceResults, true);
 	FHitResult CenteredHitResult;
 	FVector EyesLocation;
 	FRotator EyesRotation;
 	GetActorEyesViewPoint(EyesLocation, EyesRotation);
 	UKismetSystemLibrary::LineTraceSingle(GetWorld(), EyesLocation,
-		EyesLocation + EyesRotation.Vector() * AutotargetingRange,
-		ETraceTypeQuery::TraceTypeQuery6, true, {this, Owner}, EDrawDebugTrace::None,
-		CenteredHitResult, true);
-	
+	                                      EyesLocation + EyesRotation.Vector() * AutotargetingRange,
+	                                      ETraceTypeQuery::TraceTypeQuery6, true, {this, Owner}, EDrawDebugTrace::None,
+	                                      CenteredHitResult, true);
+
 	TTuple<float, UTargetInformationComponent*> BestResult;
 	BestResult.Key = std::numeric_limits<float>::lowest();
 	BestResult.Value = nullptr;
-	for(FHitResult TraceResult : TraceResults)
+	for (FHitResult TraceResult : TraceResults)
 	{
-		if(!TraceResult.bBlockingHit) continue; //all relevant meshes are set to block destructible objects...
-		UActorComponent* Component = TraceResult.GetActor()->GetComponentByClass(UTargetInformationComponent::StaticClass());
-		if(!IsValid(Component)) continue; //... and have a target information component
+		if (!TraceResult.bBlockingHit) continue; //all relevant meshes are set to block destructible objects...
+		UActorComponent* Component = TraceResult.GetActor()->GetComponentByClass(
+			UTargetInformationComponent::StaticClass());
+		if (!IsValid(Component)) continue; //... and have a target information component
 		UTargetInformationComponent* TargetInfoComp = CastChecked<UTargetInformationComponent>(Component);
 
 		//Get the actors center
@@ -377,38 +430,47 @@ void APlayerCharacter::UpdateTargetSelection()
 
 		//whether the target is on screen
 		float OffsetFromForward = FVector::DotProduct(EyesRotation.Vector(),
-			UKismetMathLibrary::GetDirectionUnitVector(EyesLocation, ActorCenter));
-		if(UKismetMathLibrary::DegAcos(OffsetFromForward) > GetFieldOfView()/2.f) continue;
-		
+		                                              UKismetMathLibrary::GetDirectionUnitVector(
+			                                              EyesLocation, ActorCenter));
+		if (UKismetMathLibrary::DegAcos(OffsetFromForward) > GetFieldOfView() / 2.f) continue;
+
 		//whether the TargetInfoComp is not occluded
 		FHitResult VisibilityTrace;
 		UKismetSystemLibrary::LineTraceSingle(GetWorld(), EyesLocation, ActorCenter,
-		ETraceTypeQuery::TraceTypeQuery1, true, {this, Owner}, EDrawDebugTrace::None,
-		VisibilityTrace, true);
-		if(VisibilityTrace.bBlockingHit && VisibilityTrace.GetActor() != TraceResult.GetActor())
+		                                      ETraceTypeQuery::TraceTypeQuery1, true, {this, Owner},
+		                                      EDrawDebugTrace::None,
+		                                      VisibilityTrace, true);
+		if (VisibilityTrace.bBlockingHit && VisibilityTrace.GetActor() != TraceResult.GetActor())
 		{
 			//If the first probe didn't return visible, it doesn't mean the actor is really occluded
-			TArray Locations({ActorCenter + Extent, ActorCenter - Extent,
-				ActorCenter + FVector(Extent.X, Extent.Y, -Extent.Z), ActorCenter + FVector(Extent.X, -Extent.Y, Extent.Z),
-				ActorCenter + FVector(-Extent.X, Extent.Y, Extent.Z), ActorCenter - FVector(Extent.X, Extent.Y, -Extent.Z),
-				ActorCenter - FVector(Extent.X, -Extent.Y, Extent.Z), ActorCenter - FVector(-Extent.X, Extent.Y, Extent.Z)});
-			if(!AreMultipleVisible(TraceResult.GetActor(), EyesLocation, Locations, 3)) continue;
+			TArray Locations({
+				ActorCenter + Extent, ActorCenter - Extent,
+				ActorCenter + FVector(Extent.X, Extent.Y, -Extent.Z),
+				ActorCenter + FVector(Extent.X, -Extent.Y, Extent.Z),
+				ActorCenter + FVector(-Extent.X, Extent.Y, Extent.Z),
+				ActorCenter - FVector(Extent.X, Extent.Y, -Extent.Z),
+				ActorCenter - FVector(Extent.X, -Extent.Y, Extent.Z),
+				ActorCenter - FVector(-Extent.X, Extent.Y, Extent.Z)
+			});
+			if (!AreMultipleVisible(TraceResult.GetActor(), EyesLocation, Locations, 3)) continue;
 		}
-		
-		
+
+
 		//Generate a score for the target priority
 		float TotalScore = 0.f;
 		TotalScore += 0.75f * OffsetFromForward; //together with centered actor we can still reach 1.f
-		if(CenteredHitResult.bBlockingHit && CenteredHitResult.GetActor() == TraceResult.GetActor()) TotalScore += 0.25f;
-		if(GetWorld()->RealTimeSeconds - InputDirection.Key <= RememberInputDirectionTime)
+		if (CenteredHitResult.bBlockingHit && CenteredHitResult.GetActor() == TraceResult.GetActor()) TotalScore +=
+			0.25f;
+		if (GetWorld()->RealTimeSeconds - InputDirection.Key <= RememberInputDirectionTime)
 			TotalScore += 3.f * FVector::DotProduct(InputDirection.Value,
-				UKismetMathLibrary::GetDirectionUnitVector(GetActorLocation(), ActorCenter));
-		TotalScore += 1.f - FVector::Distance(GetActorLocation(), ActorCenter)/AutotargetingRange;
-		if(TargetInfoComp->GetIsCurrentTarget()) TotalScore += 0.5f;
+			                                        UKismetMathLibrary::GetDirectionUnitVector(
+				                                        GetActorLocation(), ActorCenter));
+		TotalScore += 1.f - FVector::Distance(GetActorLocation(), ActorCenter) / AutotargetingRange;
+		if (TargetInfoComp->GetIsCurrentTarget()) TotalScore += 0.5f;
 		TotalScore *= TargetInfoComp->GetTargetPriority();
 
 		//only keep the best score
-		if(TotalScore > BestResult.Key)
+		if (TotalScore > BestResult.Key)
 		{
 			BestResult.Key = TotalScore;
 			BestResult.Value = TargetInfoComp;
@@ -416,10 +478,10 @@ void APlayerCharacter::UpdateTargetSelection()
 	}
 
 	//tell the target components who the new target is
-	if(CurrentTarget != BestResult.Value)
+	if (CurrentTarget != BestResult.Value)
 	{
-		if(IsValid(CurrentTarget)) CurrentTarget->SetTargetState(false, FSetTargetStateKey());
-		if(IsValid(BestResult.Value))
+		if (IsValid(CurrentTarget)) CurrentTarget->SetTargetState(false, FSetTargetStateKey());
+		if (IsValid(BestResult.Value))
 		{
 			CurrentTarget = BestResult.Value;
 			CurrentTarget->SetTargetState(true, FSetTargetStateKey());
@@ -429,53 +491,62 @@ void APlayerCharacter::UpdateTargetSelection()
 
 #if WITH_EDITORONLY_DATA
 	//Draw debugging information
-	if(bIsDebugging)
+	if (bIsDebugging)
 	{
 		DrawDebugSphere(GetWorld(), GetActorLocation(), AutotargetingRange, 100, FColor(0, 255, 0));
-		if(GetWorld()->RealTimeSeconds - InputDirection.Key <= RememberInputDirectionTime) DrawDebugDirectionalArrow(GetWorld(),
-			GetActorLocation(),GetActorLocation() + InputDirection.Value * 100.f,
-			50.f, FColor(0, 0, 255), false, -1.f, 0, 5.f);
-		if(IsValid(CurrentTarget)) DrawDebugSphere(GetWorld(), CurrentTarget->GetComponentLocation(), 50.f,
-			20, FColor(100, 255, 100));
+		if (GetWorld()->RealTimeSeconds - InputDirection.Key <= RememberInputDirectionTime)
+			DrawDebugDirectionalArrow(GetWorld(),
+			                          GetActorLocation(), GetActorLocation() + InputDirection.Value * 100.f,
+			                          50.f, FColor(0, 0, 255), false, -1.f, 0, 5.f);
+		if (IsValid(CurrentTarget))
+			DrawDebugSphere(GetWorld(), CurrentTarget->GetComponentLocation(), 50.f,
+			                20, FColor(100, 255, 100));
 	}
 #endif
 }
 
 void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)
 {
-	if(IsValid(CurrentTarget))
+	if (IsValid(CurrentTarget))
 	{
 		const FVector DeltaLocation = CurrentTarget->GetComponentLocation() - GetActorLocation();
 		FVector Direction;
 		float Length;
 		DeltaLocation.ToDirectionAndLength(Direction, Length);
-		if(Length <= Properties.MaximalMovementDistance)
-			SuckToTargetComponent->SetWarpTargetFaceTowards(CurrentTarget);
+		FWarpInformation WarpInformation;
+		if (Length <= Properties.MaximalMovementDistance)
+		{
+			WarpInformation.WarpSource = EWarpSource::FaceTargetObject;
+			WarpInformation.TargetObject = CurrentTarget;
+		}
 		else
 		{
-			//MotionWarpingComponent->RemoveWarpTarget("AttackComponent");
-			SuckToTargetComponent->SetWarpTargetFaceTowards(
-				GetActorLocation() + Direction * Properties.DefaultMovementDistance, GetActorLocation());
+			WarpInformation.WarpSource = EWarpSource::FaceLocation;
+			WarpInformation.TargetLocation = GetActorLocation() + Direction * Properties.DefaultMovementDistance;
 		}
+		SuckToTargetComponent->SetOrUpdateWarpTarget(WarpInformation);
 	}
 	else
 	{
 		FVector AttackPosition;
-		if(GetWorld()->RealTimeSeconds - InputDirection.Key > RememberInputDirectionTime){
+		if (GetWorld()->RealTimeSeconds - InputDirection.Key > RememberInputDirectionTime)
+		{
 			FVector PlayerLocation;
 			FRotator PlayerRotation;
 			GetActorEyesViewPoint(PlayerLocation, PlayerRotation);
 			FVector PlayerForward = PlayerRotation.Vector();
 			PlayerForward.Z = 0.f;
-			if(PlayerForward.Length() <= 0.01f)
+			if (!PlayerForward.Normalize())
 			{
 				Super::GetActorEyesViewPoint(PlayerLocation, PlayerRotation);
 				PlayerForward = PlayerRotation.Vector();
 			}
-			else PlayerForward.Normalize();
-			AttackPosition = GetActorLocation() + PlayerForward * Properties.DefaultMovementDistance/2.f;
-		} 
-		else AttackPosition = GetActorLocation() + InputDirection.Value * Properties.DefaultMovementDistance/2.f;
-		SuckToTargetComponent->SetWarpTargetFaceTowards(AttackPosition, GetActorLocation());
+			AttackPosition = GetActorLocation() + PlayerForward * Properties.DefaultMovementDistance / 2.f;
+		}
+		else AttackPosition = GetActorLocation() + InputDirection.Value * Properties.DefaultMovementDistance / 2.f;
+		FWarpInformation WarpInformation;
+		WarpInformation.WarpSource = EWarpSource::FaceLocation;
+		WarpInformation.TargetLocation = AttackPosition;
+		SuckToTargetComponent->SetOrUpdateWarpTarget(WarpInformation);
 	}
 }

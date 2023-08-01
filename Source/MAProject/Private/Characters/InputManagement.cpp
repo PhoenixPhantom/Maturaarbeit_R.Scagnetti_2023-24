@@ -23,6 +23,13 @@ FInputLimits::FInputLimits(const EInputType Input) : LimiterType(Input), Limitat
 {
 	switch(LimiterType)
 	{
+	case EInputType::Jump:
+		{
+			bCanSprint = bCanAttack = bCanSwitchOut  = MovementProperties.bCanJump =
+				MovementProperties.bCanSwim = MovementProperties.bCanCrouch = false;
+			bFreeCameraAdjustment = bCanGetStaggered = MovementProperties.bCanFly = MovementProperties.bCanWalk = true;
+			break;
+		}
 		case EInputType::Attack:
 			{
 				bCanSprint = bCanAttack = bCanSwitchOut = MovementProperties.bCanFly = MovementProperties.bCanJump =

@@ -3,7 +3,6 @@
 
 #include "Utility/Animation/AnimNotifyState_SuckToTarget.h"
 
-#include "Characters/GeneralCharacter.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 
 UAnimNotifyState_SuckToTarget::UAnimNotifyState_SuckToTarget()

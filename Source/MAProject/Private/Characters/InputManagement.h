@@ -23,9 +23,10 @@ enum class EInputType
 	//Force cannot be blocked or stopped from execution, just like death, but by default it allows any input to follow up
 	//(the behavior can still be changed by manually initializing FInputLimits)
 	Force,
-	//Reset will always be executed when the current limits don't reset after a certain time,
-	//and forces immediate reset of the properties to the previous ones
-	//(the behavior CANNOT be changed in FInputLimits)
+	//Used to end limits whose time cannot be a predetermined value
+	//Will always be executed for limits without predetermined ending (resets everything)
+	//and has no effect otherwise (doesn't set anything)
+	//(the behavior of FInputLimits using Reset CANNOT be changed through changing ANY values in FInputLimits)
 	Reset
 	
 };

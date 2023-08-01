@@ -26,10 +26,16 @@ struct MAPROJECT_API FCharacterBaseStats : public FGeneralBaseStats
 {
 	GENERATED_BODY()
 	
-	FCharacterBaseStats() : BaseWalkSpeed(600), DashSpeedup(100), BaseInterruptionResistance(0){}
+	FCharacterBaseStats() : BaseWalkSpeed(600), RunSpeedup(100), DashFactor(2.f), BaseInterruptionResistance(0)
+	{
+	}
 
 	FCharacterBaseStats(const FCharacterBaseStats& Source) : BaseWalkSpeed(Source.BaseWalkSpeed),
-	DashSpeedup(Source.DashSpeedup), BaseInterruptionResistance(Source.BaseInterruptionResistance){};
+	                                                         RunSpeedup(Source.RunSpeedup), DashFactor(Source.RunSpeedup),
+	                                                         BaseInterruptionResistance(
+		                                                         Source.BaseInterruptionResistance)
+	{
+	};
 
 	bool operator==(const FCharacterBaseStats &CharacterBaseStats) const;
 
@@ -37,7 +43,10 @@ struct MAPROJECT_API FCharacterBaseStats : public FGeneralBaseStats
 	float BaseWalkSpeed;
 
 	UPROPERTY(EditAnywhere, meta=(Units="%"))
-	float DashSpeedup;
+	float RunSpeedup;
+
+	UPROPERTY(EditAnywhere, meta=(ForceUnits="x"))
+	float DashFactor;
 
 	
 	UPROPERTY(EditAnywhere)
@@ -59,11 +68,13 @@ struct FCharacterStats : public FGeneralObjectStats
 	
 	TScalable<float, float> WalkSpeed;
 	TScalable<float, float> RunSpeed;
+	float DashFactor;
 	TScalable<uint32, float> InterruptionResistance;
 
 	TArray<FAttackProperties> AvailableAttacks;
 
 	void FromBase(const FCharacterBaseStats& Stats, const FSavableCharacterModifiers& Modifiers, UWorld* World);
+	float GetDashSpeed() const { return RunSpeed.GetResulting() * DashFactor; }
 	
 	void ExecuteAttack(int32 Index);
 
