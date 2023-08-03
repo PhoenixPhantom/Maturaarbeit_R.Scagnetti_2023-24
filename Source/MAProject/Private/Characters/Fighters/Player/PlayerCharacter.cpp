@@ -518,6 +518,8 @@ void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Prop
 		{
 			WarpInformation.WarpSource = EWarpSource::FaceTargetObject;
 			WarpInformation.TargetObject = CurrentTarget;
+			WarpInformation.bFollowTarget = true;
+			WarpInformation.MaxWarpingDistance = Properties.MaximalMovementDistance;
 		}
 		else
 		{

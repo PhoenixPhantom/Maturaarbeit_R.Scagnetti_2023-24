@@ -149,6 +149,8 @@ void AOpponentCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Pr
 			{
 				WarpInformation.WarpSource = EWarpSource::FaceTargetObject;
 				WarpInformation.TargetObject = TargetInfoComp;
+				WarpInformation.bFollowTarget = true;
+				WarpInformation.MaxWarpingDistance = Properties.MaximalMovementDistance;
 			}
 			else
 			{

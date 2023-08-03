@@ -15,6 +15,7 @@ public class MAProject : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"InputCore",
+			"PhysicsCore",
 			"HeadMountedDisplay",
 			"EnhancedInput",
 			"MotionWarping",

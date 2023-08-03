@@ -5,13 +5,15 @@
 
 #include "Kismet/KismetMathLibrary.h"
 
-FWarpInformation::FWarpInformation() : WarpType(EWarpType::LocationAndRotation), WarpSource(EWarpSource::None), TargetObject(nullptr),
-	bFollowTarget(false), bMovementX(true), bMovementY(true), bMovementZ(false), bRotationPitch(false),
-	bRotationYaw(true), bRotationRoll(false)
+DEFINE_LOG_CATEGORY(LogSuckToTarget);
+
+FWarpInformation::FWarpInformation() : WarpType(EWarpType::LocationAndRotation), WarpSource(EWarpSource::None),
+	TargetObject(nullptr), bFollowTarget(false), MaxWarpingDistance(-1.f), bMovementX(true),
+    bMovementY(true), bMovementZ(false), bRotationPitch(false), bRotationYaw(true), bRotationRoll(false)
 {
 }
 
-USuckToTargetComponent::USuckToTargetComponent()
+USuckToTargetComponent::USuckToTargetComponent() : MaxWarpingDistance(-1.f)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
@@ -25,20 +27,14 @@ void USuckToTargetComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if(IsWarping())
 	{
 		const FTransform ResultingTransform = MotionWarpInternal(DeltaTime);
-		if(ResultingTransform.ContainsNaN())
-		{
-			unimplemented(); //theoretically this shouldn't happen anymore
-			/*if(bWarpLocation && ResultingTransform.GetLocation().ContainsNaN()) return;
-			if(bWarpLocation && ResultingTransform.Rotator().ContainsNaN()) return;*/
-		}
 		GetOwner()->SetActorTransform(ResultingTransform, true);
 	}
 }
 
 void USuckToTargetComponent::SetOrUpdateWarpTarget(const FWarpInformation& WarpInformation)
 {
-	if(IsWarping()) unimplemented(); //overriding or eventually blending warp targets isn't supported (yet)
-
+	if(IsWarping()) PrimaryComponentTick.SetTickFunctionEnable(false);
+	
 	SetFromWarpingTypeInternal(WarpInformation);
 	SetFromWarpingSourceInternal(WarpInformation);
 	
@@ -51,9 +47,20 @@ FVector USuckToTargetComponent::GetNextLocation(const FTransform& CurrentTransfo
 	FVector NewLocation;
 	if(WarpSource == EWarpSource::FaceTargetObject || WarpSource == EWarpSource::MatchTargetObject)
 	{
+		if(!IsValid(TargetObject)) return CurrentLocation;
 		const FTransform TargetTransform = GetTargetTransformFromComponent(TargetObject, TargetBoneName);
 		NewLocation = FMath::VInterpTo(CurrentLocation, TargetTransform.GetLocation(),
 			DeltaSeconds, 1.f/RemainingWarpTime);
+		if(MaxWarpingDistance > 0.f)
+		{
+			FVector DesiredOffsetDirection;
+			float DesiredOffsetDistance;
+			(NewLocation - OriginalLocation).ToDirectionAndLength(DesiredOffsetDirection, DesiredOffsetDistance);
+			if(DesiredOffsetDistance > MaxWarpingDistance)
+			{
+				NewLocation = OriginalLocation + DesiredOffsetDirection * MaxWarpingDistance;
+			}
+		}
 	}
 	else
 	{
@@ -75,6 +82,7 @@ FRotator USuckToTargetComponent::GetNextRotation(const FTransform& CurrentTransf
 	FRotator NewRotation;
 	if(WarpSource == EWarpSource::FaceTargetObject)
 	{
+		if(!IsValid(TargetObject)) return CurrentRotation;
 		const FVector TargetPosition = GetTargetTransformFromComponent(TargetObject, TargetBoneName).GetLocation();
 		NewRotation = FMath::RInterpTo(CurrentRotation,
 			UKismetMathLibrary::FindLookAtRotation(CurrentTransform.GetLocation(), TargetPosition),
@@ -82,6 +90,7 @@ FRotator USuckToTargetComponent::GetNextRotation(const FTransform& CurrentTransf
 	}
 	else if(WarpSource == EWarpSource::MatchTargetObject)
 	{
+		if(!IsValid(TargetObject)) return CurrentRotation;
 		const FRotator TargetRotator =
 			GetTargetTransformFromComponent(TargetObject, TargetBoneName).GetRotation().Rotator();
 		NewRotation =
@@ -111,6 +120,7 @@ FTransform USuckToTargetComponent::GetNextTransform(const FTransform& CurrentTra
 void USuckToTargetComponent::StartWarpingInternal(float WarpTime)
 {
 	RemainingWarpTime = TotalWarpTime = WarpTime;
+	if(MaxWarpingDistance > 0.f) OriginalLocation = GetOwner()->GetActorLocation();
 	PrimaryComponentTick.SetTickFunctionEnable(true);
 }
 
@@ -186,6 +196,7 @@ void USuckToTargetComponent::SetFaceLocationInternal(const FWarpInformation& War
 {
 	TargetObject = nullptr;
 	TargetBoneName = "";
+	MaxWarpingDistance = -1.f;
 	TargetLocation = WarpInformation.TargetLocation;
 	TargetRotation = UKismetMathLibrary::FindLookAtRotation(GetOwner()->GetActorLocation(),
 		WarpInformation.TargetLocation);
@@ -195,6 +206,7 @@ void USuckToTargetComponent::SetMatchLocAndRotInternal(const FWarpInformation& W
 {
 	TargetObject = nullptr;
 	TargetBoneName = "";
+	MaxWarpingDistance = -1.f;
 	TargetLocation = WarpInformation.TargetLocation;
 	TargetRotation = WarpInformation.TargetRotation;
 }
@@ -205,11 +217,13 @@ void USuckToTargetComponent::SetFaceTargetObjectInternal(const FWarpInformation&
 	{
 		TargetObject = WarpInformation.TargetObject;
 		TargetBoneName = WarpInformation.TargetBoneName;
+		MaxWarpingDistance = WarpInformation.MaxWarpingDistance;
 	}
 	else
 	{
 		TargetObject = nullptr;
 		TargetBoneName = "";
+		MaxWarpingDistance = -1.f;
 		const FTransform Transform = GetTargetTransformFromComponent(WarpInformation.TargetObject,
 			WarpInformation.TargetBoneName);
 		TargetLocation = Transform.GetLocation();
@@ -225,11 +239,13 @@ void USuckToTargetComponent::SetMatchTargetObjectInternal(const FWarpInformation
 	{
 		TargetObject = WarpInformation.TargetObject;
 		TargetBoneName = WarpInformation.TargetBoneName;
+		MaxWarpingDistance = WarpInformation.MaxWarpingDistance;
 	}
 	else
 	{
 		TargetObject = nullptr;
 		TargetBoneName = "";
+		MaxWarpingDistance = -1.f;
 		const FTransform Transform = GetTargetTransformFromComponent(WarpInformation.TargetObject,
 		WarpInformation.TargetBoneName);
 		TargetLocation = Transform.GetLocation();

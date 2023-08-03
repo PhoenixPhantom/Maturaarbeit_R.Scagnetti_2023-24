@@ -30,6 +30,8 @@ enum class EWarpSource : uint8
 	MatchTargetObject
 };
 
+DECLARE_LOG_CATEGORY_EXTERN(LogSuckToTarget, Log, Warning);
+
 struct FWarpInformation
 {
 	FWarpInformation();
@@ -44,6 +46,9 @@ struct FWarpInformation
 	USceneComponent* TargetObject;
 	FName TargetBoneName;
 	uint8 bFollowTarget:1;
+	//The max distance change the warping can make
+	//(ONLY works WarpSource = EWarpSource::FaceTargetObject/MatchTargetObject)
+	float MaxWarpingDistance;
 
 	uint8 bMovementX:1;
 	uint8 bMovementY:1;
@@ -90,17 +95,19 @@ protected:
 	
 	FVector TargetLocation;
 	FRotator TargetRotation;
+	FVector OriginalLocation;
 
 	UPROPERTY()
 	USceneComponent* TargetObject;
 	FName TargetBoneName;
+	float MaxWarpingDistance;
 	
 	uint8 bWarpLocation:1;
 	uint8 bMovementX:1;
 	uint8 bMovementY:1;
+	uint8 bMovementZ:1;
 	
 	uint8 bWarpRotation:1;
-	uint8 bMovementZ:1;
 	//Around Y axis
 	uint8 bRotationPitch:1;
 	//Around Z axis
