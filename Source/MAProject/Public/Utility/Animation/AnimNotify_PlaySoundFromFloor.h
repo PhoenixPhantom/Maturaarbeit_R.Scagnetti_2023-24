@@ -10,25 +10,31 @@ struct FSoundConfig
 {
 	GENERATED_BODY()
 
-	FSoundConfig() : Sound(nullptr), VolumeMultiplier(1.f), PitchMultiplier(1.f){}
+	FSoundConfig() : Sound(nullptr), SoundAttenuation(nullptr), VolumeMultiplier(1.f), PitchMultiplier(1.f){}
 
 	UPROPERTY(EditAnywhere)
 	USoundBase* Sound;
+
+	UPROPERTY(EditAnywhere)
+	USoundAttenuation* SoundAttenuation;
 	
 	UPROPERTY(EditAnywhere)
 	float VolumeMultiplier;
 	UPROPERTY(EditAnywhere)
 	float PitchMultiplier;
 
-	FORCEINLINE void PlaySoundAtLocation(UWorld* World, const FVector& PlayLocation) const;
+	bool operator==(const FSoundConfig& SoundConfig) const;
+	
+	FORCEINLINE void PlaySoundAtLocation(UWorld* World, const FVector& PlayLocation, float AdditionalVolumeMultiplier,
+		float AdditionalPitchMultiplier) const;
 };
 
-UCLASS(BlueprintType, Blueprintable)
+UCLASS(Blueprintable, BlueprintType)
 class MAPROJECT_API UPhysicsSoundResponseConfig : public UObject
 {
 	GENERATED_BODY()
 public:
-	const TMap<TEnumAsByte<EPhysicalSurface>, FSoundConfig>& GetPhysicsResponses(){ return PhysicsResponses; };
+	const TMap<TEnumAsByte<EPhysicalSurface>, FSoundConfig>& GetPhysicsResponses(){ return PhysicsResponses; }
 protected:
 	UPROPERTY(EditAnywhere)                                
 	TMap<TEnumAsByte<EPhysicalSurface>, FSoundConfig> PhysicsResponses;
@@ -52,6 +58,11 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	float ScanLength;
+
+	UPROPERTY(EditAnywhere)
+	float VolumeMultiplier;
+	UPROPERTY(EditAnywhere)
+	float PitchMultiplier;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UPhysicsSoundResponseConfig> SoundResponseConfig;

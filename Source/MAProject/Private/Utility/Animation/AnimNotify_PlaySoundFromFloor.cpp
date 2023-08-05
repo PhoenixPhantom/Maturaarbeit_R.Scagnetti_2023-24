@@ -6,12 +6,23 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-void FSoundConfig::PlaySoundAtLocation(UWorld* World, const FVector& PlayLocation) const
+bool FSoundConfig::operator==(const FSoundConfig& SoundConfig) const
 {
-	if(IsValid(Sound)) UGameplayStatics::PlaySoundAtLocation(World, Sound, PlayLocation, VolumeMultiplier, PitchMultiplier);
+	return Sound == SoundConfig.Sound && VolumeMultiplier == SoundConfig.VolumeMultiplier &&
+		PitchMultiplier == SoundConfig.PitchMultiplier;
 }
 
-UAnimNotify_PlaySoundFromFloor::UAnimNotify_PlaySoundFromFloor() : ScanLength(100.f)
+void FSoundConfig::PlaySoundAtLocation(UWorld* World, const FVector& PlayLocation, float AdditionalVolumeMultiplier,
+	float AdditionalPitchMultiplier) const
+{
+	if(IsValid(Sound)) UGameplayStatics::PlaySoundAtLocation(World, Sound, PlayLocation,
+		VolumeMultiplier * AdditionalVolumeMultiplier, PitchMultiplier * AdditionalPitchMultiplier,
+		0.f, SoundAttenuation);
+
+}
+
+UAnimNotify_PlaySoundFromFloor::UAnimNotify_PlaySoundFromFloor() : ScanLength(20.f), VolumeMultiplier(1.f),
+	PitchMultiplier(1.f)
 {
 }
 
@@ -27,5 +38,8 @@ void UAnimNotify_PlaySoundFromFloor::Notify(USkeletalMeshComponent* MeshComp, UA
 	
 	if(!HitResult.bBlockingHit) return;
 	const EPhysicalSurface PhysicalSurfaceType = UGameplayStatics::GetSurfaceType(HitResult);
-	SoundResponseConfig.GetDefaultObject()->GetPhysicsResponses().FindRef(PhysicalSurfaceType).PlaySoundAtLocation(MeshComp->GetWorld(), TraceStart);
+
+	if(!IsValid(SoundResponseConfig.Get())) return;
+	SoundResponseConfig.GetDefaultObject()->GetPhysicsResponses().FindRef(PhysicalSurfaceType).
+		PlaySoundAtLocation(MeshComp->GetWorld(), HitResult.Location, VolumeMultiplier, PitchMultiplier);
 }
