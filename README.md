@@ -26,6 +26,7 @@ Creating interesting and intuitive combat is a difficult problem and many game s
 
 ### Sound FX
 * Unreal Engine 5 | MetaSound Footsteps - The Sound FX Guy: https://www.youtube.com/watch?v=SXBEbs69sZ8
+* Unreal Engine 5 | Dynamic Footsteps with MetaSounds - The Sound FX Guy: https://www.youtube.com/watch?v=pYxocPdtHBw
 
 ### General
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
