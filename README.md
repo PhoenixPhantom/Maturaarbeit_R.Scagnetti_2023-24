@@ -24,6 +24,9 @@ Creating interesting and intuitive combat is a difficult problem and many game s
 * Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA with Inspiration from Olivier Deplanque (https://www.artstation.com/artwork/b5XEod)
 * Unreal Engine Impact Effect in Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=8UThnwfEwng
 
+### Sound FX
+* Unreal Engine 5 | MetaSound Footsteps - The Sound FX Guy: https://www.youtube.com/watch?v=SXBEbs69sZ8
+
 ### General
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
 * All about BTTasks in C++ - The Games Dev: https://www.thegames.dev/?p=70
