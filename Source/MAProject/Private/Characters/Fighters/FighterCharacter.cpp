@@ -8,6 +8,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
+#include "Utility/Sound/SoundResponseConfigs.h"
 
 AFighterCharacter::AFighterCharacter() : bIsInvincible(false),  HitFXRadius(50.f)
 {
@@ -36,6 +37,23 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 		{
 			const FAttackDamageEvent AttackDamageEvent = *static_cast<FAttackDamageEvent*>(Event);
 			RemainingHealth = CharacterStats->ReceiveDamage(DamageAmount, AttackDamageEvent);
+
+			//Make hit sound which is defined per bone (if nothing is set for the bone, it will use the same sound as it's parent)
+			check(IsValid(BoneSoundResponseConfig.Get()));
+			FName BoneToCheck = GetMesh()->FindClosestBone(AttackDamageEvent.HitLocation);
+			
+			while(!BoneToCheck.IsNone())
+			{
+				FSoundConfig SoundConfig =
+					BoneSoundResponseConfig.GetDefaultObject()->GetBoneResponses().FindRef(BoneToCheck);
+				if(!(SoundConfig == FSoundConfig()))
+				{
+					SoundConfig.PlaySoundAtLocation(GetWorld(), AttackDamageEvent.HitLocation);
+					break;
+				}
+				//there was no matching configuration found, so we'll look at the parent bone
+				BoneToCheck = GetMesh()->GetParentBone(BoneToCheck);				
+			}
 
 			//Spawn get hit FX
 			constexpr float RealRadius = 75.f;
@@ -137,13 +155,11 @@ void AFighterCharacter::CheckMeshOverlaps()
 	FHitResult TraceResult;
 	for(const FName BodyName : MeleeEnabledBones)
 	{
-		FVector Velocity = GetMesh()->GetBoneLinearVelocity(BodyName);
-		Velocity.Normalize();
+		FVector VelocityDirection = GetMesh()->GetBoneLinearVelocity(BodyName).GetSafeNormal();
 
 		//we need hit results for attack management
-		//tracing on TraceTypeQuery6 (== Destructible)
 		UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetMesh()->GetBoneLocation(BodyName),
-		GetMesh()->GetBoneLocation(BodyName) + Velocity * 100.f, ETraceTypeQuery::TraceTypeQuery6,
+		GetMesh()->GetBoneLocation(BodyName) + VelocityDirection * 100.f, UEngineTypes::ConvertToTraceType(ECC_Destructible),
 		true, {this, Owner}, EDrawDebugTrace::None, TraceResult, true);
 
 		if(TraceResult.bBlockingHit)

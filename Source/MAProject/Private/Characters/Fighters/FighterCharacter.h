@@ -7,6 +7,7 @@
 #include "Characters/GeneralCharacter.h"
 #include "FighterCharacter.generated.h"
 
+class UBoneSoundResponseConfig;
 class UTargetInformationComponent;
 class UNiagaraSystem;
 
@@ -71,6 +72,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* DeathAnimation;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	TSubclassOf<UBoneSoundResponseConfig> BoneSoundResponseConfig;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UNiagaraSystem* GetHitFX;

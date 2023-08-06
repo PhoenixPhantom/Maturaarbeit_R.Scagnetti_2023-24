@@ -5,24 +5,10 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
-
-bool FSoundConfig::operator==(const FSoundConfig& SoundConfig) const
-{
-	return Sound == SoundConfig.Sound && VolumeMultiplier == SoundConfig.VolumeMultiplier &&
-		PitchMultiplier == SoundConfig.PitchMultiplier;
-}
-
-void FSoundConfig::PlaySoundAtLocation(UWorld* World, const FVector& PlayLocation, float AdditionalVolumeMultiplier,
-	float AdditionalPitchMultiplier) const
-{
-	if(IsValid(Sound)) UGameplayStatics::PlaySoundAtLocation(World, Sound, PlayLocation,
-		VolumeMultiplier * AdditionalVolumeMultiplier, PitchMultiplier * AdditionalPitchMultiplier,
-		0.f, SoundAttenuation);
-
-}
+#include "Utility/Sound/SoundResponseConfigs.h"
 
 UAnimNotify_PlaySoundFromFloor::UAnimNotify_PlaySoundFromFloor() : ScanLength(20.f), VolumeMultiplier(1.f),
-	PitchMultiplier(1.f)
+                                                                   PitchMultiplier(1.f)
 {
 }
 
@@ -30,7 +16,9 @@ void UAnimNotify_PlaySoundFromFloor::Notify(USkeletalMeshComponent* MeshComp, UA
                                             const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
-	const FVector TraceStart = MeshComp->GetSocketLocation(ScanStartSocket);
+	FVector TraceStart;
+	if(MeshComp->DoesSocketExist(ScanStartSocket)) TraceStart = MeshComp->GetSocketLocation(ScanStartSocket);
+	else TraceStart = MeshComp->GetComponentLocation();
 	FHitResult HitResult;
 	UKismetSystemLibrary::LineTraceSingle(MeshComp->GetWorld(), TraceStart, TraceStart + FVector(0.f, 0.f, -ScanLength),
 		UEngineTypes::ConvertToTraceType(ECC_Visibility), true, {},
