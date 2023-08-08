@@ -4,13 +4,59 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a9cb54dc-e5f8-4c5e-8922-7881720013b5" name="Changes" comment="" />
+    <list default="true" id="a9cb54dc-e5f8-4c5e-8922-7881720013b5" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.MAProject/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MAProject/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Config/DefaultEngine.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultEngine.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/Barghest/Blueprint/OpponentBarghest_BP.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/Barghest/Blueprint/OpponentBarghest_BP.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/Griffon/Blueprints/OpponentGriffon_BP.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/Griffon/Blueprints/OpponentGriffon_BP.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/Griffon/Blueprints/PlayerGriffon_BP.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/Griffon/Blueprints/PlayerGriffon_BP.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/MountainDragon/Blueprints/OpponentMountainDragon_BP.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Characters/Fighters/Assets/MountainDragon/Blueprints/OpponentMountainDragon_BP.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Characters/Fighters/Templates/Opponents/OpponentCharacter_BP.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Characters/Fighters/Templates/Opponents/OpponentCharacter_BP.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Characters/Fighters/Templates/Player/PlayerCharacter_BP.uasset" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Characters/Fighters/Templates/Player/PlayerCharacter_BP.uasset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Content/Environement/ExampleWorld.umap" beforeDir="false" afterPath="$PROJECT_DIR$/Content/Environement/ExampleWorld.umap" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/Attacks/MeleeAttackNotifyState.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/FighterCharacter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/FighterCharacter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/FighterCharacter.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/FighterCharacter.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/Opponents/AI/OpponentController.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/Opponents/AI/OpponentController.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/Opponents/AI/Tasks/BTTask_ExecuteAttackTask.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/Opponents/AI/Tasks/BTTask_ExecuteAttackTask.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/Opponents/OpponentCharacter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Characters/Fighters/Opponents/OpponentCharacter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Utility/CombatManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Utility/CombatManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Utility/NonPlayerFunctionality/PositionalConstraint.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Utility/NonPlayerFunctionality/PositionalConstraint.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Private/Utility/NonPlayerFunctionality/PositionalConstraint.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Private/Utility/NonPlayerFunctionality/PositionalConstraint.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Public/Characters/Fighters/Attacks/MeleeAttackNotifyState.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Public/Characters/Fighters/Opponents/OpponentCharacter.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Public/Characters/Fighters/Opponents/OpponentCharacter.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/MAProject/Public/Utility/CombatManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/MAProject/Public/Utility/CombatManager.h" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///Dummy.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -54,40 +100,47 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
   <component name="ProjectId" id="2SeqHGVV7LBDACF0N8cG1SCIbPK" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.keymap",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;rider.external.source.directories&quot;: [
-      &quot;C:\\Users\\phoen\\AppData\\Roaming\\JetBrains\\Rider2023.1\\resharper-host\\DecompilerCache&quot;,
-      &quot;C:\\Users\\phoen\\AppData\\Roaming\\JetBrains\\Rider2023.1\\resharper-host\\SourcesCache&quot;,
-      &quot;C:\\Users\\phoen\\AppData\\Local\\Symbols\\src&quot;
+  "keyToStringList": {
+    "rider.external.source.directories": [
+      "C:\\Users\\phoen\\AppData\\Roaming\\JetBrains\\Rider2023.2\\resharper-host\\DecompilerCache",
+      "C:\\Users\\phoen\\AppData\\Roaming\\JetBrains\\Rider2023.2\\resharper-host\\SourcesCache",
+      "C:\\Users\\phoen\\AppData\\Local\\Symbols\\src"
     ]
   }
-}</component>
+}]]></component>
   <component name="RunManager">
     <configuration name="MAProject" type="CppProject" factoryName="C++ Project">
       <configuration_1>
         <option name="CONFIGURATION" value="DebugGame Editor" />
         <option name="PLATFORM" value="Win64" />
         <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
         <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
         <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
         <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
@@ -98,6 +151,7 @@
         <option name="CONFIGURATION" value="Shipping" />
         <option name="PLATFORM" value="Win64" />
         <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
         <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
         <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
         <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
@@ -108,6 +162,7 @@
         <option name="CONFIGURATION" value="DebugGame" />
         <option name="PLATFORM" value="Win64" />
         <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
         <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
         <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
         <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
@@ -118,6 +173,7 @@
         <option name="CONFIGURATION" value="Development Editor" />
         <option name="PLATFORM" value="Win64" />
         <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
         <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
         <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
         <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
@@ -128,6 +184,7 @@
         <option name="CONFIGURATION" value="Development" />
         <option name="PLATFORM" value="Win64" />
         <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
         <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
         <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
         <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
@@ -177,10 +234,15 @@
       <workItem from="1691140024162" duration="11771000" />
       <workItem from="1691245155193" duration="6188000" />
       <workItem from="1691300350386" duration="6385000" />
+      <workItem from="1691334660288" duration="8012000" />
+      <workItem from="1691419424502" duration="17751000" />
+      <workItem from="1691493606432" duration="893000" />
+      <workItem from="1691494525719" duration="7126000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
 </project>

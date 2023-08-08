@@ -5,6 +5,7 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
@@ -179,13 +180,13 @@ void AFighterCharacter::CheckMeshOverlaps()
 
 void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
 {
-	int32 Index = CurrentLimitIndex + 1;
+	const int32 Index = CurrentLimitIndex + 1;
 	if(!InputLimits.IsValidIndex(Index)) return;
 	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
-		[InputLimits, Index, World = GetWorld(), this]
+		[=]
 		(bool IsLimitDurationOver, bool& HasBeenCleared)
 	{
-		AcceptedInputs.LimitAvailableInputs(InputLimits[Index], World);
+		AcceptedInputs.LimitAvailableInputs(InputLimits[Index], GetWorld());
 		if(!HasBeenCleared)
 		{
 			AcceptedInputs.OnInputLimitsReset.Clear();
@@ -246,6 +247,8 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death)) return;
 	StopAnimMontage();
 	PlayAnimMontage(DeathAnimation);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AcceptedInputs.LimitAvailableInputs({EInputType::Death, DeathAnimation->GetPlayLength()*0.9f}, GetWorld());
 	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
 		[this](bool IsLimitDurationOver, bool& HasBeenCleared)

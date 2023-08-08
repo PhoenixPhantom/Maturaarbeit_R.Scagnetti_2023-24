@@ -16,7 +16,7 @@ EBTNodeResult::Type UBTTask_CalculateOptimalLocation::ExecuteTask(UBehaviorTreeC
 	const AOpponentController* OwningController = CastChecked<AOpponentController>(OwnerComp.GetAIOwner());
 	
 	FVector TargetLocation;
-	if(!OwningController->GetOptimalLocation(TargetLocation)) return EBTNodeResult::Failed;
+	if(!OwningController->GenerateTargetLocation(TargetLocation)) return EBTNodeResult::Failed;
 	
 	OwnerComp.GetBlackboardComponent()->SetValueAsVector(BlackboardKey.SelectedKeyName, TargetLocation);
 	return EBTNodeResult::Succeeded;

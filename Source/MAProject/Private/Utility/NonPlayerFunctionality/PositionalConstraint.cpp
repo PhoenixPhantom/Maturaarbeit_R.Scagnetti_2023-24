@@ -20,15 +20,14 @@ FPlayerDistanceConstraint::FPlayerDistanceConstraint(AController* Anchor) : FPos
 	
 }
 
-uint8 FPlayerDistanceConstraint::GetMatchLevel(const FVector& Position) const
+uint8 FPlayerDistanceConstraint::GetMatchLevel(const FVector& Position, bool RequireNavData) const
 {
-	return SatisfiesOptimal(Position) ? 2 : SatisfiesMinimal(Position) ? 1 : 0;
+	return SatisfiesOptimal(Position, RequireNavData) ? 2 : SatisfiesMinimal(Position, RequireNavData) ? 1 : 0;
 }
 
 
-
 FCircularDistanceConstraint::FCircularDistanceConstraint(): MaxRadius(300.f), MinRadius(200.f), OptimalMaxRadius(0),
-														OptimalMinRadius(0)
+                                                            OptimalMinRadius(0)
 {
 }
 
@@ -56,21 +55,36 @@ void FCircularDistanceConstraint::DrawOldConstraintDebug(UWorld* World, const FV
 }
 #endif
 
-bool FCircularDistanceConstraint::SatisfiesOptimal(const FVector& Position) const
+bool FCircularDistanceConstraint::SatisfiesOptimal(const FVector& Position, bool RequireNavData) const
 {
-	const float Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
+	double Distance;
+	if(!RequireNavData) Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
+	else
+	{
+		UNavigationSystemV1::GetPathLength(AnchorController->GetWorld(), Position,
+			AnchorController->GetPawn()->GetActorLocation(), Distance);
+	}
 	return Distance <= OptimalMaxRadius && Distance >= OptimalMinRadius;
 }
 
-bool FCircularDistanceConstraint::SatisfiesMinimal(const FVector& Position) const
+bool FCircularDistanceConstraint::SatisfiesMinimal(const FVector& Position, bool RequireNavData) const
 {
-	const float Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
+	double Distance;
+	//TODO: getting the distance in this context doesn't seem to yield the correct calculation results
+	if(!RequireNavData) Distance = (Position - AnchorController->GetPawn()->GetActorLocation()).Length();
+	else
+	{
+		UNavigationSystemV1::GetPathLength(AnchorController->GetWorld(), Position,
+			AnchorController->GetPawn()->GetActorLocation(), Distance);
+	}
+	GLog->Log("|" + Position.ToString() + " - " + AnchorController->GetPawn()->GetActorLocation().ToString() +
+		"| = " + FString::SanitizeFloat(Distance) + " when calculated for movement");
 	return Distance <= MaxRadius && Distance >= MinRadius;
 }
 
 
 
-uint8 FPlayerRelativeWorldZoneConstraint::GetMatchLevel(const FVector& Position) const
+uint8 FPlayerRelativeWorldZoneConstraint::GetMatchLevel(const FVector& Position, bool RequireNavData) const
 {
 	if(ConstraintZone == EWorldConstraintZone::Invalid) return 0;
 	const EWorldConstraintZone TargetZone = CalculateTargetZone(Position);
@@ -187,11 +201,11 @@ namespace CustomHelperFunctions
 	}
 
 	bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* RequiredSpace, AActor* Querier,
-		const TArray<AActor*>& IrrelevantObstacles, const FVector& SourcePoint,
-		const FVector& SpacedStartDirection, float Distribution,
-		const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange, float ProjectionHalfHeight,
-		UWorld* World,
-		bool DebuggingEnabled)
+	                           const TArray<AActor*>& IrrelevantObstacles, const FVector& SourcePoint,
+	                           const FVector& SpacedStartDirection, float Distribution,
+	                           const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange, float ProjectionHalfHeight,
+	                           UWorld* World,
+	                           bool RequireNavData, bool DebuggingEnabled)
 	{
 		uint32 MaxPossibleMatch = 0;
 		for(const FPositionalConstraint* Constraint : RelevantConstraints)
@@ -232,19 +246,20 @@ namespace CustomHelperFunctions
 				if(HitResults.IsEmpty()) SamplePoints.Add(ProjectedLocation);
 			}
 			if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, MaxPossibleMatch,
-			                             World, DebuggingEnabled)) return true;
+			                             RequireNavData, World, DebuggingEnabled)) return true;
 			if(!ResultingLocation.ContainsNaN()) AcceptableLocations.Add(ResultingLocation);
 		}
 
 		//Determine the best (if any) acceptable location
 		if(CheckSamplesForFirstValid(ResultingLocation, AcceptableLocations, RelevantConstraints,
-				MaxPossibleMatch - 1, World, DebuggingEnabled) || !ResultingLocation.ContainsNaN()) return true;
+		                             MaxPossibleMatch - 1, RequireNavData, World, DebuggingEnabled) ||
+		                             !ResultingLocation.ContainsNaN()) return true;
 		return false;
 	}
 
 	bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
 	                               const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 TotalMaxMatch,
-	                               UWorld* World, bool DebuggingEnabled)
+	                               bool RequireNavData, UWorld* World, bool DebuggingEnabled)
 	{
 		ValidPoint = FVector(NAN);
 		TTuple<uint32, FVector> CurrentBest;

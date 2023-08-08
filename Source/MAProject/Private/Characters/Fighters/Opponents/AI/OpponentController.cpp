@@ -54,12 +54,13 @@ void AOpponentController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 }
 
-bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
+bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
 {
 	//If the controlled character is participating in combat
 	if(const ECombatParticipantStatus ParticipantStatus = CombatManager->IsParticipant(ControlledOpponent);
 		ParticipantStatus != ECombatParticipantStatus::NotRegistered)
 	{
+		bool RequireNavData = false;
 		//Add the constraints that are specific to this entity
 		FCircularDistanceConstraint PlayerDistanceConstraint;
 		switch(ParticipantStatus)
@@ -67,6 +68,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		case ECombatParticipantStatus::Active:
 			{
 				PlayerDistanceConstraint = ControlledOpponent->GetActivePlayerDistanceConstraint();
+				RequireNavData = true;
 				break;
 			}
 		case ECombatParticipantStatus::Passive:
@@ -83,7 +85,7 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 		bool IsCurrentPositionValid = true;
 		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
 		UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
-		if(PlayerDistanceConstraint.IsConstraintSatisfied(CurrentLocation)){
+		if(PlayerDistanceConstraint.IsConstraintSatisfied(CurrentLocation, RequireNavData)){
 			TArray<UPrimitiveComponent*> OverlappingComponents;
 			RequiredSpace->GetOverlappingComponents(OverlappingComponents);
 			for(const UPrimitiveComponent* Component : OverlappingComponents)
@@ -118,18 +120,15 @@ bool AOpponentController::GetOptimalLocation(FVector& OptimalLocation) const
 			ControlledOpponent,{CombatManager->GetPlayerCharacter()}, CurrentLocation,
 			ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
 			{&PlayerDistanceConstraint, &PlayerZoneConstraint},
-			SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld()
+			SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld(), RequireNavData
 #if WITH_EDITORONLY_DATA
 			, bIsDebugging
 #endif
 		);
 		return FoundLocation;
 	}
-	else
-	{
-		UE_LOG(LogController, Warning, TEXT("Getting optimal location in non-combat is not yet supported"));
-		return false;
-	}
+	UE_LOG(LogController, Warning, TEXT("Getting optimal location in non-combat is not yet supported"));
+	return false;
 }
 
 FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
@@ -202,10 +201,19 @@ void AOpponentController::OnPossess(APawn* InPawn)
 void AOpponentController::RegisterSensedPlayer(AController* Player)
 {
 	if(!IsValid(Player)) return;
-	if(!CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey())) return;
+	
+	AController* OldPlayer = ControlledOpponent->GetRegisteredPlayerOpponent();
+	if(OldPlayer == Player) return; //cannot register the same player twice
+	ControlledOpponent->RegisterPlayerOpponent(Player, FSetPlayerOpponentKey());
+	
+	if(!CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey()))
+	{
+		ControlledOpponent->RegisterPlayerOpponent(OldPlayer, FSetPlayerOpponentKey());
+		return;
+	}
+	
 	Blackboard->SetValueAsBool("HasSensedPlayer", true);
 	Blackboard->SetValueAsObject("TargetObject", Player);
-	ControlledOpponent->RegisterPlayerOpponent(Player, FSetPlayerOpponentKey());
 }
 
 void AOpponentController::UnregisterSensedPlayer(AController* Player)

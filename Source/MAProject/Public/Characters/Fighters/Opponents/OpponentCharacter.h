@@ -91,6 +91,7 @@ public:
 	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; };
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
+	AController* GetRegisteredPlayerOpponent() const;
 	void RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key);
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
 
@@ -104,7 +105,7 @@ public:
 protected:
 	uint8 bCanBecomeAggressive:1;
 	float LocalFieldOfView;
-
+	
 	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
 	FOnAggressionTokenRemovedDelegate OnAggressionTokensRemoved;
 

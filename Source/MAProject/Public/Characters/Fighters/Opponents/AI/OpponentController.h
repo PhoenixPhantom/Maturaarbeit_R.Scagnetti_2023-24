@@ -45,7 +45,7 @@ public:
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
-	bool GetOptimalLocation(FVector& OptimalLocation) const;
+	bool GenerateTargetLocation(FVector& OptimalLocation) const;
 
 	//We override the built in MoveTo function to make all move to requests use the custom MoveTarget so we can
 	//have a smooth interpolation when movement targets are changed on the fly instead of always stopping and then

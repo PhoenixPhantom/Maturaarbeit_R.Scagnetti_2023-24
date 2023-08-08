@@ -105,6 +105,7 @@ bool ACombatManager::GrantTokens(const FAggressionData& AggressionData)
 {
 	if(!PassiveParticipants.Contains(AggressionData.Holder) || ActiveParticipants.Contains(AggressionData.Holder))
 	{
+		//non-passive (active) participants cannot be granted a token 
 		checkNoEntry();
 		return false;
 	}
@@ -169,7 +170,7 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 	{
 		const double ScoreAdjusted = pow(Data.AggressionScore - LowestScore, PreferBestScorePower);
 		TotalScoreAdjusted += ScoreAdjusted;
-		//Save the adjusted score so we have the calculation in only one place (so changing it is more cumbersome)
+		//Save the adjusted score so we have the calculation in only one place
 		Data.AggressionScore = ScoreAdjusted;
 	}
 	
@@ -196,7 +197,8 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 			if(RelevantData.Num() > 1) AnticipatedActive = ChosenOption;
 			break;
 		}
-		//if we were able to grant the token, the entity cannot be granted a token again for some time
+		
+		//An entity cannot be granted a token twice
 		RelevantData.Remove(ChosenOption);
 		TotalScoreAdjusted -= ChosenOption.AggressionScore;
 	}

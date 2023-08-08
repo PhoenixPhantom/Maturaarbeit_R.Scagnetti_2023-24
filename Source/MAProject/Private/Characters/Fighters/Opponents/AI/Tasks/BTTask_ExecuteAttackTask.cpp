@@ -18,8 +18,8 @@ UBTTask_ExecuteAttackTask::UBTTask_ExecuteAttackTask() : OwningCharacter(nullptr
 EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	BehaviorTreeComponent = &OwnerComp;
-	if (OwningCharacter != OwnerComp.GetAIOwner()->GetPawn())
-		OwningCharacter = CastChecked<AOpponentCharacter>(OwnerComp.GetAIOwner()->GetPawn());
+	OwningCharacter = CastChecked<AOpponentCharacter>(OwnerComp.GetAIOwner()->GetPawn());
+	check(IsValid(OwningCharacter));
 	if (!OwningCharacter->GetAcceptedInputs().bCanAttack) return EBTNodeResult::Failed;
 
 	const AController* TargetController =
@@ -28,12 +28,15 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	{
 		return EBTNodeResult::Failed;
 	}
-
-	const float Distance = FVector::Distance(TargetController->GetPawn()->GetActorLocation(),
-	                                         OwningCharacter->GetActorLocation());
+	
 	TArray<FAttackProperties> AvailableAttacks;
 	OwningCharacter->GetAvailableAttacks(AvailableAttacks);
 
+	
+	const float Distance = FVector::Distance(OwningCharacter->GetActorLocation(),
+		TargetController->GetPawn()->GetActorLocation());
+	GLog->Log("|" + OwningCharacter->GetActorLocation().ToString() + " - " +
+		TargetController->GetPawn()->GetActorLocation().ToString() + "| = " + FString::SanitizeFloat(Distance) + " when calculated for attacks");
 	//Sort through all available attacks and remove those that cannot be executed
 	TArray<TTuple<float, FAttackProperties>> AttacksInRange;
 	float LowestScore = std::numeric_limits<float>::max();
@@ -79,6 +82,7 @@ void UBTTask_ExecuteAttackTask::OnAttackFinished(bool IsLimitDurationOver, bool&
 	if (IsLimitDurationOver) FinishLatentTask(*BehaviorTreeComponent, EBTNodeResult::Succeeded);
 	else
 	{
+		if(!IsValid(OwningCharacter)) return;
 		if(!HasBeenCleared)
 		{
 			OwningCharacter->OnInputLimitsResetDelegate().Clear();

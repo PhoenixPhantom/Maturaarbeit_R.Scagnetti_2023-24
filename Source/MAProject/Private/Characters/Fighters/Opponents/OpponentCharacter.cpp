@@ -3,7 +3,6 @@
 
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
-#include "Utility/CombatManager.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -50,13 +49,13 @@ UShapeComponent* AOpponentCharacter::GetRequiredSpace() const
 FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstraint() const
 {
 	FCircularDistanceConstraint DistanceConstraint(TargetPlayer);
-	float TotalDistance = 0;
+	float TotalDistance = 0.f;
 	float MaxDistance = std::numeric_limits<float>::lowest();
-	float NumValidAttacks = 0;
+	float NumValidAttacks = 0.f;
 	for(const FAttackProperties& AttackProperties : CharacterStats->AvailableAttacks)
 	{
 		if(AttackProperties.GetIsOnCd()) continue;
-		NumValidAttacks += 1;
+		NumValidAttacks += 1.f;
 		if(MaxDistance < AttackProperties.MaximalMovementDistance)
 		{
 			MaxDistance = AttackProperties.MaximalMovementDistance;
@@ -64,13 +63,19 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 		TotalDistance += AttackProperties.DefaultMovementDistance;
 	}
 	const float DistanceAverage = CharacterStats->AvailableAttacks.IsEmpty() ? -1.f :
-		TotalDistance/static_cast<float>(CharacterStats->AvailableAttacks.Num());
+		TotalDistance/NumValidAttacks;
 	
 	DistanceConstraint.MaxRadius = MaxDistance*0.9f;
 	DistanceConstraint.MinRadius = 0.f;
 	DistanceConstraint.OptimalMaxRadius = DistanceAverage*0.9f;
 	DistanceConstraint.OptimalMinRadius = 0.f;
 	return DistanceConstraint;
+}
+
+AController* AOpponentCharacter::GetRegisteredPlayerOpponent() const
+{
+	if(TargetPlayer == DistanceFromTargetPassive.AnchorController) return TargetPlayer;
+	return nullptr;
 }
 
 void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key)

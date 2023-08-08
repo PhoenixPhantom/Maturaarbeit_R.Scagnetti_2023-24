@@ -18,11 +18,11 @@ public:
 	FPositionalConstraint(AController* Anchor) : AnchorController(Anchor){}
 	virtual ~FPositionalConstraint(){};
 	
-	bool IsConstraintSatisfied(const FVector& Position, const uint8 RequiredMatchLevel = 1) const
-	{ return RequiredMatchLevel <= GetMatchLevel(Position); }
+	bool IsConstraintSatisfied(const FVector& Position, bool RequireNavData = false, const uint8 RequiredMatchLevel = 1) const
+	{ return RequiredMatchLevel <= GetMatchLevel(Position, RequireNavData); }
 
 	virtual uint8 GetMaxMatchLevel() const { return 0; }	
-	virtual uint8 GetMatchLevel(const FVector& Position) const { unimplemented(); return 0; };
+	virtual uint8 GetMatchLevel(const FVector& Position, bool RequireNavData = false) const { unimplemented(); return 0; };
 
 #if WITH_EDITORONLY_DATA
 	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const { unimplemented(); }
@@ -41,10 +41,11 @@ public:
 	FPlayerDistanceConstraint(AController* Anchor);
 	
 	virtual uint8 GetMaxMatchLevel() const override { return 2; }	
-	virtual uint8 GetMatchLevel(const FVector& Position) const override;
+	virtual uint8 GetMatchLevel(const FVector& Position, bool RequireNavData = false) const override;
+	
 protected:
-	virtual bool SatisfiesOptimal(const FVector& Position) const{ checkNoEntry(); return false; }
-	virtual bool SatisfiesMinimal(const FVector& Position) const{ checkNoEntry(); return false; }
+	virtual bool SatisfiesOptimal(const FVector& Position, bool RequireNavData) const{ checkNoEntry(); return false; }
+	virtual bool SatisfiesMinimal(const FVector& Position, bool RequireNavData) const{ checkNoEntry(); return false; }
 };
 
 /* Limitation: Inside a circular ring around the player (with support for minimal & optimal requirements)
@@ -75,8 +76,8 @@ public:
 #endif
 	
 protected:
-	virtual bool SatisfiesOptimal(const FVector& Position) const override;
-	virtual bool SatisfiesMinimal(const FVector& Position) const override;
+	virtual bool SatisfiesOptimal(const FVector& Position, bool RequireNavData) const override;
+	virtual bool SatisfiesMinimal(const FVector& Position, bool RequireNavData) const override;
 };
 
 enum class EWorldConstraintZone : uint8
@@ -119,7 +120,7 @@ public:
 	FPlayerRelativeWorldZoneConstraint(AController* SourcePlayer, FVector TargetPosition);
 
 	virtual uint8 GetMaxMatchLevel() const override { return 2; }
-	virtual uint8 GetMatchLevel(const FVector& Position) const override;
+	virtual uint8 GetMatchLevel(const FVector& Position, bool RequireNavData = false) const override;
 
 #if WITH_EDITORONLY_DATA
 	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
@@ -158,10 +159,11 @@ namespace CustomHelperFunctions
 	 * @param DebuggingEnabled whether debugging elements should be drawn
 	 * @return whether a valid point was found*/
 	bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* RequiredSpace, AActor* Querier,
-		const TArray<AActor*>& IrrelevantObstacles, const FVector& SourcePoint, const FVector& SpacedStartDirection,
-		float Distribution, const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange,
-		float ProjectionHalfHeight, UWorld* World, bool DebuggingEnabled = false);
+	                           const TArray<AActor*>& IrrelevantObstacles, const FVector& SourcePoint, const FVector& SpacedStartDirection,
+	                           float Distribution, const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange,
+	                           float ProjectionHalfHeight, UWorld* World, bool RequireNavData, bool DebuggingEnabled = false);
 
 	bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-	                               const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 TotalMaxMatch, UWorld* World = nullptr, bool DebuggingEnabled = false);
+	                               const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 TotalMaxMatch, bool
+	                               RequireNavData, UWorld* World = nullptr, bool DebuggingEnabled = false);
 }

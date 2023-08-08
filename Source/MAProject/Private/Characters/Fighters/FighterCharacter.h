@@ -13,7 +13,7 @@ class UNiagaraSystem;
 
 struct FMeleeControlsKey final
 {
-	friend class UMeleeAttackNotifyState;
+	friend class UAnimNotifyState_MeleeAttack;
 private:
 	FMeleeControlsKey(){}
 };
