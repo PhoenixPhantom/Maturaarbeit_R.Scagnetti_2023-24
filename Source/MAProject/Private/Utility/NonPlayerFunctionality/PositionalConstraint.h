@@ -11,13 +11,8 @@ struct MAPROJECT_API FPositionalConstraint
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY()
-	AController* AnchorController;
-	
-	FPositionalConstraint() : AnchorController(nullptr){}
-	FPositionalConstraint(AController* Anchor) : AnchorController(Anchor){}
-	virtual ~FPositionalConstraint(){};
-	
+	virtual ~FPositionalConstraint() = default;
+
 	bool IsConstraintSatisfied(const FVector& Position, bool RequireNavData = false, const uint8 RequiredMatchLevel = 1) const
 	{ return RequiredMatchLevel <= GetMatchLevel(Position, RequireNavData); }
 
@@ -30,13 +25,54 @@ public:
 };
 
 
-/* Limitation: Distance from the player (with support minimal & optimal requirements)
+
+
+/* Limitation: Collision with obstacles
  */
 USTRUCT()
-struct MAPROJECT_API FPlayerDistanceConstraint : public FPositionalConstraint
+struct MAPROJECT_API FObstacleSpaceConstraint : public FPositionalConstraint
 {
 	GENERATED_BODY();
 public:
+	int32 MatchLevelFactor;
+	UPROPERTY()
+	UShapeComponent* RequiredSpace;
+	UPROPERTY()
+	TArray<AActor*> IrrelevantObstacles;
+	
+	FObstacleSpaceConstraint();
+	FObstacleSpaceConstraint(UShapeComponent* NewRequiredSpace, const TArray<AActor*>& NewIrrelevantObstacles,
+		int32 NewMatchLevelFactor = 4);
+	
+	virtual uint8 GetMaxMatchLevel() const override { return MatchLevelFactor; }	
+	virtual uint8 GetMatchLevel(const FVector& Position, bool RequireNavData = false) const override;
+};
+
+
+
+/* Parent class for all player relative limitations 
+ */
+USTRUCT()
+struct MAPROJECT_API FPlayerRelativeConstraint : public FPositionalConstraint
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	AController* AnchorController;
+
+	FPlayerRelativeConstraint(): AnchorController(nullptr){}
+
+	FPlayerRelativeConstraint(AController* Anchor): AnchorController(Anchor){}
+};
+
+
+/* Limitation: Distance from the player (with support minimal & optimal requirements)
+ */
+USTRUCT()
+struct MAPROJECT_API FPlayerDistanceConstraint : public FPlayerRelativeConstraint
+{
+	GENERATED_BODY();
+public:	
 	FPlayerDistanceConstraint();
 	FPlayerDistanceConstraint(AController* Anchor);
 	
@@ -105,7 +141,7 @@ inline EWorldConstraintZone operator-(EWorldConstraintZone ConstraintZone)
  * that are relative to the player
  */
 USTRUCT()
-struct MAPROJECT_API FPlayerRelativeWorldZoneConstraint : public FPositionalConstraint
+struct MAPROJECT_API FPlayerRelativeWorldZoneConstraint : public FPlayerRelativeConstraint
 {
 	GENERATED_BODY();
 public:
@@ -114,7 +150,7 @@ public:
 
 	FPlayerRelativeWorldZoneConstraint() : ConstraintZone(EWorldConstraintZone::Invalid)	{}
 
-	FPlayerRelativeWorldZoneConstraint(AController* SourcePlayer) : FPositionalConstraint(SourcePlayer),
+	FPlayerRelativeWorldZoneConstraint(AController* SourcePlayer) : FPlayerRelativeConstraint(SourcePlayer),
 	ConstraintZone(EWorldConstraintZone::Invalid){}
 
 	FPlayerRelativeWorldZoneConstraint(AController* SourcePlayer, FVector TargetPosition);
@@ -146,9 +182,6 @@ namespace CustomHelperFunctions
 	/**
 	 * @brief Gets the closest valid point by sampling the environment in circles
 	 * @param ResultingLocation Is set to the closest valid point if there is one inside MaxSampleRange
-	 * @param RequiredSpace The space that is needed at the minimum around a valid point
-	 * @param Querier The actor requesting the function to be run
-	 * @param IrrelevantObstacles Actors that should be ignored even if they pose an obstacle (e.g. the target if we are following an actor)
 	 * @param SourcePoint The point around which the valid locations are sampled
 	 * @param SpacedStartDirection The direction where the first sample of each circle will be taken and the spacing between every circle
 	 * @param Distribution How far the sample points are from each other
@@ -158,8 +191,7 @@ namespace CustomHelperFunctions
 	 * @param World The world context object
 	 * @param DebuggingEnabled whether debugging elements should be drawn
 	 * @return whether a valid point was found*/
-	bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* RequiredSpace, AActor* Querier,
-	                           const TArray<AActor*>& IrrelevantObstacles, const FVector& SourcePoint, const FVector& SpacedStartDirection,
+	bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
 	                           float Distribution, const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange,
 	                           float ProjectionHalfHeight, UWorld* World, bool RequireNavData, bool DebuggingEnabled = false);
 

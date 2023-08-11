@@ -6,18 +6,15 @@
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
 #include "BTTask_CalculateOptimalLocation.generated.h"
 
-class AOpponentCharacter;
-class AOpponentController;
-
 /**
  * Calculate the best location for the owner to be oriented around the target player
  * this is done by executing the task and is works for both active and passive owners
  */
 UCLASS()
-class MAPROJECT_API UBTTask_CalculateOptimalLocation : public UBTTask_BlackboardBase
+class MAPROJECT_API UBTTask_CalculateTargetLocation : public UBTTask_BlackboardBase
 {
 	GENERATED_BODY()
 public:
-	UBTTask_CalculateOptimalLocation();
+	UBTTask_CalculateTargetLocation();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };

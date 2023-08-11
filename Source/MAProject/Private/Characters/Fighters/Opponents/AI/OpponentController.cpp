@@ -60,15 +60,18 @@ bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
 	if(const ECombatParticipantStatus ParticipantStatus = CombatManager->IsParticipant(ControlledOpponent);
 		ParticipantStatus != ECombatParticipantStatus::NotRegistered)
 	{
+		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
 		bool RequireNavData = false;
-		//Add the constraints that are specific to this entity
+		
+
+		
 		FCircularDistanceConstraint PlayerDistanceConstraint;
 		switch(ParticipantStatus)
 		{
 		case ECombatParticipantStatus::Active:
 			{
 				PlayerDistanceConstraint = ControlledOpponent->GetActivePlayerDistanceConstraint();
-				RequireNavData = true;
+				RequireNavData = false;
 				break;
 			}
 		case ECombatParticipantStatus::Passive:
@@ -80,33 +83,15 @@ bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
 		default: checkNoEntry();
 		}
 
-
-		//Firstly we check whether the current position has an acceptable distance to the target
-		bool IsCurrentPositionValid = true;
-		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
-		UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
-		if(PlayerDistanceConstraint.IsConstraintSatisfied(CurrentLocation, RequireNavData)){
-			TArray<UPrimitiveComponent*> OverlappingComponents;
-			RequiredSpace->GetOverlappingComponents(OverlappingComponents);
-			for(const UPrimitiveComponent* Component : OverlappingComponents)
-			{
-				if(Component->GetOwner() == CombatManager->GetPlayerCharacter() || Component->GetOwner()
-					== ControlledOpponent) continue;
-				IsCurrentPositionValid = false;
-				break;
-			}
-		}
-		else IsCurrentPositionValid = false;
-		
-		if(IsCurrentPositionValid)
-		{
-			OptimalLocation = CurrentLocation;
-			return true;
-		}
-
 		FPlayerRelativeWorldZoneConstraint PlayerZoneConstraint(CombatManager->GetPlayerCharacter()->GetController(),
 			CurrentLocation);
+		
+		FObstacleSpaceConstraint ObstacleSpaceConstraint(ControlledOpponent->GetRequiredSpace(),
+			{CombatManager->GetPlayerCharacter(), ControlledOpponent},
+			PlayerDistanceConstraint.GetMaxMatchLevel() + PlayerZoneConstraint.GetMaxMatchLevel() + 1);
 
+
+		
 		FVector Location;
 		FRotator Rotation;
 		ControlledOpponent->GetActorEyesViewPoint(Location, Rotation);
@@ -116,18 +101,61 @@ bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
 		
 		const FVector OpponentToTarget = CombatManager->GetPlayerCharacter()->GetActorLocation() - CurrentLocation;
 		const float SampleRange = 500.f + OpponentToTarget.Length();
-		const bool FoundLocation = CustomHelperFunctions::SampleGetClosestValid(OptimalLocation, RequiredSpace,
-			ControlledOpponent,{CombatManager->GetPlayerCharacter()}, CurrentLocation,
+		
+		const bool FoundLocation = CustomHelperFunctions::SampleGetClosestValid(OptimalLocation, CurrentLocation,
 			ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
-			{&PlayerDistanceConstraint, &PlayerZoneConstraint},
+			{&PlayerDistanceConstraint, &PlayerZoneConstraint, &ObstacleSpaceConstraint},
 			SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld(), RequireNavData
 #if WITH_EDITORONLY_DATA
 			, bIsDebugging
 #endif
 		);
+		
 		return FoundLocation;
 	}
+
+	
 	UE_LOG(LogController, Warning, TEXT("Getting optimal location in non-combat is not yet supported"));
+	return false;
+}
+
+bool AOpponentController::IsValidTargetLocation(const FVector& TargetLocation) const
+{
+	const ECombatParticipantStatus ParticipantStatus = CombatManager->IsParticipant(ControlledOpponent);
+	if(ParticipantStatus == ECombatParticipantStatus::NotRegistered) return false;
+	
+	bool RequireNavData = false;
+	//Add the constraints that are specific to this entity
+	FCircularDistanceConstraint PlayerDistanceConstraint;
+	switch(ParticipantStatus)
+	{
+	case ECombatParticipantStatus::Active:
+		{
+			PlayerDistanceConstraint = ControlledOpponent->GetActivePlayerDistanceConstraint();
+			RequireNavData = false;
+			break;
+		}
+	case ECombatParticipantStatus::Passive:
+		{
+			
+			PlayerDistanceConstraint = ControlledOpponent->GetPassivePlayerDistanceConstraint();
+			break;
+		}
+	default: checkNoEntry();
+	}
+
+	//Firstly we check whether the current position has an acceptable distance to the target
+	const UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
+	if(PlayerDistanceConstraint.IsConstraintSatisfied(TargetLocation, RequireNavData)){
+		TArray<UPrimitiveComponent*> OverlappingComponents;
+		RequiredSpace->GetOverlappingComponents(OverlappingComponents);
+		for(const UPrimitiveComponent* Component : OverlappingComponents)
+		{
+			if(Component->GetOwner() == CombatManager->GetPlayerCharacter() ||
+				Component->GetOwner() == ControlledOpponent) continue;
+			return true;
+		}
+	}
 	return false;
 }
 

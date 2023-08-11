@@ -10,12 +10,33 @@
 #include "Kismet/GameplayStatics.h"
 
 
+FObstacleSpaceConstraint::FObstacleSpaceConstraint(): MatchLevelFactor(4), RequiredSpace(nullptr)
+{
+}
+
+FObstacleSpaceConstraint::FObstacleSpaceConstraint(UShapeComponent* NewRequiredSpace,
+	const TArray<AActor*>& NewIrrelevantObstacles, int32 NewMatchLevelFactor): MatchLevelFactor(NewMatchLevelFactor),
+		RequiredSpace(NewRequiredSpace), IrrelevantObstacles(NewIrrelevantObstacles)
+{
+}
+
+uint8 FObstacleSpaceConstraint::GetMatchLevel(const FVector& Position, bool RequireNavData) const
+{
+	check(IsValid(RequiredSpace) && IsValid(RequiredSpace->GetWorld()));
+	
+	TArray<FHitResult> HitResults;
+	CustomHelperFunctions::ShapeTraceMultiByProfile(RequiredSpace->GetWorld(), RequiredSpace, Position,
+		"PawnScanner", IrrelevantObstacles, HitResults);
+	if(HitResults.IsEmpty()) return MatchLevelFactor;
+	return 0;
+}
+
 FPlayerDistanceConstraint::FPlayerDistanceConstraint()
 {
 	
 }
 
-FPlayerDistanceConstraint::FPlayerDistanceConstraint(AController* Anchor) : FPositionalConstraint(Anchor)
+FPlayerDistanceConstraint::FPlayerDistanceConstraint(AController* Anchor) : FPlayerRelativeConstraint(Anchor)
 {
 	
 }
@@ -61,6 +82,8 @@ bool FCircularDistanceConstraint::SatisfiesOptimal(const FVector& Position, bool
 	if(!RequireNavData) Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
 	else
 	{
+		unimplemented();
+		//TODO: this leads to inconsistency
 		UNavigationSystemV1::GetPathLength(AnchorController->GetWorld(), Position,
 			AnchorController->GetPawn()->GetActorLocation(), Distance);
 	}
@@ -70,15 +93,14 @@ bool FCircularDistanceConstraint::SatisfiesOptimal(const FVector& Position, bool
 bool FCircularDistanceConstraint::SatisfiesMinimal(const FVector& Position, bool RequireNavData) const
 {
 	double Distance;
-	//TODO: getting the distance in this context doesn't seem to yield the correct calculation results
-	if(!RequireNavData) Distance = (Position - AnchorController->GetPawn()->GetActorLocation()).Length();
+	if(!RequireNavData) Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
 	else
 	{
+		unimplemented();
+		//TODO: this leads to inconsistency
 		UNavigationSystemV1::GetPathLength(AnchorController->GetWorld(), Position,
 			AnchorController->GetPawn()->GetActorLocation(), Distance);
 	}
-	GLog->Log("|" + Position.ToString() + " - " + AnchorController->GetPawn()->GetActorLocation().ToString() +
-		"| = " + FString::SanitizeFloat(Distance) + " when calculated for movement");
 	return Distance <= MaxRadius && Distance >= MinRadius;
 }
 
@@ -95,7 +117,7 @@ uint8 FPlayerRelativeWorldZoneConstraint::GetMatchLevel(const FVector& Position,
 
 #if WITH_EDITORONLY_DATA
 FPlayerRelativeWorldZoneConstraint::FPlayerRelativeWorldZoneConstraint(AController* SourcePlayer,
-	FVector TargetPosition): FPositionalConstraint(SourcePlayer)
+	FVector TargetPosition): FPlayerRelativeConstraint(SourcePlayer)
 {
 	ConstraintZone = CalculateTargetZone(TargetPosition);
 }
@@ -200,12 +222,9 @@ namespace CustomHelperFunctions
 		return false;
 	}
 
-	bool SampleGetClosestValid(FVector& ResultingLocation, UShapeComponent* RequiredSpace, AActor* Querier,
-	                           const TArray<AActor*>& IrrelevantObstacles, const FVector& SourcePoint,
-	                           const FVector& SpacedStartDirection, float Distribution,
-	                           const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange, float ProjectionHalfHeight,
-	                           UWorld* World,
-	                           bool RequireNavData, bool DebuggingEnabled)
+	bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
+       float Distribution, const TArray<const FPositionalConstraint*>& RelevantConstraints, float MaxSampleRange,
+       float ProjectionHalfHeight, UWorld* World, bool RequireNavData, bool DebuggingEnabled)
 	{
 		uint32 MaxPossibleMatch = 0;
 		for(const FPositionalConstraint* Constraint : RelevantConstraints)
@@ -214,8 +233,6 @@ namespace CustomHelperFunctions
 		}
 
 		TArray<FVector> AcceptableLocations;
-		TArray<AActor*> ActorsToIgnore = IrrelevantObstacles;
-		ActorsToIgnore.Add(Querier);
 		for(uint32 i = 1; true; i++)
 		{
 			FVector Direction = SpacedStartDirection * i;
@@ -240,10 +257,7 @@ namespace CustomHelperFunctions
 						10.f, FColor(255, 0, 0),false, 1, SDPG_World);
 					continue;
 				}
-				TArray<FHitResult> HitResults;
-				ShapeTraceMultiByProfile(World, RequiredSpace, ProjectedLocation, "PawnScanner",
-					ActorsToIgnore, HitResults);
-				if(HitResults.IsEmpty()) SamplePoints.Add(ProjectedLocation);
+				SamplePoints.Add(ProjectedLocation);
 			}
 			if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, MaxPossibleMatch,
 			                             RequireNavData, World, DebuggingEnabled)) return true;
@@ -269,7 +283,7 @@ namespace CustomHelperFunctions
 			uint32 TotalMatch = 0;
 			for(const FPositionalConstraint* Constraint : RelevantConstraints)
 			{
-				TotalMatch += Constraint->GetMatchLevel(SamplePoint);
+				TotalMatch += Constraint->GetMatchLevel(SamplePoint, RequireNavData);
 			}
 			const bool IsMaximalValueReached = TotalMatch >= TotalMaxMatch;
 #if WITH_EDITORONLY_DATA
@@ -277,8 +291,13 @@ namespace CustomHelperFunctions
 			{
 				if(IsMaximalValueReached) DrawDebugPoint(World, SamplePoint + FVector(0.f, 0.f, 20.f), 10.f, FColor(0, 255, 0),
 					false, 1, SDPG_World);
-				else DrawDebugPoint(World, SamplePoint + FVector(0.f, 0.f, 20.f), 10.f, FColor(0, 0, 255),
+				else
+				{
+					const float ReachFactor = static_cast<float>(TotalMatch)/static_cast<float>(TotalMaxMatch);
+					DrawDebugPoint(World, SamplePoint + FVector(0.f, 0.f, 20.f), 10.f,
+					FColor(0, ReachFactor*255.f, (1.f - ReachFactor)*255.f),
 					false, 0.1, SDPG_World);
+				}
 			}
 #endif
 		

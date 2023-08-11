@@ -35,8 +35,6 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	
 	const float Distance = FVector::Distance(OwningCharacter->GetActorLocation(),
 		TargetController->GetPawn()->GetActorLocation());
-	GLog->Log("|" + OwningCharacter->GetActorLocation().ToString() + " - " +
-		TargetController->GetPawn()->GetActorLocation().ToString() + "| = " + FString::SanitizeFloat(Distance) + " when calculated for attacks");
 	//Sort through all available attacks and remove those that cannot be executed
 	TArray<TTuple<float, FAttackProperties>> AttacksInRange;
 	float LowestScore = std::numeric_limits<float>::max();
@@ -47,6 +45,8 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 		AttacksInRange.Add({Priority, Attack});
 		if (Priority < LowestScore) LowestScore = Priority;
 	}
+
+	if(AttacksInRange.IsEmpty()) return EBTNodeResult::Failed;
 
 	//Assign a relative score to each attack
 	double TotalScore = 0.f;

@@ -98,6 +98,13 @@ bool ACombatManager::RemoveAggressionTokens(AOpponentCharacter* Participant)
 {
 	if(!ActiveParticipants.Contains(Participant)) return false;
 	AvailableAggressionTokens += Participant->GetRequestedTokens();
+	if(bIsDebugging)
+	{
+		UKismetSystemLibrary::DrawDebugCircle(GetWorld(), Participant->GetActorLocation() +
+			FVector(0.f, 0.f, 50.f), 100.f,
+		50, FLinearColor(0, 255, 0), 1.f, 10.f, FVector(0, 1, 0),
+		FVector(1, 0, 0));
+	}
 	return MakePassiveParticipant(ActiveParticipants.Find(Participant));
 }
 
