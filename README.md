@@ -1,19 +1,22 @@
-# MAProject
+# "Maturarbeit" - Raffael Scagnetti 2023/24
 
-## On game mechanics
-A good video game consists of a number of different mechanics, which define its gameplay. But what exactly these mechanics do, how they work on an fundamental level and even what they are trying to achieve can vary greatly between games.
+> After some concideration and getting used to the project, I do not feel the title proposed at the beginning fits the scope of this project and what is possible to be accieved therein. Therefore I propose my Maturaarbeit to be retitled to "Combat in 3D open world videogames."
 
-As the purpose of this work is to develop a fantasy open world game where you play as different animals, a variety of different core mechanics would need to be included to call the final result a complete game.
+## Creating a viedeogame
+To create a “real” videogame – meaning one that people would voluntarily play - many individual parts are crucial. That includes the construction of the levels where the game is played, creating the assets used therein and coding responses and logic are only some examples. And most of these crucial snippets of a game require some time as well as different skillsets to do right.
 
-The mechanics I concider the most important for the game, $\textcolor{gray}{\textsf{(Not counting the ones that are already included in the unreal engine, which are functionalities concerning physics,}}$
-$\textcolor{gray}{\textsf{ collision detection, object management, fundamental game classes, and basic rendering functionality)}}$ however, are the ones that revolve around combat.
+The time requirements of this work, therefore, make it difficult to go into depth in all these departments. So as the title of this page suggests, this work will mainly focus on one part of a video game: _combat design_.
 
-### A combat system
-Creating interesting and intuitive combat is a difficult problem and many game studios have entire teams that work precisely on that topic. Therefore, my goal is not to create a system that would rival any of these combat systems, but to gain a better understanding of what is important when creating a combat system and how to actually implement the ideas.
+Still, a videogame cannot simply be made of only one of its crucial parts if any sort of playability should be maintained. Therefore, the work should, while focused on combat design, still include very basic aspects of the most important other departments.
+
+This way, it should be possible to create a playable game with a very basic game loop, while still going into depth in one aspect. 
+
+To provide the most essential functionalities, this work will make use of the current version of Epic Games’ Unreal Engine 5 (UE5) and incorporate some assets from the Unreal Engine Marketplace which are all listed in the second to last paragraph.
 
 
-
-
+## Used Assets
+* Starter Content – Epic Games Inc: One of the in-engine project setup options 
+* Quadruped Fantasy Creatures - PROTOFACTOR INC: https://www.unrealengine.com/marketplace/en-US/product/7f7775996f7442b187f6fa510ec9d289
 
 ## References
 ### Combat
