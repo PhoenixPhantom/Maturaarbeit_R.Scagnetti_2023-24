@@ -5,26 +5,27 @@
 >   <img alt="Info" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/info.svg">
 > </picture><br>
 >
-> After some concideration and getting used to the project, I do not feel the title proposed at the beginning fits the scope of this project and what is possible to be accieved therein. Therefore I propose my Maturaarbeit to be retitled to "Combat in 3D open world videogames."
+> After some consideration and getting used to the project, I decided the title proposed at the beginning fits the scope of this project and what is possible to be achieved therein. Therefore I propose my Maturaarbeit to be retitled to "Combat design in an 3D open world videogame."
 
 
 
-## Creating a viedeogame
-To create a “real” videogame – meaning one that people would voluntarily play - many individual parts are crucial. That includes the construction of the levels where the game is played, creating the assets used therein and coding responses and logic are only some examples. And most of these crucial snippets of a game require some time as well as different skillsets to do right.
+## The Contents of This Work: Creating a Videogame
+To create a “real” videogame – meaning one that people would voluntarily play - many seperate parts are crucial. That includes the construction of the levels where the game is played, creating the assets used therein. Coding responses and logic are only some examples. And most of these crucial snippets of a game require significant effort as well as different skillsets to do right.
 
-The time requirements of this work, therefore, make it difficult to go into depth in all these departments. So as the title of this page suggests, this work will mainly focus on one part of a video game: _combat design_.
+But the required effort to go into depth on all these topics, makes it very difficult to be achieved a "Maturarbeit". So as the newly suggested article implies, this work will mainly focus on one part of a video game: _combat design_.
 
-Still, a videogame cannot simply be made of only one of its crucial parts if any sort of playability should be maintained. Therefore, the work should, while focused on combat design, still include very basic aspects of the most important other departments.
+Nevertheless, a videogame cannot simply be made of only one of its crucial parts if any sort of playability should be achieved. Therefore, this work will, while focused on combat design, still include some of the above mentionned aspects. 
 
-This way, it should be possible to create a playable game with a very basic game loop, while still going into depth in one aspect. 
+This would make it possible to create a playable game with a very basic game loop, while still going into depth in a single aspect. 
 
-To provide the most essential functionalities, this work will make use of the current version of Epic Games’ Unreal Engine 5 (UE5) and incorporate some assets from the Unreal Engine Marketplace which are all listed in the second to last paragraph.
+To provide the most essential functionalities, this work will make use of the current version of Epic Games’ Unreal Engine 5 (UE5) and incorporate some assets from the Unreal Engine Marketplace which are all listed [here](#UsedAssets).
 
 
 
 
 ## References
 
+<a name="UsedAssets"></a>
 ### Used Assets
 * Starter Content – Epic Games Inc: One of the in-engine project setup options 
 * Quadruped Fantasy Creatures - PROTOFACTOR INC: https://www.unrealengine.com/marketplace/en-US/product/7f7775996f7442b187f6fa510ec9d289
