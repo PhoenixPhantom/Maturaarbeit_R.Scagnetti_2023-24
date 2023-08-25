@@ -5,7 +5,6 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
@@ -137,7 +136,8 @@ void AFighterCharacter::MakeInvincible(float InvincibilityTime)
 	bIsInvincible = true;	
 	if(GetWorld()->GetTimerManager().TimerExists(InvincibilityHandle))
 		GetWorld()->GetTimerManager().ClearTimer(InvincibilityHandle);
-	
+
+	if(InvincibilityTime <= 0.f) return;
 	GetWorld()->GetTimerManager().SetTimer(InvincibilityHandle,
 		[this]{ EndInvincibility(); }, InvincibilityTime, false);
 }
@@ -244,11 +244,12 @@ void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
 
 void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 {
-	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death)) return;
+	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death) ||
+		GetMesh()->GetCollisionEnabled() == ECollisionEnabled::NoCollision) return;
 	StopAnimMontage();
 	PlayAnimMontage(DeathAnimation);
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MakeInvincible(0.f);
+	
 	AcceptedInputs.LimitAvailableInputs({EInputType::Death, DeathAnimation->GetPlayLength()*0.9f}, GetWorld());
 	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
 		[this](bool IsLimitDurationOver, bool& HasBeenCleared)

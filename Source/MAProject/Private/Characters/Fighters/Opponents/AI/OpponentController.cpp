@@ -144,7 +144,7 @@ bool AOpponentController::IsValidTargetLocation(const FVector& TargetLocation) c
 	default: checkNoEntry();
 	}
 
-	//Firstly we check whether the current position has an acceptable distance to the target
+	//whether the current position has an acceptable relation to the target
 	const UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
 	if(PlayerDistanceConstraint.IsConstraintSatisfied(TargetLocation, RequireNavData)){
 		TArray<UPrimitiveComponent*> OverlappingComponents;
