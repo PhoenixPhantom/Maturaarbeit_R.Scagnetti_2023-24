@@ -21,9 +21,10 @@ This would make it possible to create a playable game with a very basic game loo
 To provide the most essential functionalities, this work will make use of the current version of Epic Games’ Unreal Engine 5 (UE5) and incorporate some assets from the Unreal Engine Marketplace which are all listed [here](#UsedAssets).
 
 
-
+## Requirements
 
 ## References
+ * Description of the repository's [folder Structure](Folders.md)
 
 <a name="UsedAssets"></a>
 ### Used Assets
