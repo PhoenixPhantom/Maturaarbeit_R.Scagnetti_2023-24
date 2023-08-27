@@ -22,6 +22,7 @@ To provide the most essential functionalities, this work will make use of the cu
 
 
 ## Requirements
+[Get the game running.](Download.md)
 
 ## References
  * Description of the repository's [folder Structure](Folders.md)
