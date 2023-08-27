@@ -7,6 +7,13 @@
 >
 > The current instructions were only verified on devices using Microsoft Windows 11, but should also work on Windows 10 and newer versions of MacOS
 
+> <picture>
+>   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/info.svg">
+>   <img alt="Info" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/info.svg">
+> </picture><br>
+>
+> Visual Studio 2022 does not support MacOS as of August 2023. Alternatively the [Visual Studio 2022 for Mac Preview](https://visualstudio.microsoft.com/vs/mac/preview/) can be used.
+
 
 
 Software requirements:
@@ -15,12 +22,6 @@ Software requirements:
  * Download the [Git Large File Storage](https://git-lfs.com) and install it by running "git lfs install" in the command line
  * Download [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) and install "Game development with C++" in the "Workloads" tab. And install ".NET Framework 4.8 SDK", ".NET Framework 4.7.2 targeting pack"
 
-> <picture>
->   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/info.svg">
->   <img alt="Info" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/info.svg">
-> </picture><br>
->
-> Visual Studio 2022 does not support MacOS as of August 2023. Alternatively the [Visual Studio 2022 for Mac Preview](https://visualstudio.microsoft.com/vs/mac/preview/) can be used.
 
 
 After downloading the repository:
