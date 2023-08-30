@@ -17,6 +17,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class UHealthMonitorBaseWidget;
 
 DECLARE_DELEGATE(FOnInputRepeatedDelegate);
 
@@ -83,6 +84,9 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	UCapsuleComponent* HorizontalCapsule;
+
+	UPROPERTY(EditAnywhere, Category = UserInterface)
+	TSubclassOf<UHealthMonitorBaseWidget> HealthWidgetClass;
 	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;

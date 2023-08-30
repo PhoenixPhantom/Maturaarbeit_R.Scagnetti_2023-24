@@ -12,6 +12,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "UserInterface/HealthMonitorBaseWidget.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
@@ -119,6 +120,13 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &APlayerCharacter::OnSelectMotionWarpingTarget);
+	
+	check(IsValid(HealthWidgetClass.Get()));
+	HealthInfoWidget = CreateWidget<UHealthMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
+	HealthInfoWidget->AddToViewport();
+	HealthInfoWidget->SetupInformation(CharacterStats->MaxHealth.GetResulting(),
+		CharacterStats->MaxHealth.GetResulting(), FSetupInformationKey());
+	CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UHealthMonitorBaseWidget::UpdateHealth);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

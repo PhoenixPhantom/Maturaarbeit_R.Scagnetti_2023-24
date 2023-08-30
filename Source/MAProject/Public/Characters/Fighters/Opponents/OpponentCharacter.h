@@ -8,6 +8,7 @@
 #include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "OpponentCharacter.generated.h"
 
+class UWidgetComponent;
 class UBTTask_ReleaseAggressionTokens;
 class ACombatManager;
 class USphereComponent;
@@ -74,6 +75,7 @@ public:
 	AOpponentCharacter();
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Tick(float DeltaSeconds) override;
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
 	
 	FOnAggressionTokenGrantedDelegate& GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey)
@@ -115,6 +117,9 @@ protected:
 	
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers StatsModifiers;
+
+	UPROPERTY(EditAnywhere, Category = UserInterface)
+	UWidgetComponent* HealthWidgetComponent;
 	
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;

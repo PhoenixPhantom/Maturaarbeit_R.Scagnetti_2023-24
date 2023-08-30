@@ -44,6 +44,7 @@ uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent
 		return 0;
 	}
 	if(Damage > 0.f) OnGetHit.Broadcast(DamageInfo);
-	Health -= DeltaHealth;	
+	OnHealthChanged.Broadcast(Health - DeltaHealth, Health);
+	Health -= DeltaHealth;
 	return Health;
 }

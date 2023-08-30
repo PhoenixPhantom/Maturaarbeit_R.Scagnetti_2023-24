@@ -78,7 +78,7 @@ struct MAPROJECT_API FGeneralBaseStats
 	uint32 BaseDefense;	
 };
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedDelegate, uint32, NewHelath, uint32, OldHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetHitDelegate, const FCustomDamageEvent&, DamageEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoHealthReachedDelegate, const FCustomDamageEvent&, DamageEvent);
 
@@ -87,10 +87,11 @@ struct FGeneralObjectStats
 	FGeneralObjectStats();
 	virtual ~FGeneralObjectStats() = default;
 
+	FOnHealthChangedDelegate OnHealthChanged;
 	FOnGetHitDelegate OnGetHit;
 	FOnNoHealthReachedDelegate OnNoHealthReached;
 
-	//Represents the current health of the object. Should not be changed directly but through RecveiveDamage
+	//Represents the current health of the object. Should not be changed directly but through ReceiveDamage
 	uint32 Health;
 	TScalable<uint32, float> MaxHealth;
 

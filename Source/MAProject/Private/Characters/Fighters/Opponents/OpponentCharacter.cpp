@@ -3,17 +3,21 @@
 
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
+#include "Camera/CameraComponent.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "UserInterface/HealthMonitorBaseWidget.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
 AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPlayer(nullptr),
 	RequestedAggressionTokens(1), AggressionPriority(1.f), AggressionRange(1.f)
-{
+{	
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
 	
 	RequiredSpaceActiveCombat = CreateDefaultSubobject<USphereComponent>(TEXT("ActiveCombatSize"));
@@ -29,6 +33,10 @@ AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPla
 	RequiredSpacePassive->SetGenerateOverlapEvents(true);
 	RequiredSpacePassive->SetBoxExtent(FVector(50.f, 50.f, 100.f));
 	RequiredSpacePassive->SetCanEverAffectNavigation(false);
+	
+	HealthWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthWidgetComp"));
+	HealthWidgetComponent->SetupAttachment(GetMesh());
+	HealthWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
 }
 
 void AOpponentCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -37,6 +45,18 @@ void AOpponentCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if(EndPlayReason == EEndPlayReason::Destroyed)
 	{
 		if(IsValid(Controller))	Controller->Destroy();
+	}
+}
+
+void AOpponentCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	
+	if(IsValid(HealthWidgetComponent) && HealthWidgetComponent->IsVisible())
+	{
+		HealthWidgetComponent->SetWorldRotation(UKismetMathLibrary::FindLookAtRotation(
+			GetWorld()->GetFirstPlayerController()->GetPawn<APlayerCharacter>()
+			->GetFollowCamera()->GetComponentLocation(),HealthWidgetComponent->GetComponentLocation()));
 	}
 }
 
@@ -112,6 +132,8 @@ void AOpponentCharacter::BeginPlay()
 	OnAggressionTokensGranted.AddDynamic(this, &AOpponentCharacter::SetUseActiveCombatSpace);
 	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetUsePassiveSpace);
 	SetUsePassiveSpace();
+
+	if(IsValid(HealthWidgetComponent)) HealthInfoWidget = CastChecked<UHealthMonitorBaseWidget>(HealthWidgetComponent->GetWidget());
 	Super::BeginPlay();
 }
 

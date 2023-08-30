@@ -7,6 +7,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "UserInterface/HealthMonitorBaseWidget.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Sound/SoundResponseConfigs.h"
 
@@ -216,6 +217,12 @@ void AFighterCharacter::BeginPlay()
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
 	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
+	if(IsValid(HealthInfoWidget))
+	{
+		HealthInfoWidget->SetupInformation(CharacterStats->MaxHealth.GetResulting(),
+		CharacterStats->MaxHealth.GetResulting(), FSetupInformationKey());
+		CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UHealthMonitorBaseWidget::UpdateHealth);
+	}
 	CharacterStats->OnGetHit.AddDynamic(this, &AFighterCharacter::OnGetHit);
 	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
 	SwitchMovementToWalk();

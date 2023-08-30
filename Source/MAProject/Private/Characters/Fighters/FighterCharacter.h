@@ -7,6 +7,7 @@
 #include "Characters/GeneralCharacter.h"
 #include "FighterCharacter.generated.h"
 
+class UHealthMonitorBaseWidget;
 class UBoneSoundResponseConfig;
 class UTargetInformationComponent;
 class UNiagaraSystem;
@@ -60,6 +61,9 @@ protected:
 
 	UPROPERTY()
 	TArray<AActor*> RecentlyDamagedActors;
+
+	UPROPERTY()
+	UHealthMonitorBaseWidget* HealthInfoWidget;
 	
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UTargetInformationComponent* TargetInformationComponent;
