@@ -7,6 +7,7 @@
 #include "HealthMonitorBaseWidget.generated.h"
 
 class UProgressBar;
+class UHealthMonitorBaseWidget;
 
 struct FSetupInformationKey final
 {
@@ -17,6 +18,7 @@ private:
 	FSetupInformationKey(){}
 };
 
+
 /**
  * 
  */
@@ -25,9 +27,8 @@ class UHealthMonitorBaseWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-
+	
 	virtual void SetupInformation(uint32 NewMaxHealth, uint32 CurrentHealth, FSetupInformationKey);
-
 	
 	/// @brief Update health bar
 	UFUNCTION()
@@ -38,7 +39,4 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* HealthBar;
-
-	//similar to begin play
-	virtual bool Initialize() override;
 };

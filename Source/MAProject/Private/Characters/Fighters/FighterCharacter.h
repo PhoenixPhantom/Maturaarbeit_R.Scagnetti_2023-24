@@ -96,7 +96,12 @@ protected:
 	
 	void CheckMeshOverlaps();
 
+	virtual void OnDeathTriggered();;
+
 	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex = 0);
+
+	UFUNCTION()
+	void RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget);
 
 	UFUNCTION()
 	bool OnCheckCanExecuteAttack(const FAttackProperties& Properties);

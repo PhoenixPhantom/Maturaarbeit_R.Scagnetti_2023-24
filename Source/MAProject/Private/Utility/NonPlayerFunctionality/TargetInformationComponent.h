@@ -6,6 +6,12 @@
 #include "Components/SceneComponent.h"
 #include "TargetInformationComponent.generated.h"
 
+struct FSetCanBeTargetedKey final
+{
+	friend class AFighterCharacter;
+private:
+	FSetCanBeTargetedKey(){}
+};
 
 struct FSetTargetStateKey final
 {
@@ -26,13 +32,17 @@ public:
 	// Sets default values for this component's properties
 	UTargetInformationComponent();
 
+	void SetCanBeTargeted(bool CanBeTargeted, FSetCanBeTargetedKey){ bCanBeTargeted = CanBeTargeted; }
+
 	float GetTargetPriority() const { return TargetPriority; }
-	void SetTargetState(bool TargetState, FSetTargetStateKey Key) { bIsCurrentTarget = TargetState; OnChangeTargetState.Broadcast(bIsCurrentTarget); }
+	void SetIsCurrentTarget(bool TargetState, FSetTargetStateKey);
 	bool GetIsCurrentTarget() const { return bIsCurrentTarget; }
+	bool GetCanBeTargeted() const { return bCanBeTargeted; }
 
 protected:
 	UPROPERTY(EditAnywhere, meta=(Units="%", ToolTip="The priority with which the actor will be targeted. An actor with priority 2 is double as likely to be targeted as one with 1)"))
 	float TargetPriority;
 
-	bool bIsCurrentTarget;
+	uint8 bIsCurrentTarget:1;
+	uint8 bCanBeTargeted:1;	
 };

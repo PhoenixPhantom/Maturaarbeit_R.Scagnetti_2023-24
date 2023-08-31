@@ -17,13 +17,3 @@ void UHealthMonitorBaseWidget::UpdateHealth(uint32 NewHealth, uint32 OldHealth)
 	HealthBar->SetPercent(static_cast<float>(NewHealth) /
 	static_cast<float>(MaxHealth));
 }
-
-bool UHealthMonitorBaseWidget::Initialize()
-{
-	bool Result = Super::Initialize();
-
-	APlayerController* Controller = GetOwningPlayer();
-	FVector Location = Controller->GetFocalLocation();
-
-	return Result;
-}

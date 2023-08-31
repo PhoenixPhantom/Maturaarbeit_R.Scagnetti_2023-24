@@ -179,6 +179,11 @@ void AFighterCharacter::CheckMeshOverlaps()
 	}
 }
 
+void AFighterCharacter::OnDeathTriggered()
+{
+	TargetInformationComponent->SetCanBeTargeted(false, FSetCanBeTargetedKey());
+}
+
 void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
 {
 	const int32 Index = CurrentLimitIndex + 1;
@@ -195,6 +200,17 @@ void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimi
 		}
 		QueueFollowUpLimit(InputLimits, Index);
 	});
+}
+
+void AFighterCharacter::RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget)
+{
+	check(IsValid(Widget));
+	HealthInfoWidget = Widget;
+
+	HealthInfoWidget->SetupInformation(CharacterStats->MaxHealth.GetResulting(),
+	CharacterStats->MaxHealth.GetResulting(), FSetupInformationKey());
+	
+	CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UHealthMonitorBaseWidget::UpdateHealth);
 }
 
 bool AFighterCharacter::ExecuteAttack(const FAttackProperties& AttackProperties)
@@ -217,12 +233,6 @@ void AFighterCharacter::BeginPlay()
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
 	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
-	if(IsValid(HealthInfoWidget))
-	{
-		HealthInfoWidget->SetupInformation(CharacterStats->MaxHealth.GetResulting(),
-		CharacterStats->MaxHealth.GetResulting(), FSetupInformationKey());
-		CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UHealthMonitorBaseWidget::UpdateHealth);
-	}
 	CharacterStats->OnGetHit.AddDynamic(this, &AFighterCharacter::OnGetHit);
 	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
 	SwitchMovementToWalk();
@@ -253,6 +263,7 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 {
 	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death) ||
 		GetMesh()->GetCollisionEnabled() == ECollisionEnabled::NoCollision) return;
+	OnDeathTriggered();
 	StopAnimMontage();
 	PlayAnimMontage(DeathAnimation);
 	MakeInvincible(0.f);

@@ -122,11 +122,9 @@ void APlayerCharacter::BeginPlay()
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &APlayerCharacter::OnSelectMotionWarpingTarget);
 	
 	check(IsValid(HealthWidgetClass.Get()));
-	HealthInfoWidget = CreateWidget<UHealthMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
-	HealthInfoWidget->AddToViewport();
-	HealthInfoWidget->SetupInformation(CharacterStats->MaxHealth.GetResulting(),
-		CharacterStats->MaxHealth.GetResulting(), FSetupInformationKey());
-	CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UHealthMonitorBaseWidget::UpdateHealth);
+	UHealthMonitorBaseWidget* HealthMonitor = CreateWidget<UHealthMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
+	HealthMonitor->AddToViewport();
+	RegisterHealthInfoWidget(HealthMonitor);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -417,7 +415,8 @@ void APlayerCharacter::UpdateTargetSelection()
 	GetActorEyesViewPoint(EyesLocation, EyesRotation);
 	UKismetSystemLibrary::LineTraceSingle(GetWorld(), EyesLocation,
 	                                      EyesLocation + EyesRotation.Vector() * AutotargetingRange,
-	                                      ETraceTypeQuery::TraceTypeQuery6, true, {this, Owner}, EDrawDebugTrace::None,
+	                                      ETraceTypeQuery::TraceTypeQuery6, true,
+	                                      {this, Owner}, EDrawDebugTrace::None,
 	                                      CenteredHitResult, true);
 
 	TTuple<float, UTargetInformationComponent*> BestResult;
@@ -426,10 +425,10 @@ void APlayerCharacter::UpdateTargetSelection()
 	for (FHitResult TraceResult : TraceResults)
 	{
 		if (!TraceResult.bBlockingHit) continue; //all relevant meshes are set to block destructible objects...
-		UActorComponent* Component = TraceResult.GetActor()->GetComponentByClass(
-			UTargetInformationComponent::StaticClass());
+		UActorComponent* Component = TraceResult.GetActor()->GetComponentByClass(UTargetInformationComponent::StaticClass());
 		if (!IsValid(Component)) continue; //... and have a target information component
 		UTargetInformationComponent* TargetInfoComp = CastChecked<UTargetInformationComponent>(Component);
+		if(!TargetInfoComp->GetCanBeTargeted()) continue;
 
 		//Get the actors center
 		FVector ActorCenter;
@@ -488,11 +487,11 @@ void APlayerCharacter::UpdateTargetSelection()
 	//tell the target components who the new target is
 	if (CurrentTarget != BestResult.Value)
 	{
-		if (IsValid(CurrentTarget)) CurrentTarget->SetTargetState(false, FSetTargetStateKey());
+		if (IsValid(CurrentTarget)) CurrentTarget->SetIsCurrentTarget(false, FSetTargetStateKey());
 		if (IsValid(BestResult.Value))
 		{
 			CurrentTarget = BestResult.Value;
-			CurrentTarget->SetTargetState(true, FSetTargetStateKey());
+			CurrentTarget->SetIsCurrentTarget(true, FSetTargetStateKey());
 		}
 		else CurrentTarget = nullptr;
 	}

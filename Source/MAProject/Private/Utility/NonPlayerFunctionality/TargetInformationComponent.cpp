@@ -5,8 +5,14 @@
 
 
 // Sets default values for this component's properties
-UTargetInformationComponent::UTargetInformationComponent() : TargetPriority(100.f), bIsCurrentTarget(false)
+UTargetInformationComponent::UTargetInformationComponent() : TargetPriority(100.f), bIsCurrentTarget(false),
+	bCanBeTargeted(true)
 {
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UTargetInformationComponent::SetIsCurrentTarget(bool TargetState, FSetTargetStateKey)
+{
+	bIsCurrentTarget = TargetState; OnChangeTargetState.Broadcast(bIsCurrentTarget);
 }
 
