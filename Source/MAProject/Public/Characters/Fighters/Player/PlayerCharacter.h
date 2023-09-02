@@ -34,7 +34,7 @@ class MAPROJECT_API APlayerCharacter : public AFighterCharacter
 	GENERATED_BODY()
 
 public:
-	APlayerCharacter();
+	APlayerCharacter(const FObjectInitializer& ObjectInitializer);
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 

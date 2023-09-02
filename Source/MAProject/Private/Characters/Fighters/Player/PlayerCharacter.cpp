@@ -16,8 +16,9 @@
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
-APlayerCharacter::APlayerCharacter() : bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f),
-                                       RememberInputDirectionTime(0.5), MaximalInputWindowTime(0.1)
+APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
+	bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f),
+	RememberInputDirectionTime(0.5), MaximalInputWindowTime(0.1)
 {
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));

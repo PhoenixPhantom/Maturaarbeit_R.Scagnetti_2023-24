@@ -17,7 +17,7 @@ class AGeneralCharacter : public ACharacter
 
 public:
 	// Sets default values for this character's properties
-	AGeneralCharacter();
+	AGeneralCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual float GetFieldOfView() const { unimplemented(); return 0.f; }
 	

@@ -3,6 +3,7 @@
 
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
+#include "Characters/AdvancedCharacterMovementComponent.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -13,9 +14,12 @@
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
-AOpponentCharacter::AOpponentCharacter() : bCanBecomeAggressive(true), TargetPlayer(nullptr),
-	RequestedAggressionTokens(1), AggressionPriority(1.f), AggressionRange(1.f)
-{	
+AOpponentCharacter::AOpponentCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.
+		SetDefaultSubobjectClass<UAdvancedCharacterMovementComponent>(ACharacter::CharacterMovementComponentName)),
+	bCanBecomeAggressive(true), TargetPlayer(nullptr), RequestedAggressionTokens(1), AggressionPriority(1.f),
+	AggressionRange(1.f)
+{
+	AdvancedCharacterMovementComponent = CastChecked<UAdvancedCharacterMovementComponent>(GetCharacterMovement());
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
 	
 	RequiredSpaceActiveCombat = CreateDefaultSubobject<USphereComponent>(TEXT("ActiveCombatSize"));
@@ -141,13 +145,14 @@ bool AOpponentCharacter::CanAttack() const
 
 void AOpponentCharacter::SetUseActiveCombatSpace()
 {
-	
+	AdvancedCharacterMovementComponent->SetWalkBackwards(false);
 	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }
 
 void AOpponentCharacter::SetUsePassiveSpace()
 {
+	AdvancedCharacterMovementComponent->SetWalkBackwards(true);
 	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }

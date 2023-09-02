@@ -17,6 +17,7 @@ class UBoxComponent;
 class AOpponentController;
 class USavableObjectMarkerComponent;
 class UTargetInformationComponent;
+class UAdvancedCharacterMovementComponent;
 
 struct FSetFieldOfViewKey final
 {
@@ -73,7 +74,7 @@ class MAPROJECT_API AOpponentCharacter : public AFighterCharacter
 public:
 	inline static FName RequiredSpaceActiveTag = "RSActive";
 	
-	AOpponentCharacter();
+	AOpponentCharacter(const FObjectInitializer& ObjectInitializer);
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
@@ -110,6 +111,9 @@ protected:
 	
 	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
 	FOnAggressionTokenRemovedDelegate OnAggressionTokensRemoved;
+
+	UPROPERTY()
+	UAdvancedCharacterMovementComponent* AdvancedCharacterMovementComponent;
 
 
 	UPROPERTY()

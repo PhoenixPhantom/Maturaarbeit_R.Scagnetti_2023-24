@@ -11,7 +11,9 @@
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Sound/SoundResponseConfigs.h"
 
-AFighterCharacter::AFighterCharacter() : bIsInvincible(false),  HitFXRadius(50.f)
+
+AFighterCharacter::AFighterCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
+	bIsInvincible(false),  HitFXRadius(50.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;

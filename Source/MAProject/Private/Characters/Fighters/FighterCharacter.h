@@ -28,7 +28,7 @@ class AFighterCharacter : public AGeneralCharacter
 	GENERATED_BODY()
 
 public:
-	AFighterCharacter();
+	AFighterCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual void Tick(float DeltaSeconds) override;
 	

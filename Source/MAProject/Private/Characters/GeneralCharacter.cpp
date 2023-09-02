@@ -6,15 +6,13 @@
 #include "Utility/Animation/SuckToTargetComponent.h"
 
 
-// Sets default values
-AGeneralCharacter::AGeneralCharacter()
+AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	SuckToTargetComponent = CreateDefaultSubobject<USuckToTargetComponent>(TEXT("SuckToTargetComp"));
 	PrimaryActorTick.bCanEverTick = false;
 	
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionProfileName("CharacterMesh", true);
-	
 }
 
 void AGeneralCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
