@@ -186,10 +186,13 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 	}
 
 	const FPathFollowingRequestResult PathFollowingRequestResult = Super::MoveTo(ModifiedRequest, OutPath);
-	
-	//Use the original request, as the new one generally doesn't contain the "actual" target position
-	//(as it interpolates to the new target position over time)
-	ControlledOpponent->GetCharacterRotationManager()->SwitchToOptimal(MoveRequest.GetGoalLocation(), OutPath);
+
+	if(PathFollowingRequestResult.Code == EPathFollowingRequestResult::RequestSuccessful)
+	{
+		//Use the original request, as the new one generally doesn't contain the "actual" target position
+		//(as it interpolates to the new target position over time)
+		ControlledOpponent->GetCharacterRotationManager()->SwitchToOptimal(MoveRequest.GetGoalLocation(), OutPath);
+	}
 
 	return  PathFollowingRequestResult;
 }

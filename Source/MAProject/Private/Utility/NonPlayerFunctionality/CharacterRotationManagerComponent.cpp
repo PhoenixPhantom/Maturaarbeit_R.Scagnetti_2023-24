@@ -14,8 +14,8 @@
 // Sets default values for this component's properties
 UCharacterRotationManagerComponent::UCharacterRotationManagerComponent() :
 	CharacterRotationMode(ECharacterRotationMode::OrientToMovement),
-	OldCharacterRotationMode(ECharacterRotationMode::FlickBack),
-	OpponentCharacter(nullptr), OpponentController(nullptr), OldTarget(nullptr)
+	StoredCharacterRotationMode(ECharacterRotationMode::FlickBack),
+	OpponentCharacter(nullptr), OpponentController(nullptr), StoredTarget(nullptr)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
@@ -34,6 +34,15 @@ void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLo
 		float LongestDistanceToLookGoal;
 		FVector DirectionToLookGoal;
 		CurrentToLookGoal.ToDirectionAndLength(DirectionToLookGoal, LongestDistanceToLookGoal);
+
+		//Everything following isn't reliable when we are too close to the target but with 5m distance it is definitely
+		//a good idea to look at an attacker closely
+		constexpr float TooCloseDistance = 500.f;
+		if(LongestDistanceToLookGoal <= TooCloseDistance)
+		{
+			SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
+			return;
+		}
 
 		//determine the truly furthest away point
 		for(const FNavPathPoint& PathPoint : NavPath->Get()->GetPathPoints())
@@ -61,7 +70,7 @@ void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLo
 			//Walking in the direction of the player
 			if(AngleToTarget <= RelevantAngle && AngleToTarget >= 0.f)
 			{
-				SetRotationMode(ECharacterRotationMode::OrientToTarget, true, LookAtGoal);
+				SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
 				return;
 			}
 			//Walking away from the player
@@ -70,14 +79,14 @@ void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLo
 				//only when walking short distances it makes sense to walk backwards
 				if(DistanceFromTarget <= MaxBackwardsDistance)
 				{
-					SetRotationMode(ECharacterRotationMode::OrientToTarget, true, LookAtGoal);
+					SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
 					return;
 				}
 			}
 		}		
 	}
 	
-	SetRotationMode(ECharacterRotationMode::OrientToMovement, true);
+	SetRotationMode(ECharacterRotationMode::OrientToMovement, false);
 }
 
 void UCharacterRotationManagerComponent::SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack,
@@ -89,30 +98,15 @@ void UCharacterRotationManagerComponent::SetRotationMode(ECharacterRotationMode 
 		if(!IsValid(OpponentController)) return;
 	}
 
-
-	//Store the relevant values so we can reset to the current state later
-	if(StoreForFlickBack)
-	{
-		OldCharacterRotationMode = CharacterRotationMode;
-		if(CharacterRotationMode == ECharacterRotationMode::OrientToTarget)
-		{
-			OldTarget = OpponentController->GetFocusActor();
-		}		
-	}
-	else if(NewRotationMode != ECharacterRotationMode::FlickBack)
-	{
-		OldCharacterRotationMode = ECharacterRotationMode::FlickBack; //== invalid (in this context)
-		OldTarget = nullptr;
-	}
-
 	//TODO: transition is sometimes too fast
 	switch(NewRotationMode)
 	{
 	case ECharacterRotationMode::OrientToMovement:
 		{
-			OpponentCharacter->GetCharacterMovement()->bUseControllerDesiredRotation = false;
+			OpponentCharacter->GetCharacterMovement()->bUseControllerDesiredRotation = true;
 			OpponentCharacter->GetCharacterMovement()->bOrientRotationToMovement = true;
-			OpponentCharacter->bUseControllerRotationYaw = false;
+			OpponentController->bSetControlRotationFromPawnOrientation = true;
+			OpponentController->ClearFocus(EAIFocusPriority::Gameplay);
 			break;
 		}
 	case ECharacterRotationMode::OrientToTarget:
@@ -120,17 +114,28 @@ void UCharacterRotationManagerComponent::SetRotationMode(ECharacterRotationMode 
 			check(IsValid(NewTarget));
 			OpponentCharacter->GetCharacterMovement()->bUseControllerDesiredRotation = true;
 			OpponentCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
-			OpponentCharacter->bUseControllerRotationYaw = true;
+			OpponentController->bSetControlRotationFromPawnOrientation = false;
 			OpponentController->SetFocus(NewTarget);
 			break;
 		}
 	case ECharacterRotationMode::FlickBack:
 		{
-			if(OldCharacterRotationMode == ECharacterRotationMode::FlickBack) return;
-			SetRotationMode(OldCharacterRotationMode, false, OldTarget);
+			if(StoredCharacterRotationMode == ECharacterRotationMode::FlickBack) return;
+			SetRotationMode(StoredCharacterRotationMode, false, StoredTarget);
 		}
 		break;
 	default: checkNoEntry();
+	}
+	CharacterRotationMode = NewRotationMode;
+
+	//Store the relevant values so we can reset to the current state later
+	if(StoreForFlickBack)
+	{
+		StoredCharacterRotationMode = CharacterRotationMode;
+		if(CharacterRotationMode == ECharacterRotationMode::OrientToTarget)
+		{
+			StoredTarget = OpponentController->GetFocusActor();
+		}		
 	}
 }
 

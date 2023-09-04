@@ -32,7 +32,7 @@ public:
 
 protected:
 	ECharacterRotationMode CharacterRotationMode;
-	ECharacterRotationMode OldCharacterRotationMode;
+	ECharacterRotationMode StoredCharacterRotationMode;
 	
 	UPROPERTY()
 	AOpponentCharacter* OpponentCharacter;
@@ -41,7 +41,7 @@ protected:
 	AAIController* OpponentController;
 
 	UPROPERTY()
-	AActor* OldTarget;
+	AActor* StoredTarget;
 	
 	virtual void BeginPlay() override;
 };

@@ -16,4 +16,13 @@ class MAPROJECT_API UBTTask_UpdateTargetLocation : public UBTTask_BlackboardBase
 public:
 	UBTTask_UpdateTargetLocation();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+protected:
+	float LastTimestamp;
+
+	UPROPERTY(EditAnywhere)
+	float MinDelayTime;
+
+	UPROPERTY(EditAnywhere)
+	float MaxDelayTime;
 };

@@ -98,12 +98,12 @@ void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPl
 	if(!IsValid(NewOpponent))
 	{
 		TargetPlayer = DistanceFromTargetPassive.AnchorController = nullptr;
-		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToMovement, false);
+		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToMovement, true);
 	}
 	else
 	{
 		TargetPlayer = DistanceFromTargetPassive.AnchorController = NewOpponent;
-		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToTarget, false,
+		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToTarget, true,
 			GetTargetPlayer());
 	}
 }
