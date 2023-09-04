@@ -18,6 +18,7 @@ class AOpponentController;
 class USavableObjectMarkerComponent;
 class UTargetInformationComponent;
 class UAdvancedCharacterMovementComponent;
+class UCharacterRotationManagerComponent;
 
 struct FSetFieldOfViewKey final
 {
@@ -94,6 +95,9 @@ public:
 	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; };
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
+	AActor* GetTargetPlayer() const { return IsValid(TargetPlayer) ? TargetPlayer->GetPawn() : nullptr; }
+	UAdvancedCharacterMovementComponent* GetAdvancedCharacterMovement() const{ return AdvancedCharacterMovementComponent; }
+	UCharacterRotationManagerComponent* GetCharacterRotationManager() const { return RotationManagerComponent; }
 	AController* GetRegisteredPlayerOpponent() const;
 	void RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key);
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
@@ -114,6 +118,9 @@ protected:
 
 	UPROPERTY()
 	UAdvancedCharacterMovementComponent* AdvancedCharacterMovementComponent;
+
+	UPROPERTY()
+	UCharacterRotationManagerComponent* RotationManagerComponent;
 
 
 	UPROPERTY()

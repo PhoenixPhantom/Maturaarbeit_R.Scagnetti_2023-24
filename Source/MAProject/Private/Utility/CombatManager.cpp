@@ -24,7 +24,7 @@ ACombatManager::ACombatManager() : MaxAggressionTokens(1), PreferBestScorePower(
 #endif
 }
 
-ECombatParticipantStatus ACombatManager::IsParticipant(AFighterCharacter* Character) const
+ECombatParticipantStatus ACombatManager::GetParticipationStatus(AFighterCharacter* Character) const
 {
 	if(Character == PlayerCharacter) return ECombatParticipantStatus::Player;
 	if(PassiveParticipants.Contains(Character)) return ECombatParticipantStatus::Passive;
@@ -39,7 +39,7 @@ void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipa
 
 bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
-	if(ECombatParticipantStatus::NotRegistered != IsParticipant(Participant)) return false;
+	if(ECombatParticipantStatus::NotRegistered != GetParticipationStatus(Participant)) return false;
 	PassiveParticipants.Add(Participant);
 	AttemptDistributeRemainingTokens();
 	return true;

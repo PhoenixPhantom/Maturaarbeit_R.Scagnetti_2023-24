@@ -12,12 +12,19 @@ UAdvancedCharacterMovementComponent::UAdvancedCharacterMovementComponent() : bWa
 FRotator UAdvancedCharacterMovementComponent::ComputeOrientToMovementRotation(const FRotator& CurrentRotation,
 	float DeltaTime, FRotator& DeltaRotation) const
 {
-	FRotator Result = Super::ComputeOrientToMovementRotation(CurrentRotation, DeltaTime, DeltaRotation);
-	if(bWalkBackwards)
+	if (Acceleration.SizeSquared() < UE_KINDA_SMALL_NUMBER)
 	{
-		DeltaRotation = (DeltaRotation - FRotator(180.f, 180.f, 180.f)).GetNormalized();
-		Result = (DeltaRotation - FRotator(180.f, 180.f, 180.f)).GetNormalized();
+		// AI path following request can orient us in that direction (it's effectively an acceleration)
+		if (bHasRequestedVelocity && RequestedVelocity.SizeSquared() > UE_KINDA_SMALL_NUMBER)
+		{
+			return (bWalkBackwards ? -RequestedVelocity : RequestedVelocity).GetSafeNormal().Rotation();
+		}
+
+		// Don't change rotation if there is no acceleration.
+		return CurrentRotation;
 	}
-	return Result;
+
+	// Rotate toward direction of acceleration.
+	return (bWalkBackwards ? -Acceleration : Acceleration).GetSafeNormal().Rotation();
 }
 

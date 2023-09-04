@@ -87,6 +87,9 @@ protected:
 	UFUNCTION()
 	void OnAggressionTokenReleased();
 
+	UFUNCTION()
+	void OnFlickBackTriggered(FAIRequestID RequestID, EPathFollowingResult::Type Result);
+
 
 #if WITH_EDITORONLY_DATA
 	bool bIsDebugging = false;

@@ -11,6 +11,7 @@
 #include "Components/WidgetComponent.h"
 #include "UserInterface/HUD/Worldspace/PlayerFacingWidgetComponent.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
+#include "Utility/NonPlayerFunctionality/CharacterRotationManagerComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
 
@@ -21,6 +22,10 @@ AOpponentCharacter::AOpponentCharacter(const FObjectInitializer& ObjectInitializ
 {
 	AdvancedCharacterMovementComponent = CastChecked<UAdvancedCharacterMovementComponent>(GetCharacterMovement());
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
+
+
+	RotationManagerComponent = CreateDefaultSubobject<UCharacterRotationManagerComponent>(TEXT("RotationManagerComp"));
+	RotationManagerComponent->SetupAttachment(RootComponent);
 	
 	RequiredSpaceActiveCombat = CreateDefaultSubobject<USphereComponent>(TEXT("ActiveCombatSize"));
 	RequiredSpaceActiveCombat->SetupAttachment(GetMesh());
@@ -93,10 +98,13 @@ void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPl
 	if(!IsValid(NewOpponent))
 	{
 		TargetPlayer = DistanceFromTargetPassive.AnchorController = nullptr;
+		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToMovement, false);
 	}
 	else
 	{
 		TargetPlayer = DistanceFromTargetPassive.AnchorController = NewOpponent;
+		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToTarget, false,
+			GetTargetPlayer());
 	}
 }
 
@@ -145,14 +153,12 @@ bool AOpponentCharacter::CanAttack() const
 
 void AOpponentCharacter::SetUseActiveCombatSpace()
 {
-	AdvancedCharacterMovementComponent->SetWalkBackwards(false);
 	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }
 
 void AOpponentCharacter::SetUsePassiveSpace()
 {
-	AdvancedCharacterMovementComponent->SetWalkBackwards(true);
 	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }

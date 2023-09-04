@@ -13,6 +13,7 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"
+#include "Utility/NonPlayerFunctionality/CharacterRotationManagerComponent.h"
 #include "Utility/NonPlayerFunctionality/MovementTarget.h"
 
 void FAIMoveRequestExpanded::ForceSetGoalActor(const AActor* InGoalActor)
@@ -57,7 +58,7 @@ void AOpponentController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
 {
 	//If the controlled character is participating in combat
-	if(const ECombatParticipantStatus ParticipantStatus = CombatManager->IsParticipant(ControlledOpponent);
+	if(const ECombatParticipantStatus ParticipantStatus = CombatManager->GetParticipationStatus(ControlledOpponent);
 		ParticipantStatus != ECombatParticipantStatus::NotRegistered)
 	{
 		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
@@ -121,7 +122,7 @@ bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
 
 bool AOpponentController::IsValidTargetLocation(const FVector& TargetLocation) const
 {
-	const ECombatParticipantStatus ParticipantStatus = CombatManager->IsParticipant(ControlledOpponent);
+	const ECombatParticipantStatus ParticipantStatus = CombatManager->GetParticipationStatus(ControlledOpponent);
 	if(ParticipantStatus == ECombatParticipantStatus::NotRegistered) return false;
 	
 	bool RequireNavData = false;
@@ -177,7 +178,20 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 			MoveRequest.GetGoalActor()->GetSimpleCollisionRadius());
 	}
 	else ModifiedRequest.ForceSetGoalActor(MoveRequest.GetGoalActor());
-	return Super::MoveTo(ModifiedRequest, OutPath);
+
+	//Out path only gets written to if it is valid
+	if(OutPath == nullptr || !OutPath->IsValid())
+	{
+		*OutPath = MakeShared<FNavigationPath, ESPMode::ThreadSafe>();
+	}
+
+	const FPathFollowingRequestResult PathFollowingRequestResult = Super::MoveTo(ModifiedRequest, OutPath);
+	
+	//Use the original request, as the new one generally doesn't contain the "actual" target position
+	//(as it interpolates to the new target position over time)
+	ControlledOpponent->GetCharacterRotationManager()->SwitchToOptimal(MoveRequest.GetGoalLocation(), OutPath);
+
+	return  PathFollowingRequestResult;
 }
 
 float AOpponentController::GetFieldOfView() const
@@ -194,6 +208,8 @@ void AOpponentController::BeginPlay()
 	TArray<AActor*> Actors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACombatManager::StaticClass(), Actors);
 	CombatManager = CastChecked<ACombatManager>(Actors[0]);
+
+	ReceiveMoveCompleted.AddDynamic(this, &AOpponentController::OnFlickBackTriggered);
 }
 
 void AOpponentController::OnPossess(APawn* InPawn)
@@ -213,16 +229,20 @@ void AOpponentController::OnPossess(APawn* InPawn)
 	ControlledOpponent->GetOnAggressionTokensReleased(FEditOnAggressionTokensGrantedOrReleasedKey()).
 		AddDynamic(this, &AOpponentController::OnAggressionTokenReleased);
 
+	
+	SetActorLabel(ControlledOpponent->GetActorNameOrLabel() + " Controller");
+
 	//Setup move target
 	if(!IsValid(MoveTarget))
 	{
 		FActorSpawnParameters SpawnParameters;
 		SpawnParameters.Owner = this;
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnParameters.Name = ToCStr(GetPawn()->GetName() + "_MovementTarget");
+		SpawnParameters.Name = ToCStr(GetActorNameOrLabel() + "_MovementTarget");
 		MoveTarget = GetWorld()->SpawnActor<AMovementTarget>(AMovementTarget::StaticClass(), SpawnParameters);
-
 	}
+	
+	MoveTarget->SetActorLabel(ControlledOpponent->GetActorNameOrLabel() + " MovementTarget");
 	MoveTarget->SetActorLocation(GetPawn()->GetActorLocation());
 }
 
@@ -286,6 +306,11 @@ void AOpponentController::OnAggressionTokenReleased()
 {
 	Blackboard->SetValueAsBool("IsActiveCombat", false);
 	CombatManager->ReleaseAggressionTokens(ControlledOpponent, FManageAggressionTokensKey());
+}
+
+void AOpponentController::OnFlickBackTriggered(FAIRequestID RequestID, EPathFollowingResult::Type Result)
+{
+	ControlledOpponent->GetCharacterRotationManager()->SetRotationMode(ECharacterRotationMode::FlickBack);
 }
 
 #if WITH_EDITORONLY_DATA

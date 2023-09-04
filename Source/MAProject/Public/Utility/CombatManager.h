@@ -67,7 +67,7 @@ public:
 	ACombatManager();
 
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
-	ECombatParticipantStatus IsParticipant(AFighterCharacter* Character) const;
+	ECombatParticipantStatus GetParticipationStatus(AFighterCharacter* Character) const;
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);
 	bool RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key);
