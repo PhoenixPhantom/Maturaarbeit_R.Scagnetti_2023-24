@@ -173,11 +173,13 @@ protected:
 
 namespace CustomHelperFunctions
 {
-	static bool ShapeTraceMultiByProfile(UWorld* WorldContext, UShapeComponent* ShapeComponent, FName ProfileName,
-	const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults);
+	static bool ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent,
+										  const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
+										  const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults);
 
-	static bool ShapeTraceMultiByProfile(UWorld* WorldContext, UShapeComponent* ShapeComponent, FVector Location,
-		FName ProfileName, const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults);
+	static bool ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent, FVector Location,
+	                                      const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectType,
+	                                      const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults);
 
 	/**
 	 * @brief Gets the closest valid point by sampling the environment in circles

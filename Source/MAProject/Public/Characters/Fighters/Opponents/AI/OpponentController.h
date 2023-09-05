@@ -40,7 +40,7 @@ class MAPROJECT_API AOpponentController : public AAIController
 {
 	GENERATED_BODY()
 public:
-	AOpponentController();
+	AOpponentController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

@@ -9,6 +9,7 @@
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Components/ShapeComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
@@ -32,7 +33,9 @@ void FAIMoveRequestExpanded::ForceSetGoalLocation(const FVector& InGoalLocation)
 	bInitialized = true;
 }
 
-AOpponentController::AOpponentController() : ForwardSampleNumber(25.f), DefaultBehaviorTree(nullptr)
+AOpponentController::AOpponentController(const FObjectInitializer& ObjectInitializer) :
+Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent"))),
+ForwardSampleNumber(25.f), DefaultBehaviorTree(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = true; //necessary for pawn orientation
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
@@ -89,7 +92,7 @@ bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
 		
 		FObstacleSpaceConstraint ObstacleSpaceConstraint(ControlledOpponent->GetRequiredSpace(),
 			{CombatManager->GetPlayerCharacter(), ControlledOpponent},
-			PlayerDistanceConstraint.GetMaxMatchLevel() + PlayerZoneConstraint.GetMaxMatchLevel() + 1);
+			PlayerDistanceConstraint.GetMaxMatchLevel() + PlayerZoneConstraint.GetMaxMatchLevel() - 1);
 
 
 		

@@ -25,8 +25,8 @@ uint8 FObstacleSpaceConstraint::GetMatchLevel(const FVector& Position, bool Requ
 	check(IsValid(RequiredSpace) && IsValid(RequiredSpace->GetWorld()));
 	
 	TArray<FHitResult> HitResults;
-	CustomHelperFunctions::ShapeTraceMultiByProfile(RequiredSpace->GetWorld(), RequiredSpace, Position,
-		"PawnScanner", IrrelevantObstacles, HitResults);
+	CustomHelperFunctions::ShapeTraceMultiForObjects(RequiredSpace->GetWorld(), RequiredSpace, Position,
+		{UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn)}, IrrelevantObstacles, HitResults);
 	if(HitResults.IsEmpty()) return MatchLevelFactor;
 	return 0;
 }
@@ -193,29 +193,31 @@ void FPlayerRelativeWorldZoneConstraint::DrawOldConstraintDebugStatic(UWorld* Wo
 
 namespace CustomHelperFunctions
 {
-	bool ShapeTraceMultiByProfile(UWorld* WorldContext, UShapeComponent* ShapeComponent, FName ProfileName,
-		const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults)
+	bool ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent,
+		const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes, const TArray<AActor*>& ActorsToIgnore,
+		TArray<FHitResult>& HitResults)
 	{
-		return ShapeTraceMultiByProfile(WorldContext, ShapeComponent, ShapeComponent->GetComponentLocation(), ProfileName,
-			ActorsToIgnore, HitResults);
+		return ShapeTraceMultiForObjects(WorldContext, ShapeComponent, ShapeComponent->GetComponentLocation(), ObjectTypes,
+		                                 ActorsToIgnore, HitResults);
 	}
 
-	bool ShapeTraceMultiByProfile(UWorld* WorldContext, UShapeComponent* ShapeComponent, FVector Location,
-		FName ProfileName, const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults)
+	bool ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent, FVector Location,
+	                               const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
+	                               const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults)
 	{
 		if(ShapeComponent->IsA(USphereComponent::StaticClass()))
 		{
 			const USphereComponent* SphereComponent = CastChecked<USphereComponent>(ShapeComponent);
-			return UKismetSystemLibrary::SphereTraceMultiByProfile(WorldContext, Location,
-				Location, SphereComponent->GetScaledSphereRadius(), ProfileName,
+			return UKismetSystemLibrary::SphereTraceMultiForObjects(WorldContext, Location,
+				Location, SphereComponent->GetScaledSphereRadius(), ObjectTypes,
 				true, ActorsToIgnore, EDrawDebugTrace::None, HitResults, true);
 		}
 		if(ShapeComponent->IsA(UBoxComponent::StaticClass()))
 		{
 			const UBoxComponent* BoxComponent = CastChecked<UBoxComponent>(ShapeComponent);
-			return UKismetSystemLibrary::BoxTraceMultiByProfile(WorldContext, Location,
+			return UKismetSystemLibrary::BoxTraceMultiForObjects(WorldContext, Location,
 				Location, BoxComponent->GetScaledBoxExtent(),
-				BoxComponent->GetComponentRotation(), ProfileName,
+				BoxComponent->GetComponentRotation(), ObjectTypes,
 				true, ActorsToIgnore, EDrawDebugTrace::None, HitResults, true);
 		}
 		unimplemented();
