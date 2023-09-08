@@ -40,6 +40,9 @@ ForwardSampleNumber(25.f), DefaultBehaviorTree(nullptr)
 	PrimaryActorTick.bCanEverTick = true; //necessary for pawn orientation
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
 
+	CrowdFollowingComponent =
+		Cast<UCrowdFollowingComponent>(GetComponentByClass(UCrowdFollowingComponent::StaticClass()));
+
 	//Register OnPerceptionUpdated delegate
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AOpponentController::OnTargetPerceptionUpdated);
 	
@@ -165,7 +168,14 @@ bool AOpponentController::IsValidTargetLocation(const FVector& TargetLocation) c
 
 FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
 {
-	if(!IsValid(MoveTarget)) return Super::MoveTo(MoveRequest, OutPath);
+	//Smooth transitions are only required in combat as that is also the place where quick changes to the target location
+	//can be made
+	if(!IsValid(MoveTarget) ||
+		CombatManager->GetParticipationStatus(ControlledOpponent) != ECombatParticipantStatus::Active)
+	{
+		MoveTarget->SetMovementTargetLocation(FAISystem::InvalidLocation, FSetMovementTargetKey());
+		return Super::MoveTo(MoveRequest, OutPath);
+	}
 
 	FAIMoveRequestExpanded ModifiedRequest = MoveRequest;
 	if(!MoveRequest.IsMoveToActorRequest())
@@ -195,6 +205,8 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 		//Use the original request, as the new one generally doesn't contain the "actual" target position
 		//(as it interpolates to the new target position over time)
 		ControlledOpponent->GetCharacterRotationManager()->SwitchToOptimal(MoveRequest.GetGoalLocation(), OutPath);
+		CrowdFollowingComponent->SetCrowdObstacleAvoidance(
+			CombatManager->GetParticipationStatus(ControlledOpponent) == ECombatParticipantStatus::Active);
 	}
 
 	return  PathFollowingRequestResult;

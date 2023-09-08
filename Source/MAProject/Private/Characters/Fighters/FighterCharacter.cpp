@@ -124,15 +124,7 @@ void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable
 	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.Remove(BoneToDisable);
 }
 
-void AFighterCharacter::SwitchMovementToWalk() const
-{
-	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->WalkSpeed.GetResulting();
-}
 
-void AFighterCharacter::SwitchMovementToRun() const
-{
-	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->RunSpeed.GetResulting();
-}
 
 void AFighterCharacter::MakeInvincible(float InvincibilityTime)
 {
@@ -223,6 +215,16 @@ bool AFighterCharacter::ExecuteAttack(const FAttackProperties& AttackProperties)
 	return true;
 }
 
+void AFighterCharacter::SwitchMovementToWalk(FSetWalkOrRunKey) const
+{
+	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->WalkSpeed.GetResulting();
+}
+
+void AFighterCharacter::SwitchMovementToRun(FSetWalkOrRunKey) const
+{
+	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->RunSpeed.GetResulting();
+}
+
 void AFighterCharacter::ExecuteAttack(int32 Index)
 {
 	CharacterStats->ExecuteAttack(Index);
@@ -237,7 +239,7 @@ void AFighterCharacter::BeginPlay()
 	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
 	CharacterStats->OnGetHit.AddDynamic(this, &AFighterCharacter::OnGetHit);
 	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
-	SwitchMovementToWalk();
+	SwitchMovementToWalk(FSetWalkOrRunKey());
 }
 
 bool AFighterCharacter::OnCheckCanExecuteAttack(const FAttackProperties& Properties)

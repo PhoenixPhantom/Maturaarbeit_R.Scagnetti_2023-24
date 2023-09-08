@@ -11,6 +11,7 @@
 #include "Components/WidgetComponent.h"
 #include "UserInterface/HUD/Worldspace/PlayerFacingWidgetComponent.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
+#include "Utility/Navigation/PatrolManagerComponent.h"
 #include "Utility/NonPlayerFunctionality/CharacterRotationManagerComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Savegame/SavableObjectMarkerComponent.h"
@@ -22,7 +23,7 @@ AOpponentCharacter::AOpponentCharacter(const FObjectInitializer& ObjectInitializ
 {
 	AdvancedCharacterMovementComponent = CastChecked<UAdvancedCharacterMovementComponent>(GetCharacterMovement());
 	SavableObjectMarkerComponent = CreateDefaultSubobject<USavableObjectMarkerComponent>(TEXT("SavableObjectMarkerComp"));
-
+	PatrolManagerComponent = CreateDefaultSubobject<UPatrolManagerComponent>(TEXT("PatrolManagerComp"));
 
 	RotationManagerComponent = CreateDefaultSubobject<UCharacterRotationManagerComponent>(TEXT("RotationManagerComp"));
 	RotationManagerComponent->SetupAttachment(RootComponent);

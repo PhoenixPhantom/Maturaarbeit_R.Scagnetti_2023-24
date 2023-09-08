@@ -12,6 +12,15 @@ class UBoneSoundResponseConfig;
 class UTargetInformationComponent;
 class UNiagaraSystem;
 
+struct FSetWalkOrRunKey final
+{
+	friend class UBTTask_CustomMoveTo;
+	friend class AFighterCharacter;
+	friend class APlayerCharacter;
+private:
+	FSetWalkOrRunKey(){}
+};
+
 struct FMeleeControlsKey final
 {
 	friend class UAnimNotifyState_MeleeAttack;
@@ -50,6 +59,9 @@ public:
 		{ AvailableAttacks = CharacterStats->AvailableAttacks; }
 	bool ExecuteAttack(const FAttackProperties& AttackProperties);
 	
+	void SwitchMovementToWalk(FSetWalkOrRunKey) const;
+	void SwitchMovementToRun(FSetWalkOrRunKey) const;
+	
 	UFUNCTION(BlueprintCallable, Category = Combat)
 	void ExecuteAttack(int32 Index);
 	
@@ -87,9 +99,6 @@ protected:
 	float HitFXRadius;
 
 	virtual void BeginPlay() override;
-	
-	void SwitchMovementToWalk() const;
-	void SwitchMovementToRun() const;
 
 	virtual void MakeInvincible(float InvincibilityTime);
 	void EndInvincibility();

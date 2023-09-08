@@ -10,7 +10,7 @@ bool operator==(const FMovementProperties& Comp1, const FMovementProperties& Com
 }
 
 FInputLimits::FInputLimits() : LimiterType(EInputType::Force), LimitationDuration(0.f), bCanAttack(true),
-                               bCanGetStaggered(true), bCanSprint(true), bFreeCameraAdjustment(true), bCanSwitchOut(true)
+                               bCanGetStaggered(true), bCanRun(true), bFreeCameraAdjustment(true), bCanSwitchOut(true)
 {
 	MovementProperties.bCanCrouch = true;
 	MovementProperties.bCanFly = true;
@@ -25,35 +25,35 @@ FInputLimits::FInputLimits(const EInputType Input) : LimiterType(Input), Limitat
 	{
 	case EInputType::Jump:
 		{
-			bCanSprint = bCanAttack = bCanSwitchOut  = MovementProperties.bCanJump =
+			bCanRun = bCanAttack = bCanSwitchOut  = MovementProperties.bCanJump =
 				MovementProperties.bCanSwim = MovementProperties.bCanCrouch = false;
 			bFreeCameraAdjustment = bCanGetStaggered = MovementProperties.bCanFly = MovementProperties.bCanWalk = true;
 			break;
 		}
 		case EInputType::Attack:
 			{
-				bCanSprint = bCanAttack = bCanSwitchOut = MovementProperties.bCanFly = MovementProperties.bCanJump =
+				bCanRun = bCanAttack = bCanSwitchOut = MovementProperties.bCanFly = MovementProperties.bCanJump =
 					MovementProperties.bCanSwim = MovementProperties.bCanWalk = false;
 				bFreeCameraAdjustment = MovementProperties.bCanCrouch = bCanGetStaggered = true;
 				break;
 			}
 		case EInputType::Stagger:
 			{
-				bCanSprint = bCanAttack = bCanSwitchOut = MovementProperties.bCanFly = MovementProperties.bCanJump =
+				bCanRun = bCanAttack = bCanSwitchOut = MovementProperties.bCanFly = MovementProperties.bCanJump =
 					MovementProperties.bCanSwim = MovementProperties.bCanWalk = MovementProperties.bCanCrouch = false;
 				bFreeCameraAdjustment = bCanGetStaggered = true;
 				break;
 			}
 		case EInputType::Death:
 			{
-				bCanSprint = bCanAttack = bCanSwitchOut = bFreeCameraAdjustment = MovementProperties.bCanFly =
+				bCanRun = bCanAttack = bCanSwitchOut = bFreeCameraAdjustment = MovementProperties.bCanFly =
 					MovementProperties.bCanJump = MovementProperties.bCanSwim = MovementProperties.bCanWalk =
 					MovementProperties.bCanCrouch = bCanGetStaggered = false;
 				break;
 			}
 	case EInputType::Force:
 			{
-				bCanSprint = bCanAttack = bCanSwitchOut = bFreeCameraAdjustment = MovementProperties.bCanFly =
+				bCanRun = bCanAttack = bCanSwitchOut = bFreeCameraAdjustment = MovementProperties.bCanFly =
 					MovementProperties.bCanJump = MovementProperties.bCanSwim = MovementProperties.bCanWalk =
 					MovementProperties.bCanCrouch = bCanGetStaggered = true;
 			}
@@ -69,7 +69,7 @@ FInputLimits::FInputLimits(const EInputType Input) : LimiterType(Input), Limitat
 
 FInputLimits::FInputLimits(const EInputType Input, bool SetAll) : LimiterType(Input), LimitationDuration(0.f)
 {
-	bCanSprint = bCanAttack = bCanSwitchOut = bFreeCameraAdjustment = MovementProperties.bCanFly =
+	bCanRun = bCanAttack = bCanSwitchOut = bFreeCameraAdjustment = MovementProperties.bCanFly =
 					MovementProperties.bCanJump = MovementProperties.bCanSwim = MovementProperties.bCanWalk =
 					MovementProperties.bCanCrouch = bCanGetStaggered = SetAll;
 }
@@ -81,7 +81,7 @@ FInputLimits::FInputLimits(const EInputType Input, float LimitationTime) : FInpu
 
 FInputLimits::FInputLimits(const EInputType Input, float LimitationTime, const FAcceptedInputs& AcceptedInputs) :
 	LimiterType(Input), LimitationDuration(LimitationTime), bCanAttack(AcceptedInputs.bCanAttack),
-	bCanGetStaggered(AcceptedInputs.bCanGetStaggered), bCanSprint(AcceptedInputs.bCanSprint),
+	bCanGetStaggered(AcceptedInputs.bCanGetStaggered), bCanRun(AcceptedInputs.bCanRun),
 	bFreeCameraAdjustment(AcceptedInputs.bFreeCameraAdjustment), bCanSwitchOut(AcceptedInputs.bCanSwitchOut),
 	MovementProperties(AcceptedInputs.MovementProperties)
 {}
@@ -91,11 +91,11 @@ bool FInputLimits::operator==(const FInputLimits& Compare) const
 	//we have to do this manually as MovementProperties doesn't have a == operator
 	return LimiterType == Compare.LimiterType && LimitationDuration == Compare.LimitationDuration &&
 		bCanAttack == Compare.bCanAttack && bCanGetStaggered == Compare.bCanGetStaggered &&
-		bCanSprint == Compare.bCanSprint && bCanSwitchOut == Compare.bCanSwitchOut &&
+		bCanRun == Compare.bCanRun && bCanSwitchOut == Compare.bCanSwitchOut &&
 		MovementProperties == Compare.MovementProperties;
 }
 
-FAcceptedInputs::FAcceptedInputs() : bCanAttack(true), bCanGetStaggered(true), bCanSprint(true),
+FAcceptedInputs::FAcceptedInputs() : bCanAttack(true), bCanGetStaggered(true), bCanRun(true),
 	bFreeCameraAdjustment(true), bCanSwitchOut(true), DefaultLimits(EInputType::Force, true)
 {
 	MovementProperties.bCanJump = true;
@@ -106,7 +106,7 @@ FAcceptedInputs::FAcceptedInputs() : bCanAttack(true), bCanGetStaggered(true), b
 }
 
 FAcceptedInputs::FAcceptedInputs(const FAcceptedInputs& AvailableInputs) : bCanAttack(AvailableInputs.bCanAttack),
-            bCanGetStaggered(AvailableInputs.bCanGetStaggered), bCanSprint(AvailableInputs.bCanSprint),
+            bCanGetStaggered(AvailableInputs.bCanGetStaggered), bCanRun(AvailableInputs.bCanRun),
             bFreeCameraAdjustment(AvailableInputs.bFreeCameraAdjustment), bCanSwitchOut(AvailableInputs.bCanSwitchOut),
 			DefaultLimits(EInputType::Force)
 {
@@ -145,7 +145,7 @@ bool FAcceptedInputs::CanOverrideCurrentInput(const EInputType InputType) const
 	switch(InputType)
 	{
 		case EInputType::Walk: { IsAllowed = MovementProperties.bCanWalk; break; }
-		case EInputType::Sprint: { IsAllowed = bCanSprint; break; }
+		case EInputType::Sprint: { IsAllowed = bCanRun; break; }
 		case EInputType::Camera: { IsAllowed = bFreeCameraAdjustment; break; }
 		case EInputType::Jump: { IsAllowed = MovementProperties.bCanJump; break; }
 		case EInputType::Attack: { IsAllowed = bCanAttack; break; }
@@ -162,7 +162,7 @@ void FAcceptedInputs::SetDefaultLimits(const FInputLimits& NewDefaultLimits)
 {
 	DefaultLimits.bCanAttack = bCanAttack;
 	DefaultLimits.bCanGetStaggered = bCanGetStaggered;
-	DefaultLimits.bCanSprint = bCanSprint;
+	DefaultLimits.bCanRun = bCanRun;
 	DefaultLimits.bCanSwitchOut = bCanSwitchOut;
 	DefaultLimits.bFreeCameraAdjustment = bFreeCameraAdjustment;
 	DefaultLimits.MovementProperties = MovementProperties;
@@ -188,7 +188,7 @@ void FAcceptedInputs::ResetLimits(UWorld* World, bool IsLimitDurationOver)
 bool FAcceptedInputs::IsAlreadyReset() const
 {
 	return DefaultLimits.bCanAttack == bCanAttack && DefaultLimits.bCanGetStaggered == bCanGetStaggered &&
-		DefaultLimits.bCanSprint == bCanSprint && DefaultLimits.bCanSwitchOut == bCanSwitchOut &&
+		DefaultLimits.bCanRun == bCanRun && DefaultLimits.bCanSwitchOut == bCanSwitchOut &&
 		DefaultLimits.bFreeCameraAdjustment == bFreeCameraAdjustment &&
 		DefaultLimits.MovementProperties == MovementProperties;
 }
@@ -197,7 +197,7 @@ void FAcceptedInputs::EnactLimits(const FInputLimits& InputLimits)
 {
 	bCanAttack = InputLimits.bCanAttack;
 	bCanGetStaggered = InputLimits.bCanGetStaggered;
-	bCanSprint = InputLimits.bCanSprint;
+	bCanRun = InputLimits.bCanRun;
 	bCanSwitchOut = InputLimits.bCanSwitchOut;
 	bFreeCameraAdjustment = InputLimits.bFreeCameraAdjustment;
 	MovementProperties = InputLimits.MovementProperties;

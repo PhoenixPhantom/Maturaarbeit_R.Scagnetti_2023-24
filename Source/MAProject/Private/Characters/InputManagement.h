@@ -61,7 +61,7 @@ struct FInputLimits
 	uint8 bCanGetStaggered:1;
 
 	UPROPERTY(EditAnywhere)
-	uint8 bCanSprint:1;
+	uint8 bCanRun:1;
 	
 	UPROPERTY(EditAnywhere)
 	uint8 bFreeCameraAdjustment:1;
@@ -81,7 +81,7 @@ struct FAcceptedInputs
 	
 	uint8 bCanAttack:1;
 	uint8 bCanGetStaggered:1;
-	uint8 bCanSprint:1;
+	uint8 bCanRun:1;
 	uint8 bFreeCameraAdjustment:1;
 	uint8 bCanSwitchOut:1;
 	FMovementProperties MovementProperties;

@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "MovementTarget.generated.h"
 
+class USphereComponent;
+
 struct FSetMovementTargetKey final
 {
 	friend class AOpponentController;
@@ -28,7 +30,7 @@ public:
 	AActor* GetTargetActor() const { return TargetActor; }
 
 	void SetBlendTime(float NewBlendTime, FSetMovementTargetKey Key) { BlendTime = NewBlendTime; }
-	void SetMovementTargetLocation(FVector NewTargetLocation, FSetMovementTargetKey Key){ TargetLocation = NewTargetLocation; }
+	void SetMovementTargetLocation(const FVector& NewTargetLocation, FSetMovementTargetKey Key);
 	void SetTargetActor(AActor* NewTargetActor, FSetMovementTargetKey Key){ TargetActor = NewTargetActor; }
 
 #if WITH_EDITORONLY_DATA
@@ -51,5 +53,8 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	float MaxVelocity;
+
+	UPROPERTY(EditAnywhere)
+	USphereComponent* SphereComponent;
 
 };

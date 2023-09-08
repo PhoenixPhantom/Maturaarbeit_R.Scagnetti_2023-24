@@ -10,6 +10,7 @@ class AOpponentCharacter;
 class UAISenseConfig_Sight;
 class AMovementTarget;
 class ACombatManager;
+class UCrowdFollowingComponent;
 
 struct FReleaseTokenKey final
 {
@@ -65,7 +66,9 @@ protected:
 	ACombatManager* CombatManager;
 	UPROPERTY()
 	AOpponentCharacter* ControlledOpponent;
-
+	UPROPERTY()
+	UCrowdFollowingComponent* CrowdFollowingComponent;
+	
 	UPROPERTY(EditAnywhere)
 	float ForwardSampleNumber;
 	

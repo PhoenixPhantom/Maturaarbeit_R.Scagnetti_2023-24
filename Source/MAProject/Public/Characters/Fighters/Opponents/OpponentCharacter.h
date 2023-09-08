@@ -8,6 +8,7 @@
 #include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "OpponentCharacter.generated.h"
 
+class UPatrolManagerComponent;
 class UPlayerFacingWidgetComponent;
 class UWidgetComponent;
 class UBTTask_ReleaseAggressionTokens;
@@ -131,6 +132,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	UPlayerFacingWidgetComponent* HealthWidgetComponent;
+	
+	UPROPERTY(EditAnywhere, Category = UserInterface)
+	UPatrolManagerComponent* PatrolManagerComponent;
 	
 	UPROPERTY(EditAnywhere)
 	USavableObjectMarkerComponent* SavableObjectMarkerComponent;

@@ -260,7 +260,7 @@ void APlayerCharacter::UltimateAttack()
 
 void APlayerCharacter::DashStartRunning()
 {
-	if (!AcceptedInputs.bCanSprint)
+	if (!AcceptedInputs.bCanRun)
 	{
 		LastInput = TTriple(GetWorld()->GetRealTimeSeconds(),
 		                    EInputType::Sprint, [this] { DashStartRunning(); });
@@ -306,7 +306,7 @@ void APlayerCharacter::DashStartRunning()
 		AcceptedInputs.MovementProperties.bCanWalk = true;
 		bIsRunning = true;
 
-		SwitchMovementToRun();
+		SwitchMovementToRun(FSetWalkOrRunKey());
 	}
 
 	//Prevent having two inputs (from wasd keys and mouse) at the same time
@@ -318,7 +318,7 @@ void APlayerCharacter::DashStartRunning()
 void APlayerCharacter::StopRunning()
 {
 	bIsRunning = false;
-	SwitchMovementToWalk();
+	SwitchMovementToWalk(FSetWalkOrRunKey());
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
@@ -344,7 +344,7 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 		InputDirection.Key = GetWorld()->RealTimeSeconds;
 		InputDirection.Value = ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X;
 		InputDirection.Value.Normalize();
-		if (!bIsRunning && AcceptedInputs.MovementProperties.bCanWalk || bIsRunning && AcceptedInputs.bCanSprint)
+		if (!bIsRunning && AcceptedInputs.MovementProperties.bCanWalk || bIsRunning && AcceptedInputs.bCanRun)
 		{
 			// add movement
 			LastInput.bIsValid = false;
