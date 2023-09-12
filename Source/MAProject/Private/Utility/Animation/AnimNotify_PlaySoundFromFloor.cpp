@@ -21,13 +21,13 @@ void UAnimNotify_PlaySoundFromFloor::Notify(USkeletalMeshComponent* MeshComp, UA
 	else TraceStart = MeshComp->GetComponentLocation();
 	FHitResult HitResult;
 	UKismetSystemLibrary::LineTraceSingle(MeshComp->GetWorld(), TraceStart, TraceStart + FVector(0.f, 0.f, -ScanLength),
-		UEngineTypes::ConvertToTraceType(ECC_Visibility), true, {},
+		UEngineTypes::ConvertToTraceType(ECC_Camera), true, {},
 		EDrawDebugTrace::None, HitResult, true);
 	
 	if(!HitResult.bBlockingHit) return;
 	const EPhysicalSurface PhysicalSurfaceType = UGameplayStatics::GetSurfaceType(HitResult);
 
 	if(!IsValid(SoundResponseConfig.Get())) return;
-	SoundResponseConfig.GetDefaultObject()->GetPhysicsResponses().FindRef(PhysicalSurfaceType).
-		PlaySoundAtLocation(MeshComp->GetWorld(), HitResult.Location, VolumeMultiplier, PitchMultiplier);
+	const FSoundConfig SoundConfig = SoundResponseConfig.GetDefaultObject()->GetPhysicsResponses().FindRef(PhysicalSurfaceType);
+	SoundConfig.PlaySoundAtLocation(MeshComp->GetWorld(), HitResult.Location, VolumeMultiplier, PitchMultiplier);
 }

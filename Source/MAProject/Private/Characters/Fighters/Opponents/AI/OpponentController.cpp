@@ -13,6 +13,8 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "Perception/AISense_Damage.h"
+#include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
 #include "Utility/NonPlayerFunctionality/CharacterRotationManagerComponent.h"
 #include "Utility/NonPlayerFunctionality/MovementTarget.h"
@@ -45,7 +47,6 @@ ForwardSampleNumber(25.f), DefaultBehaviorTree(nullptr)
 
 	//Register OnPerceptionUpdated delegate
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AOpponentController::OnTargetPerceptionUpdated);
-	
 }
 
 void AOpponentController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -295,23 +296,69 @@ void AOpponentController::UnregisterSensedPlayer(AController* Player)
 
 void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
 {
-	//TODO: expand functionality to also detect other opponents
-	const APlayerCharacter* DetectedPlayer = Cast<APlayerCharacter>(UpdatedActor);
-	if(!IsValid(DetectedPlayer)) return;
-	AController* Controller = DetectedPlayer->GetController();
-	if(!Stimulus.WasSuccessfullySensed())
+	const bool HasDetectedPlayer = UpdatedActor->GetClass()->IsChildOf(APlayerCharacter::StaticClass());
+	
+	if(Stimulus.Type == UAISense::GetSenseID<UAISense_Sight>())
 	{
-		if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
-			GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
-			{
-				UnregisterSensedPlayer(Controller);
-			}, 5.f, true);
+		if(!HasDetectedPlayer) return;
+		AController* Controller = CastChecked<ACharacter>(UpdatedActor)->GetController();
+		if(!Stimulus.WasSuccessfullySensed())
+		{
+			if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
+				GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
+				{
+					UnregisterSensedPlayer(Controller);
+				}, 5.f, true);
+			}
+		}
+		else
+		{
+			if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
+			RegisterSensedPlayer(Controller);
 		}
 	}
-	else
+	else if(Stimulus.Type == UAISense::GetSenseID<UAISense_Hearing>())
 	{
-		if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
-		RegisterSensedPlayer(Controller);
+
+		if(!HasDetectedPlayer) return;
+		AController* Controller = CastChecked<ACharacter>(UpdatedActor)->GetController();
+		// Stimulus.Tag
+		if(!Stimulus.WasSuccessfullySensed())
+		{
+			if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
+				GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
+				{
+					UnregisterSensedPlayer(Controller);
+				}, 5.f, true);
+			}
+		}
+		else
+		{
+			if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
+			RegisterSensedPlayer(Controller);
+		}			
+	}
+	else if(Stimulus.Type == UAISense::GetSenseID<UAISense_Damage>())
+	{
+		if(!HasDetectedPlayer) return;
+		AController* Controller = CastChecked<ACharacter>(UpdatedActor)->GetController();
+		if(!Stimulus.WasSuccessfullySensed())
+		{
+			if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
+				GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
+				{
+					UnregisterSensedPlayer(Controller);
+				}, 5.f, true);
+			}
+		}
+		else
+		{
+			if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
+			RegisterSensedPlayer(Controller);
+		}
+	}
+	else{
+		unimplemented();
 	}
 }
 

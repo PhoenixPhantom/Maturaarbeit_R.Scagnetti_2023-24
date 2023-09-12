@@ -44,6 +44,19 @@ protected:
 	TMap<TEnumAsByte<EPhysicalSurface>, FSoundConfig> PhysicsResponses;
 };
 
+//Get the corresponding sound for every EPhysicalSurface type as defined
+UCLASS(Blueprintable, BlueprintType)
+class MAPROJECT_API UPhysicsAILoudnessResponseConfig : public UObject
+{
+	GENERATED_BODY()
+public:
+	const TMap<TEnumAsByte<EPhysicalSurface>, float>& GetPhysicsResponses(){ return PhysicsAILoudnessResponses; }
+protected:
+	UPROPERTY(EditAnywhere)                                
+	TMap<TEnumAsByte<EPhysicalSurface>, float> PhysicsAILoudnessResponses;
+};
+
+
 
 //Get the corresponding sound for every bone as defined
 //(if nothing is set for the bone, it will use the same sound as it's parent)

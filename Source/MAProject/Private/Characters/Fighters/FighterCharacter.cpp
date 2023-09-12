@@ -7,6 +7,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Perception/AISense_Damage.h"
 #include "UserInterface/HealthMonitorBaseWidget.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Sound/SoundResponseConfigs.h"
@@ -40,6 +41,9 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 		{
 			const FAttackDamageEvent AttackDamageEvent = *static_cast<FAttackDamageEvent*>(Event);
 			RemainingHealth = CharacterStats->ReceiveDamage(DamageAmount, AttackDamageEvent);
+			
+			UAISense_Damage::ReportDamageEvent(GetWorld(), this, EventInstigator->GetPawn(), DamageAmount,
+				EventInstigator->GetPawn()->GetActorLocation(), AttackDamageEvent.HitLocation);
 
 			//Make hit sound which is defined per bone (if nothing is set for the bone, it will use the same sound as it's parent)
 			check(IsValid(BoneSoundResponseConfig.Get()));
@@ -72,7 +76,6 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 				UNiagaraFunctionLibrary::SpawnSystemAttachedWithParams(SpawnParameters);
 			NiagaraComponent->SetVariableLinearColor("BaseColor", FLinearColor(0.5f, 0.5f, 0.5f));
 		}
-			
 		else RemainingHealth = CharacterStats->FGeneralObjectStats::ReceiveDamage(DamageAmount,
 			*static_cast<FCustomDamageEvent*>(Event));
 	}
@@ -166,7 +169,7 @@ void AFighterCharacter::CheckMeshOverlaps()
 					TraceResult.GetActor() != Target) continue;
 				RecentlyDamagedActors.Add(Target);
 				Target->TakeDamage(CharacterStats->GetDamageOutput(),
-					CharacterStats->GenerateDamageEvent(TraceResult), GetController(), this);
+					CharacterStats->GenerateDamageEvent(TraceResult), GetInstigatorController(), this);
 				break;
 			}
 		}
