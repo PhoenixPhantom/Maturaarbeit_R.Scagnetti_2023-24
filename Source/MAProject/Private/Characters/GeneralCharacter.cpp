@@ -6,6 +6,8 @@
 #include "Utility/Animation/SuckToTargetComponent.h"
 
 
+
+
 AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	SuckToTargetComponent = CreateDefaultSubobject<USuckToTargetComponent>(TEXT("SuckToTargetComp"));

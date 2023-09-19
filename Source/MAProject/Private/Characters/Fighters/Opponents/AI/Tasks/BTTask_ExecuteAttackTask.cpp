@@ -11,8 +11,7 @@ UBTTask_ExecuteAttackTask::UBTTask_ExecuteAttackTask() : OwningCharacter(nullptr
 {
 	NodeName = "Execute Attack";
 	ForceInstancing(true);
-	BlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_ExecuteAttackTask, BlackboardKey),
-	                              AController::StaticClass());
+	BlackboardKey.AllowNoneAsValue(true);
 }
 
 EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -22,8 +21,7 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	check(IsValid(OwningCharacter));
 	if (!OwningCharacter->GetAcceptedInputs().bCanAttack) return EBTNodeResult::Failed;
 
-	const AController* TargetController =
-		Cast<AController>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(BlackboardKey.SelectedKeyName));
+	const AController* TargetController = OwningCharacter->GetRegisteredPlayerOpponent();
 	if (!IsValid(TargetController))
 	{
 		return EBTNodeResult::Failed;

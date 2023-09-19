@@ -32,7 +32,7 @@ private:
  * 
  */
 UCLASS()
-class AFighterCharacter : public AGeneralCharacter
+class AFighterCharacter : public AGeneralCharacter, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 

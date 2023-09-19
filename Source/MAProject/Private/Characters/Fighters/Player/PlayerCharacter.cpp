@@ -89,8 +89,9 @@ void APlayerCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
 }
 
 void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
-                                     FPreSpawnSetupKey Key)
+	FGenericTeamId NewTeamId, FPreSpawnSetupKey Key)
 {
+	InternalTeamId = NewTeamId;
 	CharacterStats = PropertiesSource;
 	PlayerUserSettings = PlayerUserSettingsSource;
 }

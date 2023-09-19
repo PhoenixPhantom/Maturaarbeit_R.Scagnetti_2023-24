@@ -4,25 +4,28 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
-#include "BTTask_UpdateTargetLocation.generated.h"
+#include "BTTask_SetBlackboardKeyValue.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class MAPROJECT_API UBTTask_UpdateTargetLocation : public UBTTask_BlackboardBase
+class MAPROJECT_API UBTTask_SetBlackboardKeyValue : public UBTTask_BlackboardBase
 {
 	GENERATED_BODY()
 public:
-	UBTTask_UpdateTargetLocation();
+	UBTTask_SetBlackboardKeyValue();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 protected:
-	float LastTimestamp;
-
 	UPROPERTY(EditAnywhere)
-	float MinDelayTime;
-
+	bool NewBool;
 	UPROPERTY(EditAnywhere)
-	float MaxDelayTime;
+	float NewFloat;
+	UPROPERTY(EditAnywhere)
+	int32 NewInt;
+	UPROPERTY(EditAnywhere)
+	FVector NewVector;
+	UPROPERTY(EditAnywhere)
+	UObject* NewObject;
 };

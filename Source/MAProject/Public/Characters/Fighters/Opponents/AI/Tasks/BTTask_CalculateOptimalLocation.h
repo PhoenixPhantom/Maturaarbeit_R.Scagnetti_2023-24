@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
+#include "Utility/CombatManager.h"
 #include "BTTask_CalculateOptimalLocation.generated.h"
 
 /**
@@ -17,4 +18,8 @@ class MAPROJECT_API UBTTask_CalculateTargetLocation : public UBTTask_BlackboardB
 public:
 	UBTTask_CalculateTargetLocation();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+
+protected:
+	UPROPERTY(EditAnywhere)
+	ECombatParticipantStatus StatusToGenerateLocationFor;
 };

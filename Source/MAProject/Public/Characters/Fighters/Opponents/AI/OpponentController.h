@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AIPerceptionTypes.h"
+#include "Utility/CombatManager.h"
 #include "OpponentController.generated.h"
 
 class AOpponentCharacter;
@@ -33,6 +36,22 @@ public:
 	void ForceSetGoalLocation(const FVector& InGoalLocation);
 };
 
+
+struct FTimestampedStimulus : public FAIStimulus
+{
+	FTimestampedStimulus() : Timestamp(0.f), TargetActor(nullptr)
+	{}
+
+	FTimestampedStimulus(double CurrentTime) : Timestamp(CurrentTime), TargetActor(nullptr){}
+
+	FTimestampedStimulus(const FAIStimulus& NewStimulus, double CurrentTime, AActor* Target);
+	double Timestamp;
+	AActor* TargetActor;
+
+	bool operator==(const FTimestampedStimulus& Comp) const;
+	FORCEINLINE bool operator!=(const FTimestampedStimulus& Comp) const{ return !operator==(Comp); }
+};
+
 /**
  * 
  */
@@ -45,9 +64,12 @@ public:
 
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Tick(float DeltaSeconds) override;
+
 	
-	bool GenerateTargetLocation(FVector& OptimalLocation) const;
-	bool IsValidTargetLocation(const FVector& TargetLocation) const;
+	virtual FGenericTeamId GetGenericTeamId() const override { return 1; }
+	
+	bool GenerateCombatLocation(FVector& OptimalLocation, ECombatParticipantStatus ParticipantStatus) const;
 
 	//We override the built in MoveTo function to make all move to requests use the custom MoveTarget so we can
 	//have a smooth interpolation when movement targets are changed on the fly instead of always stopping and then
@@ -58,7 +80,8 @@ public:
 	ACombatManager* GetCombatManager() const{ return CombatManager; }
 	
 protected:
-	FTimerHandle LostPerceptionHandle;	
+	FGenericTeamId InternalTeamId;
+	TArray<FTimestampedStimulus> LastSightStimuli;
 	
 	UPROPERTY()
 	AMovementTarget* MoveTarget;
@@ -68,18 +91,39 @@ protected:
 	AOpponentCharacter* ControlledOpponent;
 	UPROPERTY()
 	UCrowdFollowingComponent* CrowdFollowingComponent;
+
+	UPROPERTY()
+	AActor* ActorToInvestigate;
+
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	FName TargetLocationKeyName;
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	FName RestartPatrolPathKeyName;
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	FName IsInCombatKeyName;
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	FName IsActiveCombatKeyName;
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	FName IsInvestigatingKeyName;
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	FName InvestigateAtHighSpeedKeyName;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = Combat)
 	float ForwardSampleNumber;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = General)
 	UBehaviorTree* DefaultBehaviorTree;
 
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
 
-	void RegisterSensedPlayer(AController* Player);
-	void UnregisterSensedPlayer(AController* Player);
+	void TriggerInvestigationProcess(const FAIStimulus& KnownInformation);
+
+	//calling this implies that KnownInformation.Type == Sight
+	void ActiveUpdateCombat(AActor* CombatTarget, const FAIStimulus& KnownInformation);
+	void EndCombat();
+
+	void OnSightForgotten(AActor* SightedActor);
 
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);

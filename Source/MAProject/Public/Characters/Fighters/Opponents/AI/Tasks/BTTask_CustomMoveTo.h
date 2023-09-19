@@ -8,7 +8,7 @@
 #include "BTTask_CustomMoveTo.generated.h"
 
 UENUM()
-enum class EForcedMovementType
+enum class EForcedMovementType : uint8
 {
 	PreferCurrent,
 	ForceKeepCurrent,

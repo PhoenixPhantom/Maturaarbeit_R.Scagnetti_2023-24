@@ -13,13 +13,13 @@ UPatrolManagerComponent::UPatrolManagerComponent(): NextIndex(-1),
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-FVector UPatrolManagerComponent::GetNextPathPointLocation()
+FVector UPatrolManagerComponent::GetNextPathPointLocation(bool StartFromClosest)
 {
 	if(!IsValid(PatrolPath))
 	{
 		return FVector(NAN);
 	}
-	if(NextIndex < 0) GetPreferredNextPoint();
+	if(StartFromClosest || NextIndex < 0) GetPreferredNextPoint();
 	return PatrolPath->GetAbsolutePointLocation(NextIndex);
 }
 

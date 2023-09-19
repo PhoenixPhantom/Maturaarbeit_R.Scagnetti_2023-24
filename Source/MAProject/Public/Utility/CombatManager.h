@@ -50,6 +50,7 @@ struct FAggressionData
 	float GetScorePerToken() const { return AggressionScore/static_cast<float>(RequestedTokens); }
 };
 
+UENUM()
 enum class ECombatParticipantStatus : uint8
 {
 	NotRegistered,

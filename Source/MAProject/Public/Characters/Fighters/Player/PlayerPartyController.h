@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Characters/Fighters/CharacterStats.h"
 #include "GameFramework/PlayerController.h"
+#include "GenericTeamAgentInterface.h"
 #include "PlayerPartyController.generated.h"
 
 class APlayerCharacter;
@@ -41,7 +42,7 @@ public:
 };
 
 UCLASS()
-class MAPROJECT_API APlayerPartyController : public APlayerController
+class MAPROJECT_API APlayerPartyController : public APlayerController, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 public:
@@ -49,6 +50,8 @@ public:
 	void SetPawnStartTransform(FTransform Transform, FSetPawnStartTransformKey Key){ PawnStartTransform = Transform; }
 	const FPlayerUserSettings& GetPlayerUserSettings() const { return PlayerUserSettings; }
 	void SetPlayerUserSettings(const FPlayerUserSettings& NewPlayerUserSettings, FSetPlayerUserSettingsKey Key){ PlayerUserSettings = NewPlayerUserSettings; };
+	
+	virtual FGenericTeamId GetGenericTeamId() const override { return 0; }
 	
 protected:
 	FTransform PawnStartTransform;

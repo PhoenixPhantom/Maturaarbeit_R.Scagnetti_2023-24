@@ -19,7 +19,7 @@ public:
 	UPatrolManagerComponent();
 
 	FORCEINLINE const APatrolPath* GetPatrolPath() const { return PatrolPath; }
-	FVector GetNextPathPointLocation();
+	FVector GetNextPathPointLocation(bool StartFromClosest = false);
 	int32 AdvanceToNextPathPoint();
 
 protected:

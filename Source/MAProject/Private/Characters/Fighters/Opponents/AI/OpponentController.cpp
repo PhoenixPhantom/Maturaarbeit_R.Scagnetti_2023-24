@@ -7,7 +7,6 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Utility/CombatManager.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
-#include "Components/ShapeComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/PathFollowingComponent.h"
@@ -15,7 +14,9 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Damage.h"
 #include "Perception/AISense_Hearing.h"
+#include "Perception/AISense_Prediction.h"
 #include "Perception/AISense_Sight.h"
+#include "Perception/AISense_Touch.h"
 #include "Utility/NonPlayerFunctionality/CharacterRotationManagerComponent.h"
 #include "Utility/NonPlayerFunctionality/MovementTarget.h"
 
@@ -33,6 +34,30 @@ void FAIMoveRequestExpanded::ForceSetGoalLocation(const FVector& InGoalLocation)
 	GoalLocation = InGoalLocation;
 	bMoveToActor = false;
 	bInitialized = true;
+}
+
+FTimestampedStimulus::FTimestampedStimulus(const FAIStimulus& NewStimulus, double CurrentTime, AActor* Target) :
+	Timestamp(CurrentTime), TargetActor(Target)
+{
+	SetStimulusAge(NewStimulus.GetAge());
+	//TODO: find a way to copy expiration age
+	Strength = NewStimulus.Strength;
+	StimulusLocation = NewStimulus.StimulusLocation;
+	ReceiverLocation = NewStimulus.ReceiverLocation;
+	Tag = NewStimulus.Tag;
+	Type = NewStimulus.Type;
+	bWantsToNotifyOnlyOnValueChange = NewStimulus.WantsToNotifyOnlyOnPerceptionChange();
+	bSuccessfullySensed = NewStimulus.WasSuccessfullySensed();
+	bExpired = NewStimulus.IsExpired();
+}
+
+bool FTimestampedStimulus::operator==(const FTimestampedStimulus& Comp) const
+{
+	return Timestamp == Comp.Timestamp && TargetActor == Comp.TargetActor && GetAge() == Comp.GetAge() &&
+		Strength == Comp.Strength && StimulusLocation == Comp.StimulusLocation &&
+			ReceiverLocation == Comp.ReceiverLocation && Tag == Comp.Tag && Type == Comp.Type &&
+				bWantsToNotifyOnlyOnValueChange == Comp.WantsToNotifyOnlyOnPerceptionChange() &&
+					bSuccessfullySensed == Comp.WasSuccessfullySensed() && bExpired == Comp.IsExpired();;
 }
 
 AOpponentController::AOpponentController(const FObjectInitializer& ObjectInitializer) :
@@ -55,85 +80,47 @@ void AOpponentController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if(EndPlayReason == EEndPlayReason::Destroyed)
 	{
-		GetWorld()->GetTimerManager().ClearTimer(LostPerceptionHandle);
 		if(IsValid(CombatManager))
 			CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
 		if(IsValid(MoveTarget)) MoveTarget->Destroy();
 	}
 }
 
-bool AOpponentController::GenerateTargetLocation(FVector& OptimalLocation) const
+void AOpponentController::Tick(float DeltaSeconds)
 {
-	//If the controlled character is participating in combat
-	if(const ECombatParticipantStatus ParticipantStatus = CombatManager->GetParticipationStatus(ControlledOpponent);
-		ParticipantStatus != ECombatParticipantStatus::NotRegistered)
+	Super::Tick(DeltaSeconds);
+
+	//Senses don't get updated except when registered/unregistered so we have to notify on position changes ourselves
+	//Currently Sight is the only sense whose location can be changed
+	for(FTimestampedStimulus LastSightStimulus : LastSightStimuli)
 	{
-		const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
-		bool RequireNavData = false;
-		
-
-		
-		FCircularDistanceConstraint PlayerDistanceConstraint;
-		switch(ParticipantStatus)
+		AActor* PerceivedActor = LastSightStimulus.TargetActor;
+		//We shouldn't update if we have lost sight but the stimulus has jet to fade
+		if(!LastSightStimulus.WasSuccessfullySensed())
 		{
-		case ECombatParticipantStatus::Active:
-			{
-				PlayerDistanceConstraint = ControlledOpponent->GetActivePlayerDistanceConstraint();
-				RequireNavData = false;
-				break;
-			}
-		case ECombatParticipantStatus::Passive:
-			{
-				
-				PlayerDistanceConstraint = ControlledOpponent->GetPassivePlayerDistanceConstraint();
-				break;
-			}
-		default: checkNoEntry();
+			//the automatic expiration system is buggy so this is a custom implementation of just that
+			if(GetWorld()->TimeSeconds - LastSightStimulus.Timestamp > 1.f) OnSightForgotten(PerceivedActor);		
+			continue;
 		}
-
-		FPlayerRelativeWorldZoneConstraint PlayerZoneConstraint(CombatManager->GetPlayerCharacter()->GetController(),
-			CurrentLocation);
 		
-		FObstacleSpaceConstraint ObstacleSpaceConstraint(ControlledOpponent->GetRequiredSpace(),
-			{CombatManager->GetPlayerCharacter(), ControlledOpponent},
-			PlayerDistanceConstraint.GetMaxMatchLevel() + PlayerZoneConstraint.GetMaxMatchLevel() - 1);
-
-
-		
-		FVector Location;
-		FRotator Rotation;
-		ControlledOpponent->GetActorEyesViewPoint(Location, Rotation);
-		FVector ProjectedRotation = Rotation.Vector();
-		ProjectedRotation.Z = 0;
-		ProjectedRotation.Normalize();
-		
-		const FVector OpponentToTarget = CombatManager->GetPlayerCharacter()->GetActorLocation() - CurrentLocation;
-		const float SampleRange = 500.f + OpponentToTarget.Length();
-		
-		const bool FoundLocation = CustomHelperFunctions::SampleGetClosestValid(OptimalLocation, CurrentLocation,
-			ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
-			{&PlayerDistanceConstraint, &PlayerZoneConstraint, &ObstacleSpaceConstraint},
-			SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld(), RequireNavData
-#if WITH_EDITORONLY_DATA
-			, bIsDebugging
-#endif
-		);
-		
-		return FoundLocation;
+		//don't update every frame but just when relevant changes occur
+		if(FVector::Distance(LastSightStimulus.StimulusLocation, PerceivedActor->GetActorLocation()) >= 100.f)
+		{
+			LastSightStimulus.ReceiverLocation = GetPawn()->GetActorLocation();
+			LastSightStimulus.StimulusLocation = PerceivedActor->GetActorLocation();
+			OnTargetPerceptionUpdated(PerceivedActor, static_cast<FAIStimulus>(LastSightStimulus));
+		}
 	}
-
-	
-	UE_LOG(LogController, Warning, TEXT("Getting optimal location in non-combat is not yet supported"));
-	return false;
 }
 
-bool AOpponentController::IsValidTargetLocation(const FVector& TargetLocation) const
+bool AOpponentController::GenerateCombatLocation(FVector& OptimalLocation, ECombatParticipantStatus ParticipantStatus) const
 {
-	const ECombatParticipantStatus ParticipantStatus = CombatManager->GetParticipationStatus(ControlledOpponent);
-	if(ParticipantStatus == ECombatParticipantStatus::NotRegistered) return false;
-	
+	checkf(ParticipantStatus != ECombatParticipantStatus::NotRegistered &&
+		ParticipantStatus != ECombatParticipantStatus::Player, TEXT("Getting optimal location in non-combat is not yet supported"));
+
+	const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
 	bool RequireNavData = false;
-	//Add the constraints that are specific to this entity
+	
 	FCircularDistanceConstraint PlayerDistanceConstraint;
 	switch(ParticipantStatus)
 	{
@@ -152,19 +139,35 @@ bool AOpponentController::IsValidTargetLocation(const FVector& TargetLocation) c
 	default: checkNoEntry();
 	}
 
-	//whether the current position has an acceptable relation to the target
-	const UShapeComponent* RequiredSpace = ControlledOpponent->GetRequiredSpace();
-	if(PlayerDistanceConstraint.IsConstraintSatisfied(TargetLocation, RequireNavData)){
-		TArray<UPrimitiveComponent*> OverlappingComponents;
-		RequiredSpace->GetOverlappingComponents(OverlappingComponents);
-		for(const UPrimitiveComponent* Component : OverlappingComponents)
-		{
-			if(Component->GetOwner() == CombatManager->GetPlayerCharacter() ||
-				Component->GetOwner() == ControlledOpponent) continue;
-			return true;
-		}
-	}
-	return false;
+	FPlayerRelativeWorldZoneConstraint PlayerZoneConstraint(CombatManager->GetPlayerCharacter()->GetController(),
+		CurrentLocation);
+	
+	FObstacleSpaceConstraint ObstacleSpaceConstraint(ControlledOpponent->GetRequiredSpace(),
+		{CombatManager->GetPlayerCharacter(), ControlledOpponent},
+		PlayerDistanceConstraint.GetMaxMatchLevel() + PlayerZoneConstraint.GetMaxMatchLevel() - 1);
+
+
+	
+	FVector Location;
+	FRotator Rotation;
+	ControlledOpponent->GetActorEyesViewPoint(Location, Rotation);
+	FVector ProjectedRotation = Rotation.Vector();
+	ProjectedRotation.Z = 0;
+	ProjectedRotation.Normalize();
+	
+	const FVector OpponentToTarget = CombatManager->GetPlayerCharacter()->GetActorLocation() - CurrentLocation;
+	const float SampleRange = 500.f + OpponentToTarget.Length();
+	
+	const bool FoundLocation = CustomHelperFunctions::SampleGetClosestValid(OptimalLocation, CurrentLocation,
+		ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
+		{&PlayerDistanceConstraint, &PlayerZoneConstraint, &ObstacleSpaceConstraint},
+		SampleRange, abs(OpponentToTarget.Z) + 100.f, GetWorld(), RequireNavData
+#if WITH_EDITORONLY_DATA
+		, bIsDebugging
+#endif
+	);
+	
+	return FoundLocation;
 }
 
 FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
@@ -235,13 +238,14 @@ void AOpponentController::OnPossess(APawn* InPawn)
 {
 	RunBehaviorTree(DefaultBehaviorTree);
 	Super::OnPossess(InPawn);
-
-	//Set blackboard default values (they can't have a default value in the editor)
 	
-	Blackboard->SetValueAsBool("IsActiveCombat", false);
-	Blackboard->SetValueAsBool("HasSensedPlayer", false);
+
+	//Set blackboard default values, just to be certain (they can't have a default value in the editor)
+	Blackboard->SetValueAsBool(IsActiveCombatKeyName, false);
+	Blackboard->SetValueAsBool(IsInvestigatingKeyName, false);
 	
 	ControlledOpponent = CastChecked<AOpponentCharacter>(InPawn);
+	InternalTeamId = ControlledOpponent->GetGenericTeamId();
 	ControlledOpponent->SetLocalFieldOfView(GetFieldOfView(), FSetFieldOfViewKey());
 	ControlledOpponent->GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey()).
 		AddDynamic(this, &AOpponentController::OnAggressionTokenGranted);
@@ -265,111 +269,122 @@ void AOpponentController::OnPossess(APawn* InPawn)
 	MoveTarget->SetActorLocation(GetPawn()->GetActorLocation());
 }
 
-void AOpponentController::RegisterSensedPlayer(AController* Player)
+void AOpponentController::TriggerInvestigationProcess(const FAIStimulus& KnownInformation)
 {
-	if(!IsValid(Player)) return;
-	
-	AController* OldPlayer = ControlledOpponent->GetRegisteredPlayerOpponent();
-	if(OldPlayer == Player) return; //cannot register the same player twice
-	ControlledOpponent->RegisterPlayerOpponent(Player, FSetPlayerOpponentKey());
-	
-	if(!CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey()))
-	{
-		ControlledOpponent->RegisterPlayerOpponent(OldPlayer, FSetPlayerOpponentKey());
-		return;
-	}
-	
-	Blackboard->SetValueAsBool("HasSensedPlayer", true);
-	Blackboard->SetValueAsObject("TargetObject", Player);
+	//Investigations are less important than Combat actions and cannot override existing investigations
+	if(CombatManager->GetParticipationStatus(ControlledOpponent) != ECombatParticipantStatus::NotRegistered ||
+		Blackboard->GetValueAsBool(IsInvestigatingKeyName)) return;
+
+	Blackboard->SetValueAsBool(IsInvestigatingKeyName, true);
+	Blackboard->SetValueAsVector(TargetLocationKeyName, KnownInformation.StimulusLocation);
 }
 
-void AOpponentController::UnregisterSensedPlayer(AController* Player)
+void AOpponentController::ActiveUpdateCombat(AActor* CombatTarget, const FAIStimulus& KnownInformation)
 {
-	if(!IsValid(Player)) return;
-	Blackboard->SetValueAsBool("IsActiveCombat", false);
-	Blackboard->SetValueAsBool("HasSensedPlayer", false);
-	Blackboard->ClearValue("TargetObject");
+	if(!IsValid(CombatTarget))
+	{
+		checkNoEntry();
+		return;
+	}
+
+	//Enter combat if not already in it
+	if(CombatManager->GetParticipationStatus(ControlledOpponent) == ECombatParticipantStatus::NotRegistered)
+	{
+		if(!CombatManager->RegisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey())) return;
+		ControlledOpponent->RegisterPlayerOpponent(CombatTarget->GetInstigatorController(), FSetPlayerOpponentKey());
+
+		Blackboard->SetValueAsBool(IsInCombatKeyName, true);
+		Blackboard->SetValueAsBool(IsInvestigatingKeyName, false); //cannot do both at the same time	
+	}
+
+	//Update the target location
+	FVector TargetLocation;
+	GenerateCombatLocation(TargetLocation, CombatManager->GetParticipationStatus(ControlledOpponent));
+	Blackboard->SetValueAsVector(TargetLocationKeyName, TargetLocation);
+}
+
+void AOpponentController::EndCombat()
+{
+	check(CombatManager->GetParticipationStatus(ControlledOpponent) != ECombatParticipantStatus::NotRegistered);
+	Blackboard->SetValueAsBool(IsInCombatKeyName, false);
+	Blackboard->SetValueAsBool(IsActiveCombatKeyName, false);
+	Blackboard->SetValueAsBool(RestartPatrolPathKeyName, true);
+
 	ControlledOpponent->RegisterPlayerOpponent(nullptr, FSetPlayerOpponentKey());
 	CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
 }
 
+void AOpponentController::OnSightForgotten(AActor* SightedActor)
+{
+	//End combat if we are in combat against the target
+	if(ControlledOpponent->GetRegisteredPlayerOpponent() != nullptr &&
+		ControlledOpponent->GetRegisteredPlayerOpponent() == SightedActor->GetInstigatorController())
+	{
+		EndCombat();
+		UAISense_Prediction::RequestPawnPredictionEvent(ControlledOpponent, SightedActor, 1.f);
+	}
+	LastSightStimuli.RemoveAll([SightedActor](const FTimestampedStimulus& TimestampedStimulus)
+	{
+		return TimestampedStimulus.TargetActor == SightedActor;
+	});
+}
+
 
 void AOpponentController::OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
-{
-	const bool HasDetectedPlayer = UpdatedActor->GetClass()->IsChildOf(APlayerCharacter::StaticClass());
+{	
 	
+	const ETeamAttitude::Type AttitudeTowardsUpdatedActor =
+		FGenericTeamId::GetAttitude(this, UpdatedActor->GetInstigatorController());
+
 	if(Stimulus.Type == UAISense::GetSenseID<UAISense_Sight>())
 	{
-		if(!HasDetectedPlayer) return;
-		AController* Controller = CastChecked<ACharacter>(UpdatedActor)->GetController();
-		if(!Stimulus.WasSuccessfullySensed())
-		{
-			if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
-				GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
+		FTimestampedStimulus* MatchingStimulus = LastSightStimuli.FindByPredicate(
+				[UpdatedActor](const FTimestampedStimulus& TimestampedStimulus)
 				{
-					UnregisterSensedPlayer(Controller);
-				}, 5.f, true);
-			}
-		}
-		else
-		{
-			if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
-			RegisterSensedPlayer(Controller);
-		}
+					return TimestampedStimulus.TargetActor == UpdatedActor;
+				});
+		if(MatchingStimulus == nullptr) LastSightStimuli.Add(FTimestampedStimulus(Stimulus, GetWorld()->TimeSeconds, UpdatedActor));
+		else *MatchingStimulus = FTimestampedStimulus(Stimulus, GetWorld()->TimeSeconds, UpdatedActor);
+		
+		//Start combat
+		if(AttitudeTowardsUpdatedActor != ETeamAttitude::Hostile) return;
+		ActiveUpdateCombat(UpdatedActor, Stimulus);
+	}
+	else if(Stimulus.Type == UAISense::GetSenseID<UAISense_Prediction>())
+	{
+		TriggerInvestigationProcess(Stimulus);
 	}
 	else if(Stimulus.Type == UAISense::GetSenseID<UAISense_Hearing>())
 	{
-
-		if(!HasDetectedPlayer) return;
-		AController* Controller = CastChecked<ACharacter>(UpdatedActor)->GetController();
-		// Stimulus.Tag
-		if(!Stimulus.WasSuccessfullySensed())
-		{
-			if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
-				GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
-				{
-					UnregisterSensedPlayer(Controller);
-				}, 5.f, true);
-			}
-		}
-		else
-		{
-			if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
-			RegisterSensedPlayer(Controller);
-		}			
+		//TODO: add intensity dependant logic
+		//RegisterSensedPlayer(UpdatedActor->GetInstigatorController());
+		//TODO: add tag dependant logic
+		if(AttitudeTowardsUpdatedActor != ETeamAttitude::Hostile) return;
+		TriggerInvestigationProcess(Stimulus);
+	
+	}
+	else if(Stimulus.Type == UAISense::GetSenseID<UAISense_Touch>())
+	{
+		if(AttitudeTowardsUpdatedActor != ETeamAttitude::Hostile) return;
+		TriggerInvestigationProcess(Stimulus);
 	}
 	else if(Stimulus.Type == UAISense::GetSenseID<UAISense_Damage>())
 	{
-		if(!HasDetectedPlayer) return;
-		AController* Controller = CastChecked<ACharacter>(UpdatedActor)->GetController();
-		if(!Stimulus.WasSuccessfullySensed())
-		{
-			if(!GetWorldTimerManager().TimerExists(LostPerceptionHandle)){  
-				GetWorldTimerManager().SetTimer(LostPerceptionHandle, [this, Controller]
-				{
-					UnregisterSensedPlayer(Controller);
-				}, 5.f, true);
-			}
-		}
-		else
-		{
-			if(GetWorldTimerManager().TimerExists(LostPerceptionHandle)) GetWorldTimerManager().ClearTimer(LostPerceptionHandle);
-			RegisterSensedPlayer(Controller);
-		}
+		//entities that damage are always hostile
+		TriggerInvestigationProcess(Stimulus);
 	}
-	else{
-		unimplemented();
-	}
+	else unimplemented();
 }
 
 void AOpponentController::OnAggressionTokenGranted()
 {
-	Blackboard->SetValueAsBool("IsActiveCombat", true);
+	Blackboard->SetValueAsBool(IsActiveCombatKeyName, true);
 }
 
 void AOpponentController::OnAggressionTokenReleased()
 {
-	Blackboard->SetValueAsBool("IsActiveCombat", false);
+	GLog->Log("Released");
+	Blackboard->SetValueAsBool(IsActiveCombatKeyName, false);
 	CombatManager->ReleaseAggressionTokens(ControlledOpponent, FManageAggressionTokensKey());
 }
 

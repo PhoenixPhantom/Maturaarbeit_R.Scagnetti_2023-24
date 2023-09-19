@@ -42,8 +42,11 @@ public:
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
+	virtual FGenericTeamId GetGenericTeamId() const override { return InternalTeamId; };
+
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
-	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FPreSpawnSetupKey Key);
+	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FGenericTeamId NewTeamId,
+		FPreSpawnSetupKey Key);
 
 
 	/**
@@ -62,6 +65,8 @@ public:
 protected:
 	bool bIsRunning;
 	bool bHasJumped;
+
+	FGenericTeamId InternalTeamId;
 
 	FTimerHandle ResetPlayerVisibilityHandle;
 	TTuple<double, FVector> InputDirection;

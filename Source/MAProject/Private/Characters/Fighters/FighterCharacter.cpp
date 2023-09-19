@@ -13,6 +13,7 @@
 #include "Utility/Sound/SoundResponseConfigs.h"
 
 
+
 AFighterCharacter::AFighterCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
 	bIsInvincible(false),  HitFXRadius(50.f)
 {
@@ -34,7 +35,9 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
                                     AActor* DamageCauser)
 {
 	uint32 RemainingHealth = CharacterStats->Health;
-	if(DamageEvent.IsOfType(FCustomDamageEvent::ClassID) && !bIsInvincible)
+	if(
+		FGenericTeamId::GetAttitude(this, DamageCauser) != ETeamAttitude::Friendly && !bIsInvincible &&
+		DamageEvent.IsOfType(FCustomDamageEvent::ClassID))
 	{
 		FDamageEvent* Event = const_cast<FDamageEvent*>(&DamageEvent);
 		if(DamageEvent.IsOfType(FAttackDamageEvent::ClassID))

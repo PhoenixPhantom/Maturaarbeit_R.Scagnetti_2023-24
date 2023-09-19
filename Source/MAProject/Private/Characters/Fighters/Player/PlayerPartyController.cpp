@@ -8,7 +8,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 
-APlayerPartyController::APlayerPartyController() : PawnStartTransform(FVector(NAN))
+APlayerPartyController::APlayerPartyController() : PawnStartTransform(FVector(NAN)), CombatManager(nullptr)
 {
 }
 
@@ -52,7 +52,7 @@ void APlayerPartyController::BeginPlay()
 		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 	CombatManager->RegisterCombatParticipant(NewCharacter, FManageCombatParticipantsKey());
 
-	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, FPreSpawnSetupKey());
+	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, GetGenericTeamId(), FPreSpawnSetupKey());
 #if WITH_EDITORONLY_DATA
 	NewCharacter->bIsDebugging = bIsDebugging;
 #endif

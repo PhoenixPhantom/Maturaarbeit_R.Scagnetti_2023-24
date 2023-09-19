@@ -81,6 +81,8 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
 	
+	virtual FGenericTeamId GetGenericTeamId() const override { return 1; }
+	
 	FOnAggressionTokenGrantedDelegate& GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey)
 		{ return OnAggressionTokensGranted; }
 	FOnAggressionTokenRemovedDelegate& GetOnAggressionTokensReleased(FEditOnAggressionTokensGrantedOrReleasedKey)

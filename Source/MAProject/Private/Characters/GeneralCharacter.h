@@ -3,12 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GenericTeamAgentInterface.h"
 #include "InputManagement.h"
 #include "GameFramework/Character.h"
 #include "GeneralCharacter.generated.h"
 
 class USuckToTargetComponent;
 class UMotionWarpingComponent;
+
+
 
 UCLASS()
 class AGeneralCharacter : public ACharacter
