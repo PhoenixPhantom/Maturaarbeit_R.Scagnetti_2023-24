@@ -36,15 +36,18 @@ To provide the most essential functionalities, this work will make use of the cu
 * Evolving Combat in 'God of War' for a New Perspective - GDC (by Santa Monica Studio's Mihir Sheth): https://www.youtube.com/watch?v=hE5tWF-Ou2k
 * Dreamscaper: Killer Combat on an Indie Budget - GDC (by Afterburner Studios' Ian Cofino): https://www.youtube.com/watch?v=3Omb5exWpd4
 
-### Visual FX
+### Artificial Intelligence
+* Unreal Engine 5 Tutorial - AI Part 9: Prediction Sense - Ryan Laley: https://www.youtube.com/watch?v=-EU8EedeVi4
+* All about BTTasks in C++ - The Games Dev: https://www.thegames.dev/?p=70
+
+### Effects
+#### Visual FX
 * Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA with Inspiration from Olivier Deplanque (https://www.artstation.com/artwork/b5XEod)
 * Unreal Engine Impact Effect in Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=8UThnwfEwng
-
-### Sound FX
+#### Sound FX
 * Unreal Engine 5 | MetaSound Footsteps - The Sound FX Guy: https://www.youtube.com/watch?v=SXBEbs69sZ8
 * Unreal Engine 5 | Dynamic Footsteps with MetaSounds - The Sound FX Guy: https://www.youtube.com/watch?v=pYxocPdtHBw
 
-### General
+### Various Topics
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
-* All about BTTasks in C++ - The Games Dev: https://www.thegames.dev/?p=70
 
