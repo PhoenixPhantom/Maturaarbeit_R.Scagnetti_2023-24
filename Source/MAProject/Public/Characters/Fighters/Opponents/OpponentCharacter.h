@@ -28,11 +28,11 @@ private:
 	FSetFieldOfViewKey(){};
 };
 
-struct FSetPlayerOpponentKey final
+struct FSetCombatTargetKey final
 {
 	friend AOpponentController;
 private:
-	FSetPlayerOpponentKey(){};
+	FSetCombatTargetKey(){};
 };
 
 struct FEditOnAggressionTokensGrantedOrReleasedKey final
@@ -101,8 +101,9 @@ public:
 	AActor* GetTargetPlayer() const { return IsValid(TargetPlayer) ? TargetPlayer->GetPawn() : nullptr; }
 	UAdvancedCharacterMovementComponent* GetAdvancedCharacterMovement() const{ return AdvancedCharacterMovementComponent; }
 	UCharacterRotationManagerComponent* GetCharacterRotationManager() const { return RotationManagerComponent; }
-	AController* GetRegisteredPlayerOpponent() const;
-	void RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key);
+	AController* GetCombatTargetController() const;
+	ACharacter* GetCombatTarget() const;
+	void RegisterCombatTarget(AController* NewOpponent, FSetCombatTargetKey Key);
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
 
 	/**
@@ -162,7 +163,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnDeathTriggered() override;;
 
-	bool CanAttack() const;
+	bool CanAttack() const{ return CanAttackInSeconds() <= 0.f; };
+	float CanAttackInSeconds() const;
 
 
 	UFUNCTION()

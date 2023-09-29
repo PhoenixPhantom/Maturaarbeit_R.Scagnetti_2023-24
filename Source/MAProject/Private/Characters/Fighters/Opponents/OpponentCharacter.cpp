@@ -64,13 +64,26 @@ UShapeComponent* AOpponentCharacter::GetRequiredSpace() const
 
 FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstraint() const
 {
-	FCircularDistanceConstraint DistanceConstraint(TargetPlayer);
+	FCircularDistanceConstraint DistanceConstraint(TargetPlayer, true);
+	bool FoundExecutableAttack = false;
 	float TotalDistance = 0.f;
 	float MaxDistance = std::numeric_limits<float>::lowest();
 	float NumValidAttacks = 0.f;
 	for(const FAttackProperties& AttackProperties : CharacterStats->AvailableAttacks)
 	{
-		if(AttackProperties.GetIsOnCd()) continue;
+		if(!FoundExecutableAttack)
+		{
+			//the first actually executable attack resets the values because it is stronger than all non-executable ones
+			if(!AttackProperties.GetIsOnCd())
+			{
+				FoundExecutableAttack = true;
+				TotalDistance = 0.f;
+				MaxDistance = std::numeric_limits<float>::lowest();
+				NumValidAttacks = 0.f;
+			}
+		}
+		else if(AttackProperties.GetIsOnCd()) continue;
+		
 		NumValidAttacks += 1.f;
 		if(MaxDistance < AttackProperties.MaximalMovementDistance)
 		{
@@ -88,13 +101,19 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 	return DistanceConstraint;
 }
 
-AController* AOpponentCharacter::GetRegisteredPlayerOpponent() const
+AController* AOpponentCharacter::GetCombatTargetController() const
 {
 	if(TargetPlayer == DistanceFromTargetPassive.AnchorController) return TargetPlayer;
 	return nullptr;
 }
 
-void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPlayerOpponentKey Key)
+ACharacter* AOpponentCharacter::GetCombatTarget() const
+{
+	if(TargetPlayer == DistanceFromTargetPassive.AnchorController) return TargetPlayer->GetCharacter();
+	return nullptr;
+}
+
+void AOpponentCharacter::RegisterCombatTarget(AController* NewOpponent, FSetCombatTargetKey Key)
 {
 	if(!IsValid(NewOpponent))
 	{
@@ -112,7 +131,6 @@ void AOpponentCharacter::RegisterPlayerOpponent(AController* NewOpponent, FSetPl
 float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const
 {
 	if(!bCanBecomeAggressive) return -1.f;
-	if(!CanAttack()) return 0.f;
 	float Score = 0.f;
 	if(TargetInformationComponent->GetIsCurrentTarget()) Score += 1.5f;
 	//Aggression priority
@@ -120,6 +138,9 @@ float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharac
 			GetActorLocation())/AggressionRange, 1.0));
 	//Action rank
 	Score += PlayerCharacter->RequestActionRank(this);
+
+	//Opponents that can't attack right now can become aggressive, but are less likely to
+	Score = Score * (1.f - (CanAttackInSeconds() / 3.f));
 	return Score;
 }
 
@@ -142,14 +163,19 @@ void AOpponentCharacter::OnDeathTriggered()
 	bCanBecomeAggressive = false;
 }
 
-bool AOpponentCharacter::CanAttack() const
+float AOpponentCharacter::CanAttackInSeconds() const
 {
+	float ShortestCd = std::numeric_limits<float>::max();
 	for(const FAttackProperties& AttackProperties : CharacterStats->AvailableAttacks)
 	{
-		//Only if there is any attack to be executed, the opponent can become aggressive
-		if(!AttackProperties.GetIsOnCd()) return true;
+		float RemainingCdTime = AttackProperties.CdTimeRemaining();
+		if(RemainingCdTime <= 0.f) return 0.f;
+		if(RemainingCdTime < ShortestCd)
+		{
+			ShortestCd = RemainingCdTime;
+		}
 	}
-	return false;
+	return ShortestCd;
 }
 
 void AOpponentCharacter::SetUseActiveCombatSpace()

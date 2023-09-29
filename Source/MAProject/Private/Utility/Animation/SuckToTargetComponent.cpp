@@ -13,7 +13,10 @@ FWarpInformation::FWarpInformation() : WarpType(EWarpType::LocationAndRotation),
 {
 }
 
-USuckToTargetComponent::USuckToTargetComponent() : MaxWarpingDistance(-1.f)
+USuckToTargetComponent::USuckToTargetComponent() : RemainingWarpTime(0.f), TotalWarpTime(0.f),
+	WarpSource(EWarpSource::None), TargetObject(nullptr), MaxWarpingDistance(-1.f), bWarpLocation(false),
+	bMovementX(false), bMovementY(false), bMovementZ(false), bWarpRotation(false), bRotationPitch(false),
+	bRotationYaw(false), bRotationRoll(false)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;

@@ -36,6 +36,7 @@ void AGeneralCharacter::SetIsDebugging(bool IsDebugging)
 	SuckToTargetComponent->bIsDebugging = bIsDebugging;
 }
 #endif
+
 bool AGeneralCharacter::AreMultipleVisible(AActor* Target, const FVector& TraceStart, TArray<FVector>& RemainingEnds,
                                            int32 RequiredPositiveTests)
 {

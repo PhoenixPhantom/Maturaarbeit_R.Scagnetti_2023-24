@@ -15,7 +15,8 @@ bool FAggressionData::operator==(const FAggressionData& AggressionData) const
 }
 
 // Sets default values
-ACombatManager::ACombatManager() : MaxAggressionTokens(1), PreferBestScorePower(4.f)
+ACombatManager::ACombatManager() : PlayerCharacter(nullptr), MaxAggressionTokens(2),
+	AvailableAggressionTokens(MaxAggressionTokens), PreferBestScorePower(4.f)
 {
 #if WITH_EDITORONLY_DATA
 	PrimaryActorTick.bCanEverTick = true;
@@ -160,7 +161,7 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 	for(AOpponentCharacter* Participant : PassiveParticipants)
 	{
 		const uint32 RequestedTokens = Participant->GetRequestedTokens();
-		//There is no use trying to distribute tokens to either an entity that needs more than what can be provided
+		//There is no use trying to distribute tokens to either an entity that needs more than what can maximally be provided
 		//or to an entity that doesn't need tokens
 		if(RequestedTokens > MaxAggressionTokens || RequestedTokens == 0) continue;
 		const float Score = Participant->GenerateAggressionScore(PlayerCharacter);
@@ -168,7 +169,6 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 		if(Score >= 0.f)
 		{
 			if(LowestScore > Score) LowestScore = Score;
-			//TotalAggressionScoreSquared += pow(Score, PreferBestScorePower);
 			RelevantData.Add(FAggressionData(Score, Participant, RequestedTokens));
 		}
 	}
@@ -199,9 +199,16 @@ void ACombatManager::AttemptDistributeRemainingTokens()
 		//Try to grant tokens to the chosen entity
 		if(!GrantTokens(ChosenOption))
 		{
-			//if the entity cannot be granted enough tokens and other entities are can't get a token because of
-			//the chosen option the entity should be guaranteed to be the next one to be granted tokens (it is anticipated)
-			if(RelevantData.Num() > 1) AnticipatedActive = ChosenOption;
+			if(AvailableAggressionTokens >= 1 && RelevantData.Num() >= 2)
+			{
+				//if an entity requires more tokens than what is left over, and there are still other entities that might
+				//be satisfied with the available amount of tokens, we queue the entity (to be guaranteed to be the
+				//next one to receive a token) before stopping token distribution
+				//(this should prevent entities requiring a high amount of tokens from never being able to get active,
+				//but obviously brings with it some other problems)
+				AnticipatedActive = ChosenOption;
+			}
+			
 			break;
 		}
 		

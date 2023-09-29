@@ -6,7 +6,8 @@
 #include "AITypes.h"
 
 // Sets default values
-AMovementTarget::AMovementTarget() : BlendTime(1.f), TargetLocation(FAISystem::InvalidLocation), TargetActor(nullptr), MaxVelocity(1000.f)
+AMovementTarget::AMovementTarget() : BlendTime(1.f), TargetLocation(FAISystem::InvalidLocation), bForceNoInterpolation(false),
+	bForceNoInterpolationOnce(false), TargetActor(nullptr), MaxVelocity(1000.f)
 {
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("ObjectRoot"));
 	PrimaryActorTick.bCanEverTick = true;
@@ -55,6 +56,12 @@ void AMovementTarget::SetMovementTargetLocation(const FVector& NewTargetLocation
 	//if the location wasn't updated before, it makes no sense to interpolate to the target location
 	if(TargetLocation == FAISystem::InvalidLocation && NewTargetLocation != FAISystem::InvalidLocation)
 		SetActorLocation(NewTargetLocation);
+	
+	if(bForceNoInterpolationOnce || bForceNoInterpolation)
+	{
+		SetActorLocation(NewTargetLocation);
+		bForceNoInterpolationOnce = false;
+	}
 	TargetLocation = NewTargetLocation;
 }
 

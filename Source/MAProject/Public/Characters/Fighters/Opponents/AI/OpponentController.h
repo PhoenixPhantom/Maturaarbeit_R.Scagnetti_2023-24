@@ -60,6 +60,9 @@ class MAPROJECT_API AOpponentController : public AAIController
 {
 	GENERATED_BODY()
 public:
+	//MoveTo calculates distance differently from us, so we need some margin of error for our distance calculations
+	static constexpr float MoveToDistanceMarginOfError = 15.f;
+	
 	AOpponentController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	
@@ -69,7 +72,8 @@ public:
 	
 	virtual FGenericTeamId GetGenericTeamId() const override { return 1; }
 	
-	bool GenerateCombatLocation(FVector& OptimalLocation, ECombatParticipantStatus ParticipantStatus) const;
+	bool UpdateCombatLocation(FVector& ResultingLocation, ECombatParticipantStatus ParticipantStatus,
+		bool ForceRecalculation = false) const;
 
 	//We override the built in MoveTo function to make all move to requests use the custom MoveTarget so we can
 	//have a smooth interpolation when movement targets are changed on the fly instead of always stopping and then
@@ -106,9 +110,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Blackboard)
 	FName IsInvestigatingKeyName;
 	UPROPERTY(EditAnywhere, Category = Blackboard)
-	FName InvestigateAtHighSpeedKeyName;
+	FName HasJustExecutedAttackKeyName;
+
+	UPROPERTY(EditAnywhere, Category = Movement)
+	TSubclassOf<AMovementTarget> MovementTargetClass;
+
+	UPROPERTY(EditAnywhere, Category = Perception)
+	float RelevantSightPerceptionChangeRadius;
 	
-	UPROPERTY(EditAnywhere, Category = Combat)
+	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay)
 	float ForwardSampleNumber;
 	
 	UPROPERTY(EditAnywhere, Category = General)
@@ -139,8 +149,9 @@ protected:
 
 
 #if WITH_EDITORONLY_DATA
+	UPROPERTY(VisibleAnywhere, Category = Debugging)
 	bool bIsDebugging = false;
-	UFUNCTION(CallInEditor)
+	UFUNCTION(CallInEditor, Category = Debugging)
 	void ToggleDebugging();
 #endif	
 };

@@ -3,9 +3,11 @@
 
 #include "Characters/Fighters/Opponents/AI/Tasks/BTTask_CustomMoveTo.h"
 
-#include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "Characters/Fighters/FighterCharacter.h"
+#include "Characters/Fighters/Opponents/AI/OpponentController.h"
+#include "Components/CapsuleComponent.h"
 
 UBTTask_CustomMoveTo::UBTTask_CustomMoveTo(): ForcedMovementType(EForcedMovementType::PreferCurrent)
 {
@@ -16,7 +18,7 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteTask(UBehaviorTreeComponent& Ow
                                                       uint8* NodeMemory)
 {
 	AFighterCharacter* Character =
-		CastChecked<AFighterCharacter>(OwnerComp.GetAIOwner()->GetPawn());
+		CastChecked<AFighterCharacter>(OwnerComp.GetAIOwner()->GetCharacter());
 
 	EBTNodeResult::Type NodeResult = EBTNodeResult::Failed;
 	switch(ForcedMovementType)
@@ -49,9 +51,26 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteTask(UBehaviorTreeComponent& Ow
 		//For some reason the node sometimes returns "Succeeded" when the target is still far away.
 		//Therefore we do a sanity check to confirm that "Succeeded" results are actually such where the
 		//ai is close enough to it's target
-		if(FVector::Distance(Character->GetActorLocation(),
-			OwnerComp.GetBlackboardComponent()->GetValueAsVector(BlackboardKey.SelectedKeyName)) > AcceptableRadius)
+
+		float RequiredRadius = AcceptableRadius + Character->GetCapsuleComponent()->GetScaledCapsuleRadius() +
+			AOpponentController::MoveToDistanceMarginOfError;
+		if(BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 		{
+			const ACharacter* TargetCharacter =
+				CastChecked<ACharacter>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(BlackboardKey.SelectedKeyName));
+			RequiredRadius += TargetCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
+		}
+		
+		if(FVector::Distance(Character->GetActorLocation(),
+			OwnerComp.GetBlackboardComponent()->GetValueAsVector(BlackboardKey.SelectedKeyName)) > RequiredRadius)
+		{
+#if WITH_EDITORONLY_DATA
+			if(Character->GetIsDebugging())
+			{
+				GLog->Log(Character->GetActorNameOrLabel() + " move to stopped at: " + FString::SanitizeFloat(FVector::Distance(Character->GetActorLocation(),
+				OwnerComp.GetBlackboardComponent()->GetValueAsVector(BlackboardKey.SelectedKeyName))) + " > " + FString::SanitizeFloat(RequiredRadius));
+			}
+#endif
 			return EBTNodeResult::Failed;
 		}
 	}
@@ -109,7 +128,7 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecutePreferWalking(AFighterCharacter
 		Character->SwitchMovementToRun(FSetWalkOrRunKey());
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
 	}
-	
+
 	return EBTNodeResult::Failed;
 }
 

@@ -70,9 +70,10 @@ protected:
 	virtual void BeginPlay() override;
 
 #if WITH_EDITORONLY_DATA
+	UPROPERTY(VisibleAnywhere, Category = Debugging)
 	bool bIsDebugging = false;
 
-	UFUNCTION(CallInEditor)
+	UFUNCTION(CallInEditor, Category = Debugging)
 	void ToggleDebugging();
 #endif
 };

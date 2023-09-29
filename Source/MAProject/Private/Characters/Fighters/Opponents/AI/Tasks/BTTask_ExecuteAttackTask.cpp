@@ -6,6 +6,8 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
+#include "Characters/Fighters/Opponents/AI/OpponentController.h"
+#include "Components/CapsuleComponent.h"
 
 UBTTask_ExecuteAttackTask::UBTTask_ExecuteAttackTask() : OwningCharacter(nullptr)
 {
@@ -21,8 +23,8 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	check(IsValid(OwningCharacter));
 	if (!OwningCharacter->GetAcceptedInputs().bCanAttack) return EBTNodeResult::Failed;
 
-	const AController* TargetController = OwningCharacter->GetRegisteredPlayerOpponent();
-	if (!IsValid(TargetController))
+	const ACharacter* TargetCharacter = OwningCharacter->GetCombatTarget();
+	if (!IsValid(TargetCharacter))
 	{
 		return EBTNodeResult::Failed;
 	}
@@ -30,21 +32,41 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	TArray<FAttackProperties> AvailableAttacks;
 	OwningCharacter->GetAvailableAttacks(AvailableAttacks);
 
+
+	const float DistanceFromTarget = FVector::Distance(OwningCharacter->GetActorLocation(), TargetCharacter->GetActorLocation()) -
+		OwningCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius() - AOpponentController::MoveToDistanceMarginOfError;
 	
-	const float Distance = FVector::Distance(OwningCharacter->GetActorLocation(),
-		TargetController->GetPawn()->GetActorLocation());
 	//Sort through all available attacks and remove those that cannot be executed
 	TArray<TTuple<float, FAttackProperties>> AttacksInRange;
 	float LowestScore = std::numeric_limits<float>::max();
 	for (const FAttackProperties& Attack : AvailableAttacks)
 	{
-		if (Attack.MaximalMovementDistance < Distance || Attack.GetIsOnCd()) continue;
-		const float Priority = Attack.GetPriority(Distance);
+		if (Attack.MaximalMovementDistance < DistanceFromTarget ||
+			Attack.GetIsOnCd())
+		{
+#if WITH_EDITORONLY_DATA
+			if(OwningCharacter->GetIsDebugging())
+			{
+				if(Attack.GetIsOnCd()) continue;
+				GLog->Log(OwningCharacter->GetActorNameOrLabel() + " attack left out because: " +
+					FString::SanitizeFloat(Attack.MaximalMovementDistance) + " < " + FString::SanitizeFloat(DistanceFromTarget));
+			}
+#endif
+			continue;
+		}
+		const float Priority = Attack.GetPriority(DistanceFromTarget);
 		AttacksInRange.Add({Priority, Attack});
 		if (Priority < LowestScore) LowestScore = Priority;
 	}
 
-	if(AttacksInRange.IsEmpty()) return EBTNodeResult::Failed;
+	if(AttacksInRange.IsEmpty())
+	{
+#if WITH_EDITORONLY_DATA
+		if(OwningCharacter->GetIsDebugging())
+			GLog->Log(OwningCharacter->GetActorNameOrLabel() + " cannot attack since there are no valid attacks.");
+#endif
+		return EBTNodeResult::Failed;
+	}
 
 	//Assign a relative score to each attack
 	double TotalScore = 0.f;

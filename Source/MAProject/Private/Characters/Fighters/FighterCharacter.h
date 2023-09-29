@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CharacterStats.h"
+#include "GenericTeamAgentInterface.h"
 #include "Characters/GeneralCharacter.h"
 #include "FighterCharacter.generated.h"
 

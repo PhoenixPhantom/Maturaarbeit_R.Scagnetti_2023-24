@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GenericTeamAgentInterface.h"
 #include "InputManagement.h"
 #include "GameFramework/Character.h"
 #include "GeneralCharacter.generated.h"
@@ -13,7 +12,7 @@ class UMotionWarpingComponent;
 
 
 
-UCLASS()
+UCLASS(meta=(PrioritizeCategories = "Debugging Combat OpponentCharacter"))
 class AGeneralCharacter : public ACharacter
 {
 	GENERATED_BODY()
@@ -36,7 +35,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	void SetIsDebugging(bool IsDebugging);
-	bool bIsDebugging = false;
+	bool GetIsDebugging() const { return bIsDebugging; }
 #endif
 
 protected:
@@ -52,4 +51,9 @@ protected:
 	bool AreMultipleVisible(AActor* Target, const FVector& TraceStart, TArray<FVector>& RemainingEnds,
 		int32 RequiredPositiveTests);
 
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(VisibleAnywhere, Category = Debugging)
+	bool bIsDebugging = false;
+#endif
 };

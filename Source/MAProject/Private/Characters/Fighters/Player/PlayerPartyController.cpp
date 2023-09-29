@@ -54,7 +54,7 @@ void APlayerPartyController::BeginPlay()
 
 	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, GetGenericTeamId(), FPreSpawnSetupKey());
 #if WITH_EDITORONLY_DATA
-	NewCharacter->bIsDebugging = bIsDebugging;
+	NewCharacter->SetIsDebugging(bIsDebugging);
 #endif
 	NewCharacter->FinishSpawning(TargetTransform);
 	

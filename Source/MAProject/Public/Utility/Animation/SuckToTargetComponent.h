@@ -83,7 +83,7 @@ public:
 	FTransform GetNextTransform(const FTransform& CurrentTransform, float DeltaSeconds) const;
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = Debugging)
 	bool bIsDebugging = false;
 #endif
 	

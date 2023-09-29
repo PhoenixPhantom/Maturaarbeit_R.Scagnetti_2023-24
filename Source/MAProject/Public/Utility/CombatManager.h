@@ -77,14 +77,11 @@ public:
 	void ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key);
 
 #if WITH_EDITORONLY_DATA
-	bool bIsDebugging = false;
 	virtual void Tick(float DeltaSeconds) override;
 #endif
 
 protected:
-	TArray<FAggressionData> ActiveRequests;
-	uint32 AvailableAggressionTokens;
-	
+	TArray<FAggressionData> ActiveRequests;	
 	
 	FAggressionData AnticipatedActive;
 	
@@ -97,10 +94,12 @@ protected:
 	TArray<AOpponentCharacter*> PassiveParticipants;
 
 	UPROPERTY(EditAnywhere)
-	uint32 MaxAggressionTokens;
+	uint32 MaxAggressionTokens;	
+	uint32 AvailableAggressionTokens;
 	
 	UPROPERTY(EditAnywhere)
 	float PreferBestScorePower;
+
 	
 	virtual void BeginPlay() override;
 
@@ -117,7 +116,10 @@ protected:
 
 #if WITH_EDITORONLY_DATA
 	TTuple<float, FDrawDebugImagesDelegate> DebugImagesToDraw;
-	UFUNCTION(CallInEditor)
+
+	UPROPERTY(VisibleAnywhere, Category=Debugging)
+	bool bIsDebugging = false;
+	UFUNCTION(CallInEditor, Category = Debugging)
 	void ToggleDebugging(){ bIsDebugging = !bIsDebugging; };
 #endif
 };

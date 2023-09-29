@@ -29,12 +29,13 @@ public:
 	FVector GetMovementTargetLocation() const { return TargetLocation; }
 	AActor* GetTargetActor() const { return TargetActor; }
 
+	void ForceNoInterpolation(){ bForceNoInterpolation = true; }
+	void ForceNoInterpolationOnce(){ bForceNoInterpolationOnce = true; };
 	void SetBlendTime(float NewBlendTime, FSetMovementTargetKey Key) { BlendTime = NewBlendTime; }
 	void SetMovementTargetLocation(const FVector& NewTargetLocation, FSetMovementTargetKey Key);
 	void SetTargetActor(AActor* NewTargetActor, FSetMovementTargetKey Key){ TargetActor = NewTargetActor; }
 
 #if WITH_EDITORONLY_DATA
-	void ToggleDebugging(){ bIsDebugging = !bIsDebugging;}
 	void SetIsDebugging(bool IsDebugging){ bIsDebugging = IsDebugging; }
 	bool GetIsDebugging() const { return bIsDebugging; }
 #endif
@@ -43,10 +44,8 @@ protected:
 	
 	float BlendTime;
 	FVector TargetLocation;
-
-#if WITH_EDITORONLY_DATA
-	bool bIsDebugging = false;
-#endif
+	bool bForceNoInterpolation;
+	bool bForceNoInterpolationOnce;
 	
 	UPROPERTY()
 	AActor* TargetActor;
@@ -56,5 +55,10 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	USphereComponent* SphereComponent;
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(VisibleAnywhere, Category = Debugging)
+	bool bIsDebugging = false;
+#endif
 
 };
