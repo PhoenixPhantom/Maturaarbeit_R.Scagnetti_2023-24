@@ -44,14 +44,16 @@ float FCharacterStats::GetDamageOutput() const
 	return FGeneralObjectStats::GetDamageOutput() * CurrentAttack->DamagePercent / 100.f;
 }
 
-const FCustomDamageEvent& FCharacterStats::GenerateDamageEvent(const FHitResult& HitResult) const
+void FCharacterStats::GenerateDamageEvent(FCustomDamageEvent& DamageEvent, const FHitResult& HitResult) const
 {
-	CurrentAttack->DamageEvent.HitDirection = HitResult.Location - HitResult.TraceStart;
-	CurrentAttack->DamageEvent.HitLocation = HitResult.Location;
-	return CurrentAttack->DamageEvent;
+	check(DamageEvent.IsOfType(FAttackDamageEvent::ClassID));
+	FAttackDamageEvent& AttackDamageEvent = static_cast<FAttackDamageEvent&>(DamageEvent);
+	AttackDamageEvent = CurrentAttack->DamageEvent;
+	AttackDamageEvent.HitDirection = HitResult.Location - HitResult.TraceStart;
+	AttackDamageEvent.HitLocation = HitResult.Location;
 }
 
-uint32 FCharacterStats::ReceiveDamage(float Damage, const FAttackDamageEvent& DamageInfo)
+uint32 FCharacterStats::ReceiveDamage(float Damage, const FAttackDamageEvent* DamageInfo)
 {
 	const uint32 RemainingHealth = FGeneralObjectStats::ReceiveDamage(Damage, DamageInfo);
 	return RemainingHealth;

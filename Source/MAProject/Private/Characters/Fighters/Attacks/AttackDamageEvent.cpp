@@ -3,7 +3,7 @@
 
 #include "AttackDamageEvent.h"
 
-FAttackDamageEvent::FAttackDamageEvent(): StaggerChance(1), StaggerImpulse(10.f), HitFXScaleFactor(1.f)
+FAttackDamageEvent::FAttackDamageEvent(): StaggerChance(0), StaggerImpulse(10.f), HitFXScaleFactor(1.f)
 {}
 
 FAttackDamageEvent::FAttackDamageEvent(const FAttackDamageEvent& AttackDamageEvent): Super(AttackDamageEvent),

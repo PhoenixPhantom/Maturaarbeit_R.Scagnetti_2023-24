@@ -3,14 +3,17 @@
 
 #include "GeneralStats.h"
 
+#include "Characters/Fighters/Attacks/AttackDamageEvent.h"
+
 bool FGeneralBaseStats::operator==(const FGeneralBaseStats& GeneralBaseStats) const
 {
 	return BaseHealth == GeneralBaseStats.BaseHealth && BaseAttack == GeneralBaseStats.BaseAttack &&
 		BaseDefense == GeneralBaseStats.BaseDefense;
 }
 
-FGeneralObjectStats::FGeneralObjectStats(): Health(0), MaxHealth(0, 0, 0.f),
-	Attack(0, 0, 0.f), Defense(0, 0, 0.f)
+FGeneralObjectStats::FGeneralObjectStats(): OnGetDamaged(), Health(0),
+	MaxHealth(0, 0, 0.f), Attack(0, 0, 0.f),
+	Defense(0, 0, 0.f)
 {
 }
 
@@ -34,19 +37,29 @@ float FGeneralObjectStats::GetDamageOutput() const
 	return Attack.GetResulting();
 }
 
-uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent& DamageInfo)
+uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent* DamageInfo)
 {
 	const uint32 DeltaHealth = Damage/static_cast<float>(Defense.GetResulting());
 	
 	OnHealthChanged.Broadcast(Health <= DeltaHealth ? 0 : Health - DeltaHealth, Health);
+
+	
+	if(Damage > 0.f)
+	{
+#if USE_UE5_DELEGATE
+		OnGetDamaged.Broadcast(*DamageInfo);
+#else
+		if(IsValid(OnGetDamaged.Owner))	OnGetDamaged.Function(DamageInfo);
+#endif
+	}
 	
 	if(Health <= DeltaHealth)
 	{
 		Health = 0;
-		if(OnNoHealthReached.IsBound()) OnNoHealthReached.Broadcast(DamageInfo);
+		if(OnNoHealthReached.IsBound()) OnNoHealthReached.Broadcast(*DamageInfo);
 		return 0;
 	}
-	if(Damage > 0.f) OnGetHit.Broadcast(DamageInfo);
+	
 	Health -= DeltaHealth;
 	return Health;
 }

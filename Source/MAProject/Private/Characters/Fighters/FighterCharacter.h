@@ -50,6 +50,9 @@ public:
 	bool IsMovingOnFloor() const;
 	bool IsWalking() const;
 	bool IsRunning() const;
+
+	/// Blend the time dilation from default (1.f) to resulting and back
+	void BlendTimeDilation(float BlendTime, float TotalTime, float TargetDilation);
 	
 	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitRecentVictims,
 		FMeleeControlsKey Key);
@@ -67,7 +70,13 @@ public:
 	void ExecuteAttack(int32 Index);
 	
 protected:
-	bool bIsInvincible;
+	uint8 bIsInvincible:1;
+	float SourceTimeDilation;
+	float TargetTimeDilation;
+	float TimeDilationBlendTime;
+	float TimeDilationTotalTime;
+	float TimeDilationEffectTimeRemaining;
+	
 	TArray<FName> MeleeEnabledBones;
 	FCharacterStats* CharacterStats;
 	FTimerHandle InvincibilityHandle;
@@ -105,8 +114,12 @@ protected:
 	void EndInvincibility();
 	
 	void CheckMeshOverlaps();
+	void ProcessTimeDilation(float DeltaSeconds);
 
-	virtual void OnDeathTriggered();;
+	virtual void OnDeathTriggered();
+	virtual void PlayHitSound(const FVector& HitLocation);
+	virtual void SpawnHitFX(const FVector& Location, float ScaleFactor);
+	virtual void GetStaggered(const FAttackDamageEvent* DamageEvent);
 
 	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex = 0);
 
@@ -118,7 +131,8 @@ protected:
 	UFUNCTION()
 	void OnExecuteAttack(const FAttackProperties& Properties);
 	UFUNCTION()
-	void OnGetHit(const FCustomDamageEvent& DamageEvent);
+	void OnGetDamagedUE(const FCustomDamageEvent& DamageEvent){ OnGetDamaged(&DamageEvent);};
+	void OnGetDamaged(const FCustomDamageEvent* DamageEvent);
 	UFUNCTION()
 	void OnDeath(const FCustomDamageEvent& DamageEvent);
 };

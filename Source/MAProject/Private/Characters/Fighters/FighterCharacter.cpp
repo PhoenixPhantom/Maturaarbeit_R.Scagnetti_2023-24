@@ -13,9 +13,9 @@
 #include "Utility/Sound/SoundResponseConfigs.h"
 
 
-
 AFighterCharacter::AFighterCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
-	bIsInvincible(false),  HitFXRadius(50.f)
+                                                                                    bIsInvincible(false),  TargetTimeDilation(-1.f), TimeDilationBlendTime(-1.f), TimeDilationTotalTime(-1.f),
+                                                                                    TimeDilationEffectTimeRemaining(-1.f), HitFXRadius(50.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -29,6 +29,7 @@ void AFighterCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	if(!MeleeEnabledBones.IsEmpty()) CheckMeshOverlaps();
+	if(TimeDilationEffectTimeRemaining > 0.f) ProcessTimeDilation(DeltaSeconds);
 }
 
 float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
@@ -39,48 +40,24 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 		FGenericTeamId::GetAttitude(this, DamageCauser) != ETeamAttitude::Friendly && !bIsInvincible &&
 		DamageEvent.IsOfType(FCustomDamageEvent::ClassID))
 	{
-		FDamageEvent* Event = const_cast<FDamageEvent*>(&DamageEvent);
+		const FCustomDamageEvent* Event = static_cast<const FCustomDamageEvent*>(&DamageEvent);
 		if(DamageEvent.IsOfType(FAttackDamageEvent::ClassID))
 		{
-			const FAttackDamageEvent AttackDamageEvent = *static_cast<FAttackDamageEvent*>(Event);
+			const FAttackDamageEvent* AttackDamageEvent = static_cast<const FAttackDamageEvent*>(Event);
 			RemainingHealth = CharacterStats->ReceiveDamage(DamageAmount, AttackDamageEvent);
+
+			//TODO: this is just a hack to test out hit stop
+			if(EventInstigator == GetWorld()->GetFirstPlayerController())
+			{
+				BlendTimeDilation(0.15f, 0.3f, 0.15f);
+				CastChecked<AFighterCharacter>(DamageCauser)->BlendTimeDilation(0.15f, 0.3f, 0.15f);
+			}
 			
 			UAISense_Damage::ReportDamageEvent(GetWorld(), this, EventInstigator->GetPawn(), DamageAmount,
-				EventInstigator->GetPawn()->GetActorLocation(), AttackDamageEvent.HitLocation);
-
-			//Make hit sound which is defined per bone (if nothing is set for the bone, it will use the same sound as it's parent)
-			check(IsValid(BoneSoundResponseConfig.Get()));
-			FName BoneToCheck = GetMesh()->FindClosestBone(AttackDamageEvent.HitLocation);
-			
-			while(!BoneToCheck.IsNone())
-			{
-				FSoundConfig SoundConfig =
-					BoneSoundResponseConfig.GetDefaultObject()->GetBoneResponses().FindRef(BoneToCheck);
-				if(!(SoundConfig == FSoundConfig()))
-				{
-					SoundConfig.PlaySoundAtLocation(GetWorld(), AttackDamageEvent.HitLocation);
-					break;
-				}
-				//there was no matching configuration found, so we'll look at the parent bone
-				BoneToCheck = GetMesh()->GetParentBone(BoneToCheck);				
-			}
-
-			//Spawn get hit FX
-			constexpr float RealRadius = 75.f;
-			FFXSystemSpawnParameters SpawnParameters;
-			SpawnParameters.SystemTemplate = GetHitFX;
-			SpawnParameters.Location = AttackDamageEvent.HitLocation;
-			SpawnParameters.Scale = FVector(HitFXRadius/RealRadius * AttackDamageEvent.HitFXScaleFactor);
-			SpawnParameters.AttachToComponent = GetRootComponent();
-			SpawnParameters.bAutoActivate = true;
-			SpawnParameters.bAutoDestroy = true;
-			SpawnParameters.WorldContextObject = GetWorld();
-			UNiagaraComponent* NiagaraComponent =
-				UNiagaraFunctionLibrary::SpawnSystemAttachedWithParams(SpawnParameters);
-			NiagaraComponent->SetVariableLinearColor("BaseColor", FLinearColor(0.5f, 0.5f, 0.5f));
+				EventInstigator->GetPawn()->GetActorLocation(), AttackDamageEvent->HitLocation);
 		}
 		else RemainingHealth = CharacterStats->FGeneralObjectStats::ReceiveDamage(DamageAmount,
-			*static_cast<FCustomDamageEvent*>(Event));
+			Event);
 	}
 	return RemainingHealth;
 }
@@ -113,6 +90,16 @@ bool AFighterCharacter::IsRunning() const
 	return IsMovingOnFloor() &&
 		GetCharacterMovement()->GetMaxSpeed() == CharacterStats->RunSpeed.GetResulting();
 
+}
+
+void AFighterCharacter::BlendTimeDilation(float BlendTime, float TotalTime, float TargetDilation)
+{
+	check(BlendTime * 2.f <= TotalTime && TargetDilation != 1.f);
+	SourceTimeDilation = 1.f;
+	TimeDilationBlendTime = BlendTime;
+	TimeDilationTotalTime = TotalTime;
+	TimeDilationEffectTimeRemaining = TotalTime;
+	TargetTimeDilation = TargetDilation;
 }
 
 void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty,
@@ -171,17 +158,109 @@ void AFighterCharacter::CheckMeshOverlaps()
 				if(Target == this || !IsValid(Target)  || RecentlyDamagedActors.Contains(Target) ||
 					TraceResult.GetActor() != Target) continue;
 				RecentlyDamagedActors.Add(Target);
+				FAttackDamageEvent AttackDamageEvent;
+				CharacterStats->GenerateDamageEvent(AttackDamageEvent, TraceResult);
 				Target->TakeDamage(CharacterStats->GetDamageOutput(),
-					CharacterStats->GenerateDamageEvent(TraceResult), GetInstigatorController(), this);
+					AttackDamageEvent, GetInstigatorController(), this);
 				break;
 			}
 		}
 	}
 }
 
+void AFighterCharacter::ProcessTimeDilation(float DeltaSeconds)
+{
+	TimeDilationEffectTimeRemaining -= DeltaSeconds / CustomTimeDilation; //we need the "real" time
+	if(TimeDilationBlendTime >= (TimeDilationTotalTime - TimeDilationEffectTimeRemaining))
+	{
+		//blend to target
+		const float InterpolationAmount = pow((TimeDilationTotalTime - TimeDilationEffectTimeRemaining) /
+			TimeDilationBlendTime, 2.5);
+		const float ResultingDilation = SourceTimeDilation * (1.f - InterpolationAmount) +
+			TargetTimeDilation * InterpolationAmount;
+
+		//prevent jumping around when blending is interrupted by another blending order
+		if((SourceTimeDilation > TargetTimeDilation && ResultingDilation > CustomTimeDilation) ||
+			(SourceTimeDilation < TargetTimeDilation && ResultingDilation < CustomTimeDilation))
+				CustomTimeDilation = ResultingDilation;
+	}
+	else if(TimeDilationBlendTime >= TimeDilationEffectTimeRemaining)
+	{
+		if(TimeDilationEffectTimeRemaining <= 0.f)
+		{
+			//prevent overshooting
+			CustomTimeDilation = SourceTimeDilation;
+		}
+		else
+		{
+			//blend to original
+			const float InterpolationAmount = pow(TimeDilationEffectTimeRemaining / TimeDilationBlendTime, 2.5);
+			const float ResultingDilation = SourceTimeDilation * InterpolationAmount +
+				TargetTimeDilation * (1.f - InterpolationAmount);
+			
+			//prevent jumping around when blending is interrupted by another blending order
+			if((SourceTimeDilation > TargetTimeDilation && ResultingDilation < CustomTimeDilation) ||
+				(SourceTimeDilation < TargetTimeDilation && ResultingDilation > CustomTimeDilation))
+					CustomTimeDilation = ResultingDilation;
+		}
+	}
+	else
+	{
+		CustomTimeDilation = TargetTimeDilation; 
+	}
+}
+
 void AFighterCharacter::OnDeathTriggered()
 {
 	TargetInformationComponent->SetCanBeTargeted(false, FSetCanBeTargetedKey());
+}
+
+void AFighterCharacter::PlayHitSound(const FVector& HitLocation)
+{
+	//Make hit sound which is defined per bone (if nothing is set for the specific given bone,
+	//it is assumed to use the same sound as it's parent)
+	check(IsValid(BoneSoundResponseConfig.Get()));
+	FName BoneToCheck = GetMesh()->FindClosestBone(HitLocation);
+			
+	while(!BoneToCheck.IsNone())
+	{
+		FSoundConfig SoundConfig =
+			BoneSoundResponseConfig.GetDefaultObject()->GetBoneResponses().FindRef(BoneToCheck);
+		if(!(SoundConfig == FSoundConfig()))
+		{
+			SoundConfig.PlaySoundAtLocation(GetWorld(), HitLocation);
+			break;
+		}
+		//there was no matching configuration found, so we'll look at the parent bone
+		BoneToCheck = GetMesh()->GetParentBone(BoneToCheck);				
+	}
+}
+
+void AFighterCharacter::SpawnHitFX(const FVector& Location, float ScaleFactor)
+{
+	//Spawn get hit FX
+	constexpr float RealRadius = 75.f;
+	FFXSystemSpawnParameters SpawnParameters;
+	SpawnParameters.SystemTemplate = GetHitFX;
+	SpawnParameters.Location = Location;
+	SpawnParameters.Scale = FVector(HitFXRadius/RealRadius * ScaleFactor);
+	SpawnParameters.AttachToComponent = GetRootComponent();
+	SpawnParameters.bAutoActivate = true;
+	SpawnParameters.bAutoDestroy = true;
+	SpawnParameters.WorldContextObject = GetWorld();
+	UNiagaraComponent* NiagaraComponent =
+		UNiagaraFunctionLibrary::SpawnSystemAttachedWithParams(SpawnParameters);
+	NiagaraComponent->SetVariableLinearColor("BaseColor", FLinearColor(0.5f, 0.5f, 0.5f));
+}
+
+void AFighterCharacter::GetStaggered(const FAttackDamageEvent* DamageEvent)
+{
+	check(IsValid(GetHitAnimation));
+	if(!IsValid(GetHitAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Stagger)) return;
+	
+	StopAnimMontage();
+	PlayAnimMontage(GetHitAnimation);
+	AcceptedInputs.LimitAvailableInputs({EInputType::Stagger, GetHitAnimation->GetPlayLength()*0.9f}, GetWorld());
 }
 
 void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
@@ -243,7 +322,13 @@ void AFighterCharacter::BeginPlay()
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
 	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
 	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
-	CharacterStats->OnGetHit.AddDynamic(this, &AFighterCharacter::OnGetHit);
+#if USE_UE5_DELEGATE
+	CharacterStats->OnGetDamaged.AddDynamic(this, &AFighterCharacter::OnGetDamagedUE);
+#else
+	//TODO: This is a hack to make passing FCustomDamageEvent* through without loss or errors
+	CharacterStats->OnGetDamaged.Function = std::bind(&AFighterCharacter::OnGetDamaged, this, std::placeholders::_1);
+	CharacterStats->OnGetDamaged.Owner = this;
+#endif
 	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
 	SwitchMovementToWalk(FSetWalkOrRunKey());
 }
@@ -261,12 +346,27 @@ void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
 	QueueFollowUpLimit(Properties.InputLimits);
 }
 
-void AFighterCharacter::OnGetHit(const FCustomDamageEvent& DamageEvent)
+void AFighterCharacter::OnGetDamaged(const FCustomDamageEvent* DamageEvent)
 {
-	if(!IsValid(GetHitAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Stagger)) return;
-	StopAnimMontage();
-	PlayAnimMontage(GetHitAnimation);
-	AcceptedInputs.LimitAvailableInputs({EInputType::Stagger, GetHitAnimation->GetPlayLength()*0.9f}, GetWorld());
+	//Damaged by an attack
+	if(DamageEvent->IsOfType(FAttackDamageEvent::ClassID))
+	{
+		GLog->Log("the function got called and correctly");
+		const FAttackDamageEvent* AttackDamageEvent = static_cast<const FAttackDamageEvent*>(DamageEvent);
+		PlayHitSound(AttackDamageEvent->HitLocation);
+		SpawnHitFX(AttackDamageEvent->HitLocation, AttackDamageEvent->HitFXScaleFactor);
+		
+		const uint32 CasePerThousand = FMath::RandRange(0, 1000);
+		if(CasePerThousand <= AttackDamageEvent->StaggerChance)
+		{
+			GetStaggered(AttackDamageEvent);
+		}
+	}
+	//Damaged by something else
+	else
+	{
+		GLog->Log("the function got called but wrongly");
+	}	
 }
 
 void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)

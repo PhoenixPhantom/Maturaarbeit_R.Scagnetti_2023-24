@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CustomDamageEvent.h"
+#include "Utility/Tools/Delegates.h"
 #include "GeneralStats.generated.h"
 
 template<typename Value, typename Percentage>
@@ -79,8 +80,10 @@ struct MAPROJECT_API FGeneralBaseStats
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedDelegate, uint32, NewHelath, uint32, OldHealth);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetHitDelegate, const FCustomDamageEvent&, DamageEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetDamagedDelegate, const FCustomDamageEvent&, DamageEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoHealthReachedDelegate, const FCustomDamageEvent&, DamageEvent);
+
+#define USE_UE5_DELEGATE false
 
 struct FGeneralObjectStats
 {
@@ -88,7 +91,13 @@ struct FGeneralObjectStats
 	virtual ~FGeneralObjectStats() = default;
 
 	FOnHealthChangedDelegate OnHealthChanged;
-	FOnGetHitDelegate OnGetHit;
+
+#if USE_UE5_DELEGATE
+	FOnGetDamagedDelegate OnGetDamaged;
+#else
+	//TODO: This is a hack to make passing FCustomDamageEvent* through without loss or errors
+	TOwnedFunction<void(const FCustomDamageEvent*)> OnGetDamaged;
+#endif
 	FOnNoHealthReachedDelegate OnNoHealthReached;
 
 	//Represents the current health of the object. Should not be changed directly but through ReceiveDamage
@@ -104,6 +113,6 @@ struct FGeneralObjectStats
 	void FromBase(const FGeneralBaseStats& Stats, const FSavableModifiersBase& Modifiers);
 
 	virtual float GetDamageOutput() const;
-	virtual const FCustomDamageEvent& GenerateDamageEvent(const FHitResult& HitResult = FHitResult()) const = 0;
-	uint32 ReceiveDamage(float Damage, const FCustomDamageEvent& DamageInfo);
+	virtual void GenerateDamageEvent(FCustomDamageEvent& DamageEvent, const FHitResult& HitResult = FHitResult()) const = 0;
+	uint32 ReceiveDamage(float Damage, const FCustomDamageEvent* DamageInfo);
 };
