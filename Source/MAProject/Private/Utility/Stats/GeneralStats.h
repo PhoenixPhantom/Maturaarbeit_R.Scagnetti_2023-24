@@ -69,18 +69,18 @@ struct MAPROJECT_API FGeneralBaseStats
 
 	bool operator==(const FGeneralBaseStats &GeneralBaseStats) const;
 
-	UPROPERTY(EditAnywhere, meta=(ForceUnits="HP"))
+	UPROPERTY(EditDefaultsOnly, meta=(ForceUnits="HP"))
 	int32 BaseHealth;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	uint32 BaseAttack;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	uint32 BaseDefense;	
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedDelegate, uint32, NewHelath, uint32, OldHealth);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetDamagedDelegate, const FCustomDamageEvent&, DamageEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetDamagedDelegate,  const FCustomDamageEvent&, DamageEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoHealthReachedDelegate, const FCustomDamageEvent&, DamageEvent);
 
 #define USE_UE5_DELEGATE false

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "InputManagement.generated.h"
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInputLimitsResetDelegate, bool, bool&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInputLimitsResetDelegate, bool);
 
 UENUM()
 enum class EInputType

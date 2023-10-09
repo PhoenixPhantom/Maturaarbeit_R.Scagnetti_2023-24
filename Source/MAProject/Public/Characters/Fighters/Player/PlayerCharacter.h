@@ -28,6 +28,7 @@ private:
 	FPreSpawnSetupKey(){}
 };
 
+
 UCLASS()
 class MAPROJECT_API APlayerCharacter : public AFighterCharacter
 {
@@ -135,7 +136,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex) override;
+	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits) override;
 
 	virtual void CharacterLanded();
 	virtual void CharacterInAir();
@@ -163,12 +164,4 @@ protected:
 	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);
-
-	enum EAttackType
-	{
-		Light,
-		Heavy,
-		Skill,
-		Ultimate
-	};
 };

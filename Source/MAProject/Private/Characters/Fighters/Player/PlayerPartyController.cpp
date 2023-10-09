@@ -23,7 +23,7 @@ void APlayerPartyController::BeginPlay()
 	CombatManager = CastChecked<ACombatManager>(Actors[0]);
 
 	const APlayerCharacter* TargetCharacter = CastChecked<APlayerCharacter>(PartyMemberClass.GetDefaultObject());
-	PartyMemberStats.FromBase(TargetCharacter->GetCharacterBaseStats(), PartyMemberModifiers, GetWorld());
+	PartyMemberStats.FromBase(TargetCharacter->GetCharacterBaseStats(), PartyMemberModifiers, this);
 
 	FTransform TargetTransform;
 	//If we have already a saved location

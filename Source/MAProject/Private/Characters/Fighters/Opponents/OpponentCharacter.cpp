@@ -4,6 +4,7 @@
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
 #include "Characters/AdvancedCharacterMovementComponent.h"
+#include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -69,8 +70,11 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 	float TotalDistance = 0.f;
 	float MaxDistance = std::numeric_limits<float>::lowest();
 	float NumValidAttacks = 0.f;
-	for(const FAttackProperties& AttackProperties : CharacterStats->AvailableAttacks)
+
+	const UGenericGraphNode* SourceNode = CharacterStats->Attacks.GetCurrentNode(GetWorld());
+	for(const UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
+		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
 		if(!FoundExecutableAttack)
 		{
 			//the first actually executable attack resets the values because it is stronger than all non-executable ones
@@ -91,7 +95,8 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 		}
 		TotalDistance += AttackProperties.DefaultMovementDistance;
 	}
-	const float DistanceAverage = CharacterStats->AvailableAttacks.IsEmpty() ? -1.f :
+	
+	const float DistanceAverage = SourceNode->ChildrenNodes.IsEmpty() ? -1.f :
 		TotalDistance/NumValidAttacks;
 	
 	DistanceConstraint.MaxRadius = MaxDistance*0.9f;
@@ -128,6 +133,11 @@ void AOpponentCharacter::RegisterCombatTarget(AController* NewOpponent, FSetComb
 	}
 }
 
+bool AOpponentCharacter::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey)
+{
+	return CharacterStats->Attacks.ExecuteAttackFromNode(NodeToExecute, GetWorld());
+}
+
 float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const
 {
 	if(!bCanBecomeAggressive) return -1.f;
@@ -140,15 +150,15 @@ float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharac
 	Score += PlayerCharacter->RequestActionRank(this);
 
 	//Opponents that can't attack right now can become aggressive, but are less likely to
-	Score = Score * (1.f - (CanAttackInSeconds() / 3.f));
+	Score = Score * (1.f - (CanAttackInSeconds() / 5.f));
 	return Score;
 }
 
 void AOpponentCharacter::BeginPlay()
 {
 	CharacterStats = new FCharacterStats();
-	CharacterStats->FromBase(BaseStats, StatsModifiers, GetWorld());
-	CharacterStats->OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
+	CharacterStats->FromBase(BaseStats, StatsModifiers, this);
+	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
 	OnAggressionTokensGranted.AddDynamic(this, &AOpponentCharacter::SetUseActiveCombatSpace);
 	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetUsePassiveSpace);
 	SetUsePassiveSpace();
@@ -165,9 +175,23 @@ void AOpponentCharacter::OnDeathTriggered()
 
 float AOpponentCharacter::CanAttackInSeconds() const
 {
+	const float ShortestCd = EarliestAttackSeconds(CharacterStats->Attacks.GetCurrentNode(GetWorld()));
+	const float RemainingComboTime = CharacterStats->Attacks.GetLatestAttackProperties().MaxComboTime - GetWorld()->RealTimeSeconds;
+
+	//if the shortest cd remaining is longer than the remaining combo time, the combo will reset and
+	//only attacks going from the root node can be accessed
+	if(CharacterStats->Attacks.GetCurrentNode(GetWorld()) == CharacterStats->Attacks.GetRootNode() ||
+		ShortestCd <= RemainingComboTime) return ShortestCd;
+	
+	return FMath::Max(RemainingComboTime, EarliestAttackSeconds(CharacterStats->Attacks.GetRootNode()));
+}
+
+float AOpponentCharacter::EarliestAttackSeconds(const UGenericGraphNode* SourceNode)
+{
 	float ShortestCd = std::numeric_limits<float>::max();
-	for(const FAttackProperties& AttackProperties : CharacterStats->AvailableAttacks)
+	for(const UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
+		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
 		float RemainingCdTime = AttackProperties.CdTimeRemaining();
 		if(RemainingCdTime <= 0.f) return 0.f;
 		if(RemainingCdTime < ShortestCd)

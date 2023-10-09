@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AttackDamageEvent.h"
+#include "GenericGraphNode.h"
 #include "Characters/InputManagement.h"
 #include "AttackProperties.generated.h"
 
@@ -31,11 +32,14 @@ struct MAPROJECT_API FAttackProperties
 	UPROPERTY(EditAnywhere, Category = Combat,
 		meta=(Units="cm", ToolTip="Default distance that the animation will move the actor."))
 	float DefaultMovementDistance;
-	UPROPERTY(EditAnywhere, Category = Opponent, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay, meta=(ForceUnits="s",
+		ToolTip="The maximum time the character can wait after this attack to continue the combo (reccomendation: around 1s for players and around 10s for opponents)"))
+	float MaxComboTime;
+	UPROPERTY(EditAnywhere, Category = "Combat", AdvancedDisplay, meta=(ToolTip="Attack priority (compared to other attacks) only has an effect on opponents"))
 	float Priority;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
-	UPROPERTY(EditAnywhere, Category = Animation, AdvancedDisplay, meta=(ToolTip="The limits that will be applied one after another in order of indices on attack execution."))
+	UPROPERTY(EditAnywhere, Category = Animation, meta=(ToolTip="The limits that will be applied one after another in order of indices on attack execution."))
 	TArray<FInputLimits> InputLimits;
 
 
@@ -43,7 +47,7 @@ struct MAPROJECT_API FAttackProperties
 
 	float GetPriority(float DistanceFromTarget) const;
 	bool GetIsOnCd() const { return bIsOnCd; }
-	void Execute();
+	void Execute(UWorld* WorldContext);
 	float CdTimeElapsed() const;
 	float CdTimeRemaining() const;
 	float GetTotalCdTime() const;

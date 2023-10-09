@@ -11,5 +11,10 @@ public class MAProjectTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_2;
 		ExtraModuleNames.Add("MAProject");
+		
+		if (bCompileAgainstEditor)
+		{
+			ExtraModuleNames.Add("MAProjectEditor");
+		}
 	}
 }

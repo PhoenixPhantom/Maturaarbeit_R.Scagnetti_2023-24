@@ -8,6 +8,7 @@
 #include "Characters/GeneralCharacter.h"
 #include "FighterCharacter.generated.h"
 
+class UAttackTree;
 class UHealthMonitorBaseWidget;
 class UBoneSoundResponseConfig;
 class UTargetInformationComponent;
@@ -59,15 +60,10 @@ public:
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
 	FOnInputLimitsResetDelegate& OnInputLimitsResetDelegate(){ return AcceptedInputs.OnInputLimitsReset; }
 
-	void GetAvailableAttacks(TArray<FAttackProperties>& AvailableAttacks) const
-		{ AvailableAttacks = CharacterStats->AvailableAttacks; }
-	bool ExecuteAttack(const FAttackProperties& AttackProperties);
+	const FCharacterStats* GetCharacterStats() const { return CharacterStats; };
 	
 	void SwitchMovementToWalk(FSetWalkOrRunKey) const;
 	void SwitchMovementToRun(FSetWalkOrRunKey) const;
-	
-	UFUNCTION(BlueprintCallable, Category = Combat)
-	void ExecuteAttack(int32 Index);
 	
 protected:
 	uint8 bIsInvincible:1;
@@ -80,6 +76,8 @@ protected:
 	TArray<FName> MeleeEnabledBones;
 	FCharacterStats* CharacterStats;
 	FTimerHandle InvincibilityHandle;
+	
+	TTuple<double, TArray<AttackIndex>> AttackInputString;
 
 	UPROPERTY()
 	TArray<AActor*> RecentlyDamagedActors;
@@ -121,7 +119,7 @@ protected:
 	virtual void SpawnHitFX(const FVector& Location, float ScaleFactor);
 	virtual void GetStaggered(const FAttackDamageEvent* DamageEvent);
 
-	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex = 0);
+	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits);
 
 	UFUNCTION()
 	void RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget);

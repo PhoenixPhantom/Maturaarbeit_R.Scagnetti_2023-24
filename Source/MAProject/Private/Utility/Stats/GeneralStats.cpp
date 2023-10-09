@@ -47,7 +47,7 @@ uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent
 	if(Damage > 0.f)
 	{
 #if USE_UE5_DELEGATE
-		OnGetDamaged.Broadcast(*DamageInfo);
+		if(OnGetDamaged.IsBound()) OnGetDamaged.Broadcast(*DamageInfo);
 #else
 		if(IsValid(OnGetDamaged.Owner))	OnGetDamaged.Function(DamageInfo);
 #endif

@@ -263,21 +263,17 @@ void AFighterCharacter::GetStaggered(const FAttackDamageEvent* DamageEvent)
 	AcceptedInputs.LimitAvailableInputs({EInputType::Stagger, GetHitAnimation->GetPlayLength()*0.9f}, GetWorld());
 }
 
-void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
+void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits)
 {
-	const int32 Index = CurrentLimitIndex + 1;
-	if(!InputLimits.IsValidIndex(Index)) return;
+	if(InputLimits.IsEmpty()) return;
 	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
-		[=]
-		(bool IsLimitDurationOver, bool& HasBeenCleared)
+		[this, InputLimits]
+		(bool IsLimitDurationOver)
 	{
-		AcceptedInputs.LimitAvailableInputs(InputLimits[Index], GetWorld());
-		if(!HasBeenCleared)
-		{
-			AcceptedInputs.OnInputLimitsReset.Clear();
-			HasBeenCleared = true;
-		}
-		QueueFollowUpLimit(InputLimits, Index);
+		AcceptedInputs.LimitAvailableInputs(InputLimits[0], GetWorld());			
+		TArray NewLimits(InputLimits);
+		NewLimits.RemoveAt(0);
+		QueueFollowUpLimit(NewLimits);
 	});
 }
 
@@ -292,14 +288,6 @@ void AFighterCharacter::RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widge
 	CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UHealthMonitorBaseWidget::UpdateHealth);
 }
 
-bool AFighterCharacter::ExecuteAttack(const FAttackProperties& AttackProperties)
-{
-	const int32 Index = CharacterStats->AvailableAttacks.Find(AttackProperties);
-	if(Index == INDEX_NONE) return false;
-	ExecuteAttack(Index);
-	return true;
-}
-
 void AFighterCharacter::SwitchMovementToWalk(FSetWalkOrRunKey) const
 {
 	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->WalkSpeed.GetResulting();
@@ -310,22 +298,17 @@ void AFighterCharacter::SwitchMovementToRun(FSetWalkOrRunKey) const
 	GetCharacterMovement()->MaxWalkSpeed = CharacterStats->RunSpeed.GetResulting();
 }
 
-void AFighterCharacter::ExecuteAttack(int32 Index)
-{
-	CharacterStats->ExecuteAttack(Index);
-}
-
 void AFighterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	check(GetMesh()->GetRelativeTransform().GetMaximumAxisScale() == GetMesh()->GetRelativeTransform().GetMinimumAxisScale());
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
-	CharacterStats->OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
-	CharacterStats->OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
+	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
+	CharacterStats->Attacks.OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
 #if USE_UE5_DELEGATE
 	CharacterStats->OnGetDamaged.AddDynamic(this, &AFighterCharacter::OnGetDamagedUE);
 #else
-	//TODO: This is a hack to make passing FCustomDamageEvent* through without loss or errors
+	//TODO: This is a hack to allow passing a FCustomDamageEvent* without loss or errors
 	CharacterStats->OnGetDamaged.Function = std::bind(&AFighterCharacter::OnGetDamaged, this, std::placeholders::_1);
 	CharacterStats->OnGetDamaged.Owner = this;
 #endif
@@ -380,7 +363,7 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 	
 	AcceptedInputs.LimitAvailableInputs({EInputType::Death, DeathAnimation->GetPlayLength()*0.9f}, GetWorld());
 	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
-		[this](bool IsLimitDurationOver, bool& HasBeenCleared)
+		[this](bool IsLimitDurationOver)
 	{
 		Destroy();
 	});

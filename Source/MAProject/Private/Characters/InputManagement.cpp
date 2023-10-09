@@ -180,9 +180,13 @@ void FAcceptedInputs::ResetLimits(UWorld* World, bool IsLimitDurationOver)
 		World->GetTimerManager().ClearTimer(ResetHandle);
 	}
 	EnactLimits(DefaultLimits);
-	bool HasBeenCleared = false;
-	OnInputLimitsReset.Broadcast(IsLimitDurationOver, HasBeenCleared);
-	if(!HasBeenCleared) OnInputLimitsReset.Clear();
+
+	//copy the execution stack, since some functions bound to OnInputLimitsReset bind new ones to OnInputLimitsReset 
+	const FOnInputLimitsResetDelegate ExecutionStack = OnInputLimitsReset;
+	//the on reset functions, in general, are specific to this limit and will not be called the next time
+	OnInputLimitsReset.Clear();
+	
+	ExecutionStack.Broadcast(IsLimitDurationOver);
 }
 
 bool FAcceptedInputs::IsAlreadyReset() const

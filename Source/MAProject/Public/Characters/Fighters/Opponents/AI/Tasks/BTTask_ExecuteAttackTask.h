@@ -28,8 +28,8 @@ protected:
 	AOpponentCharacter* OwningCharacter;
 
 	UFUNCTION()
-	void OnAttackFinished(bool IsLimitDurationOver, bool& HasBeenCleared);
+	void OnAttackFinished(bool IsLimitDurationOver);
 
 	UFUNCTION()
-	void OnReactionFinished(bool IsLimitDurationOver, bool& HasBeenCleared);
+	void OnReactionFinished(bool IsLimitDurationOver);
 };

@@ -15,6 +15,11 @@
 				"NavigationSystem",
 				"NiagaraAnimNotifies"
 			]
+		},
+		{
+			"Name": "MAProjectEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit"
 		}
 	],
 	"Plugins": [

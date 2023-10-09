@@ -6,7 +6,8 @@ public class MAProject : ModuleRules
 {
 	public MAProject(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivateDependencyModuleNames.AddRange(new string[] {"Niagara", "NiagaraAnimNotifies", "Persona"});
+		PrivateDependencyModuleNames.AddRange(new string[] {"Niagara", "NiagaraAnimNotifies", "Persona",
+			"GenericGraphRuntime"});
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new[]

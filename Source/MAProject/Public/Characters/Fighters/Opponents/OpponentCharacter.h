@@ -8,6 +8,7 @@
 #include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "OpponentCharacter.generated.h"
 
+class UBTTask_ExecuteAttackTask;
 class UPatrolManagerComponent;
 class UPlayerFacingWidgetComponent;
 class UWidgetComponent;
@@ -63,6 +64,13 @@ private:
 	FExecuteOnAggressionTokensReleasedKey(){}
 };
 
+struct FExecuteAttackKey final
+{
+	friend UBTTask_ExecuteAttackTask;
+private:
+	FExecuteAttackKey(){}
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenGrantedDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenRemovedDelegate);
 
@@ -103,8 +111,10 @@ public:
 	UCharacterRotationManagerComponent* GetCharacterRotationManager() const { return RotationManagerComponent; }
 	AController* GetCombatTargetController() const;
 	ACharacter* GetCombatTarget() const;
-	void RegisterCombatTarget(AController* NewOpponent, FSetCombatTargetKey Key);
-	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey Key){ LocalFieldOfView = FieldOfView; }
+	void RegisterCombatTarget(AController* NewOpponent, FSetCombatTargetKey);
+	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey){ LocalFieldOfView = FieldOfView; }
+
+	FORCEINLINE bool ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey);
 
 	/**
 	 * @brief Generate a score for the importance of the opponent to the player. Screen centered-ness,
@@ -165,6 +175,7 @@ protected:
 
 	bool CanAttack() const{ return CanAttackInSeconds() <= 0.f; };
 	float CanAttackInSeconds() const;
+	static float EarliestAttackSeconds(const UGenericGraphNode* SourceNode);
 
 
 	UFUNCTION()

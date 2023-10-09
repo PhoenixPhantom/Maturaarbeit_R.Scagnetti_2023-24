@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Attacks/AttackProperties.h"
+#include "Attacks/Attacks.h"
 #include "Utility/Stats/GeneralStats.h"
 #include "CharacterStats.generated.h"
 
+
+class UAttackTree;
 
 USTRUCT()
 struct MAPROJECT_API FSavableCharacterModifiers : public FSavableModifiersBase
@@ -26,57 +29,50 @@ struct MAPROJECT_API FCharacterBaseStats : public FGeneralBaseStats
 {
 	GENERATED_BODY()
 	
-	FCharacterBaseStats() : BaseWalkSpeed(600), RunSpeedup(100), DashFactor(2.f), BaseInterruptionResistance(0)
+	FCharacterBaseStats() : BaseWalkSpeed(600), RunSpeedup(100), DashFactor(2.f), BaseInterruptionResistance(0),
+	                        AttackTree(nullptr)
 	{
 	}
 
 	FCharacterBaseStats(const FCharacterBaseStats& Source) : BaseWalkSpeed(Source.BaseWalkSpeed),
-	                                                         RunSpeedup(Source.RunSpeedup), DashFactor(Source.RunSpeedup),
-	                                                         BaseInterruptionResistance(
-		                                                         Source.BaseInterruptionResistance)
+	        RunSpeedup(Source.RunSpeedup), DashFactor(Source.RunSpeedup),
+			BaseInterruptionResistance(Source.BaseInterruptionResistance), AttackTree(Source.AttackTree)
 	{
 	};
 
 	bool operator==(const FCharacterBaseStats &CharacterBaseStats) const;
 
-	UPROPERTY(EditAnywhere, meta=(Units="m/s"))
+	UPROPERTY(EditDefaultsOnly, meta=(Units="m/s"))
 	float BaseWalkSpeed;
 
-	UPROPERTY(EditAnywhere, meta=(Units="%"))
+	UPROPERTY(EditDefaultsOnly, meta=(Units="%"))
 	float RunSpeedup;
 
-	UPROPERTY(EditAnywhere, meta=(ForceUnits="x"))
+	UPROPERTY(EditDefaultsOnly, meta=(ForceUnits="x"))
 	float DashFactor;
 
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	uint32 BaseInterruptionResistance;
 
-	UPROPERTY(EditAnywhere)
-	TArray<FAttackProperties> AvailableAttacks;
+	
+	UPROPERTY(EditDefaultsOnly)
+	UAttackTree* AttackTree;
 };
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnExecuteAttackDelegate, const FAttackProperties&, AttackProperties);
-DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnCheckCanExecuteAttackDelegate, const FAttackProperties&, AttackProperties);
 
 struct FCharacterStats : public FGeneralObjectStats
 {
 	FCharacterStats();
-	
-	FOnExecuteAttackDelegate OnExecuteAttack;
-	FOnCheckCanExecuteAttackDelegate OnCheckCanExecuteAttack;
 	
 	TScalable<float, float> WalkSpeed;
 	TScalable<float, float> RunSpeed;
 	float DashFactor;
 	TScalable<uint32, float> InterruptionResistance;
 
-	TArray<FAttackProperties> AvailableAttacks;
+	FAttacks Attacks;
 
-	void FromBase(const FCharacterBaseStats& Stats, const FSavableCharacterModifiers& Modifiers, UWorld* World);
+	void FromBase(const FCharacterBaseStats& Stats, const FSavableCharacterModifiers& Modifiers, UObject* Outer);
 	float GetDashSpeed() const { return RunSpeed.GetResulting() * DashFactor; }
-	
-	void ExecuteAttack(int32 Index);
 
 	virtual float GetDamageOutput() const override;
 	virtual void GenerateDamageEvent(FCustomDamageEvent& DamageEvent, const FHitResult& HitResult = FHitResult()) const override;
@@ -84,7 +80,5 @@ struct FCharacterStats : public FGeneralObjectStats
 
 	
 	bool operator==(const FCharacterStats& CharacterStats) const;
-protected:
-	FAttackProperties* CurrentAttack;
 };
 

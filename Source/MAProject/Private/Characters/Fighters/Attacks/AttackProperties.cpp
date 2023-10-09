@@ -3,6 +3,7 @@
 
 #include "AttackProperties.h"
 
+
 FAttackProperties::FAttackProperties() : DamagePercent(100.f), CdTime(0.f), MaximalMovementDistance(200.f),
 	DefaultMovementDistance(100.f), Priority(1.f), AtkAnimation(nullptr), World(nullptr), bIsOnCd(false)
 {
@@ -31,12 +32,14 @@ bool FAttackProperties::operator==(const FAttackProperties& AttackProperties) co
 
 float FAttackProperties::GetPriority(float DistanceFromTarget) const
 {
-	return Priority / std::max(1.f,
-		(DistanceFromTarget-DefaultMovementDistance)/(MaximalMovementDistance-DefaultMovementDistance));
+	return DistanceFromTarget <= DefaultMovementDistance ? Priority : Priority *
+		(1.f + (DistanceFromTarget-DefaultMovementDistance) / (MaximalMovementDistance-DefaultMovementDistance));
 }
 
-void FAttackProperties::Execute()
+void FAttackProperties::Execute(UWorld* WorldContext)
 {
+	check(IsValid(WorldContext));
+	World = WorldContext;
 	bIsOnCd = true;
 	const float ActualCdTime = GetTotalCdTime();
 	check(ActualCdTime > 0.f);
@@ -46,13 +49,13 @@ void FAttackProperties::Execute()
 
 float FAttackProperties::CdTimeElapsed() const
 {
-	if(bIsOnCd) return 0.f;
+	if(!bIsOnCd || !IsValid(World)) return -1.f;
 	return World->GetTimerManager().GetTimerElapsed(CdHandle);
 }
 
 float FAttackProperties::CdTimeRemaining() const
 {
-	if(bIsOnCd) return 0.f;
+	if(!bIsOnCd || !IsValid(World)) return -1.f;
 	return World->GetTimerManager().GetTimerRemaining(CdHandle);
 }
 
@@ -60,3 +63,5 @@ float FAttackProperties::GetTotalCdTime() const
 {
 	return AtkAnimation->GetPlayLength() + CdTime;
 }
+
+

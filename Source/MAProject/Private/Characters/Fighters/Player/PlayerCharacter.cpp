@@ -121,7 +121,7 @@ float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget) co
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	CharacterStats->OnExecuteAttack.AddDynamic(this, &APlayerCharacter::OnSelectMotionWarpingTarget);
+	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &APlayerCharacter::OnSelectMotionWarpingTarget);
 	
 	check(IsValid(HealthWidgetClass.Get()));
 	UHealthMonitorBaseWidget* HealthMonitor = CreateWidget<UHealthMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
@@ -168,9 +168,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	                                   &APlayerCharacter::OpenPauseMenu);
 }
 
-void APlayerCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits, int32 CurrentLimitIndex)
+void APlayerCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits)
 {
-	Super::QueueFollowUpLimit(InputLimits, CurrentLimitIndex);
+	Super::QueueFollowUpLimit(InputLimits);
 	if (LastInput.bIsValid == true && GetWorld()->GetRealTimeSeconds() - LastInput.First <= MaximalInputWindowTime
 		&& AcceptedInputs.CanOverrideCurrentInput(LastInput.Second))
 	{
@@ -217,7 +217,7 @@ void APlayerCharacter::LightAttack()
 	}
 
 	LastInput.bIsValid = false;
-	CharacterStats->ExecuteAttack(EAttackType::Light);
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Light, GetWorld());
 }
 
 void APlayerCharacter::HeavyAttack()
@@ -230,7 +230,7 @@ void APlayerCharacter::HeavyAttack()
 	}
 
 	LastInput.bIsValid = false;
-	CharacterStats->ExecuteAttack(EAttackType::Heavy);
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Heavy, GetWorld());
 }
 
 void APlayerCharacter::SkillAttack()
@@ -243,7 +243,7 @@ void APlayerCharacter::SkillAttack()
 	}
 
 	LastInput.bIsValid = false;
-	CharacterStats->ExecuteAttack(EAttackType::Skill);
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Skill, GetWorld());
 }
 
 void APlayerCharacter::UltimateAttack()
@@ -256,7 +256,7 @@ void APlayerCharacter::UltimateAttack()
 	}
 
 	LastInput.bIsValid = false;
-	CharacterStats->ExecuteAttack(EAttackType::Ultimate);
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Ultimate, GetWorld());
 }
 
 void APlayerCharacter::DashStartRunning()
@@ -290,8 +290,9 @@ void APlayerCharacter::DashStartRunning()
 
 		//Launch character doesn't work here since it sets the player's movement state to "falling" which causes it to
 		//play the falling animation.
-		GetCharacterMovement()->Velocity = FVector(Direction * CharacterStats->GetDashSpeed()) +
+		FVector DeltaV = FVector(Direction * CharacterStats->GetDashSpeed()) +
 			FVector::ZAxisVector * GetCharacterMovement()->Velocity.Z;
+		GetCharacterMovement()->Velocity += DeltaV;
 
 
 		GetWorld()->GetTimerManager().SetTimerForNextTick(
@@ -299,6 +300,12 @@ void APlayerCharacter::DashStartRunning()
 			{
 				GetCharacterMovement()->RotationRate = OldRotationRate;
 			});
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, DeltaV]()
+		{
+			GetCharacterMovement()->Velocity -= 0.35*DeltaV;
+		}, 0.2f, false);
+		
 		GetCharacterMovement()->RotationRate = FRotator(0.f, -1.f, 0.f);
 
 		MakeInvincible(1.f);
