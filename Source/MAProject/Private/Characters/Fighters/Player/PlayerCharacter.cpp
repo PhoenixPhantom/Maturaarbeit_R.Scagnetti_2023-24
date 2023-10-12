@@ -290,9 +290,8 @@ void APlayerCharacter::DashStartRunning()
 
 		//Launch character doesn't work here since it sets the player's movement state to "falling" which causes it to
 		//play the falling animation.
-		FVector DeltaV = FVector(Direction * CharacterStats->GetDashSpeed()) +
+		GetCharacterMovement()->Velocity += FVector(Direction * CharacterStats->GetDashSpeed()) +
 			FVector::ZAxisVector * GetCharacterMovement()->Velocity.Z;
-		GetCharacterMovement()->Velocity += DeltaV;
 
 
 		GetWorld()->GetTimerManager().SetTimerForNextTick(
@@ -301,9 +300,9 @@ void APlayerCharacter::DashStartRunning()
 				GetCharacterMovement()->RotationRate = OldRotationRate;
 			});
 		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, DeltaV]()
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
 		{
-			GetCharacterMovement()->Velocity -= 0.35*DeltaV;
+			GetCharacterMovement()->Velocity *= 0.6;
 		}, 0.2f, false);
 		
 		GetCharacterMovement()->RotationRate = FRotator(0.f, -1.f, 0.f);

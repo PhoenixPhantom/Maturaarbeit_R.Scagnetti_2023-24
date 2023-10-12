@@ -69,6 +69,9 @@ public:
 
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
 	ECombatParticipantStatus GetParticipationStatus(AFighterCharacter* Character) const;
+
+	const TArray<AOpponentCharacter*>& GetAllActiveParticipants(){ return ActiveParticipants; };
+	const TArray<AOpponentCharacter*>& GetAllPassiveParticipants(){ return PassiveParticipants; };
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);
 	bool RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key);

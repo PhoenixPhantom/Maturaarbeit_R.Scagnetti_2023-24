@@ -57,7 +57,7 @@ void AOpponentCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 }
 
-UShapeComponent* AOpponentCharacter::GetRequiredSpace() const
+FRequiredSpace AOpponentCharacter::GetRequiredSpace() const
 {
 	if(RequiredSpaceActiveCombat->ComponentHasTag(RequiredSpaceActiveTag)) return RequiredSpaceActiveCombat;
 	return RequiredSpacePassive;
@@ -131,6 +131,11 @@ void AOpponentCharacter::RegisterCombatTarget(AController* NewOpponent, FSetComb
 		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToTarget, true,
 			GetTargetPlayer());
 	}
+}
+
+void AOpponentCharacter::SetUsedBlackboardComponent(UBlackboardComponent* NewBlackboard, FSetUsedBlackboardKey)
+{
+	UsedBlackboardComponent = NewBlackboard;
 }
 
 bool AOpponentCharacter::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey)

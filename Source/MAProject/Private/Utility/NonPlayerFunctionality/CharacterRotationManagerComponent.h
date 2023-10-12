@@ -27,7 +27,7 @@ class MAPROJECT_API UCharacterRotationManagerComponent : public USceneComponent
 public:
 	UCharacterRotationManagerComponent();
 
-	void SwitchToOptimal(const FVector& TargetLocation, FNavPathSharedPtr* NavPath);
+	void SwitchToOptimal(const FVector& TargetLocation);
 	void SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack = false, AActor* NewTarget = nullptr);
 
 protected:

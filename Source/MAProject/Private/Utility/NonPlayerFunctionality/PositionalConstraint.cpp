@@ -10,27 +10,78 @@
 #include "Kismet/GameplayStatics.h"
 
 
-FObstacleSpaceConstraint::FObstacleSpaceConstraint() : MatchLevelFactor(4), RequiredSpace(nullptr)
+UShapeComponent* FRequiredSpace::GetShape() const
+{
+	if(RequiredSpaceBox == nullptr) return RequiredSpaceSphere;
+	return RequiredSpaceBox;
+}
+
+FReservedSpaceConstraint::FReservedSpaceConstraint(): MatchLevelFactor(1), OtherRadius(0.f)
 {
 }
 
-FObstacleSpaceConstraint::FObstacleSpaceConstraint(UShapeComponent* NewRequiredSpace,
-    const FVector& NewOffsetFromCenter, const FVector& NewFacingToPoint, const TArray<AActor*>& NewIrrelevantObstacles,
-    int32 NewMatchLevelFactor) :
-		MatchLevelFactor(NewMatchLevelFactor), OffsetFromCenter(NewOffsetFromCenter), FacingToPoint(NewFacingToPoint),
-		RequiredSpace(NewRequiredSpace), IrrelevantObstacles(NewIrrelevantObstacles)
+FReservedSpaceConstraint::FReservedSpaceConstraint(const FRequiredSpace& NewRequiredSpace,
+    const FVector& NewReserverLocation, const FVector& NewFacingToPoint, float CheckerRadius, int32 NewMatchLevelFactor) :
+		MatchLevelFactor(NewMatchLevelFactor), ReserverLocation(NewReserverLocation), FacingToPoint(NewFacingToPoint),
+		OtherRadius(CheckerRadius), RequiredSpace(NewRequiredSpace)
 {
+}
+
+uint8 FReservedSpaceConstraint::GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const
+{
+	if(RequiredSpace.RequiredSpaceSphere != nullptr)
+	{
+		const FVector LocationOffset = (FacingToPoint - Position).Rotation().
+			RotateVector(RequiredSpace.RequiredSpaceSphere->GetRelativeLocation());
+		if(FVector::Distance(Position, ReserverLocation + LocationOffset) >=
+			FMath::Max(RequiredSpace.RequiredSpaceSphere->GetScaledSphereRadius(), OtherRadius))
+		{
+			return MatchLevelFactor;
+		}
+		return 0;
+	}
+	if(RequiredSpace.RequiredSpaceBox != nullptr)
+	{
+		const FRotator ToWorldSpaceRotation = (FacingToPoint - Position).Rotation();
+		const FVector BoxLocation =
+			ToWorldSpaceRotation.RotateVector(RequiredSpace.RequiredSpaceBox->GetRelativeLocation()) + ReserverLocation;
+		const FVector BoxExtent = ToWorldSpaceRotation.RotateVector(RequiredSpace.RequiredSpaceBox->GetScaledBoxExtent());
+
+		const bool InsideX = (Position.X < BoxLocation.X + BoxExtent.X) && (Position.X > BoxLocation.X - BoxExtent.X);
+		const bool InsideY = (Position.Y < BoxLocation.Y + BoxExtent.Y) && (Position.Y > BoxLocation.Y - BoxExtent.Y);
+		const bool InsideZ = (Position.Z < BoxLocation.Z + BoxExtent.Z) && (Position.Z > BoxLocation.Z - BoxExtent.Z);
+		if(!InsideX && !InsideY && !InsideZ)
+		{
+			return MatchLevelFactor;
+		}
+		return 0;
+	}
+	unimplemented();
+	return 0;
+}
+
+FObstacleSpaceConstraint::FObstacleSpaceConstraint() : MatchLevelFactor(4)
+{
+}
+
+FObstacleSpaceConstraint::FObstacleSpaceConstraint(const FRequiredSpace& NewRequiredSpace,
+const FVector& NewFacingToPoint, const TArray<AActor*>& NewIrrelevantObstacles, int32 NewMatchLevelFactor) :
+	MatchLevelFactor(NewMatchLevelFactor), FacingToPoint(NewFacingToPoint),
+	RequiredSpace(NewRequiredSpace), IrrelevantObstacles(NewIrrelevantObstacles)
+{
+	
 }
 
 
 uint8 FObstacleSpaceConstraint::GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const
 {
-	check(IsValid(RequiredSpace) && IsValid(RequiredSpace->GetWorld()));
+	check(IsValid(RequiredSpace.GetShape()) && IsValid(RequiredSpace.GetShape()->GetWorld()));
 
-	const FVector ResultingPosition = Position + (FacingToPoint - Position).Rotation().RotateVector(OffsetFromCenter);
+	const FVector ResultingPosition =
+		Position + (FacingToPoint - Position).Rotation().RotateVector(RequiredSpace.GetShape()->GetRelativeLocation());
 	
 	TArray<FHitResult> HitResults;
-	UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(RequiredSpace->GetWorld(), RequiredSpace, ResultingPosition,
+	UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(RequiredSpace.GetShape()->GetWorld(), RequiredSpace, ResultingPosition,
 		{UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn)}, IrrelevantObstacles, HitResults);
 	if(HitResults.IsEmpty()) return MatchLevelFactor;
 	return 0;
@@ -175,31 +226,30 @@ void FPlayerRelativeWorldZoneConstraint::DrawOldConstraintDebugStatic(UWorld* Wo
 
 
 
-bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent,
+bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext, const FRequiredSpace& RequiredSpace,
 	const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes, const TArray<AActor*>& ActorsToIgnore,
 	TArray<FHitResult>& HitResults)
 {
-	return ShapeTraceMultiForObjects(WorldContext, ShapeComponent, ShapeComponent->GetComponentLocation(), ObjectTypes,
+	return ShapeTraceMultiForObjects(WorldContext, RequiredSpace, RequiredSpace.GetShape()->GetComponentLocation(), ObjectTypes,
 	                                 ActorsToIgnore, HitResults);
 }
 
-bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent, FVector Location,
+bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext, const FRequiredSpace& RequiredSpace, FVector Location,
                                const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
                                const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults)
 {
-	if(ShapeComponent->IsA(USphereComponent::StaticClass()))
+	if(RequiredSpace.RequiredSpaceSphere != nullptr)
 	{
-		const USphereComponent* SphereComponent = CastChecked<USphereComponent>(ShapeComponent);
 		return UKismetSystemLibrary::SphereTraceMultiForObjects(WorldContext, Location,
-			Location, SphereComponent->GetScaledSphereRadius(), ObjectTypes,
+			Location, RequiredSpace.RequiredSpaceSphere->GetScaledSphereRadius(), ObjectTypes,
 			true, ActorsToIgnore, EDrawDebugTrace::None, HitResults, true);
 	}
-	if(ShapeComponent->IsA(UBoxComponent::StaticClass()))
+	if(RequiredSpace.RequiredSpaceBox != nullptr)
 	{
-		const UBoxComponent* BoxComponent = CastChecked<UBoxComponent>(ShapeComponent);
+		//TODO: using component rotation makes no sense here
 		return UKismetSystemLibrary::BoxTraceMultiForObjects(WorldContext, Location,
-			Location, BoxComponent->GetScaledBoxExtent(),
-			BoxComponent->GetComponentRotation(), ObjectTypes,
+			Location, RequiredSpace.RequiredSpaceBox->GetScaledBoxExtent(),
+			RequiredSpace.RequiredSpaceBox->GetComponentRotation(), ObjectTypes,
 			true, ActorsToIgnore, EDrawDebugTrace::None, HitResults, true);
 	}
 	unimplemented();

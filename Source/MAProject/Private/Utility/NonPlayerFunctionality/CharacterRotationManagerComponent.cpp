@@ -6,9 +6,10 @@
 #include <Characters/AdvancedCharacterMovementComponent.h>
 
 #include "NavigationPath.h"
+#include "NavigationSystem.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Characters/Fighters/Opponents/AI/OpponentController.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 
 // Sets default values for this component's properties
@@ -20,70 +21,52 @@ UCharacterRotationManagerComponent::UCharacterRotationManagerComponent() :
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLocation, FNavPathSharedPtr* NavPath)
+void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLocation)
 {
 	AActor* LookAtGoal = OpponentCharacter->GetTargetPlayer();
 	if(IsValid(LookAtGoal))
 	{
-		const FVector CurrentToTarget = TargetLocation - GetComponentLocation();
-		float DistanceFromTarget;
-		FVector DirectionToTarget;
-		CurrentToTarget.ToDirectionAndLength(DirectionToTarget, DistanceFromTarget);
-		
-		const FVector CurrentToLookGoal = LookAtGoal->GetActorLocation() - GetComponentLocation();
-		float LongestDistanceToLookGoal;
-		FVector DirectionToLookGoal;
-		CurrentToLookGoal.ToDirectionAndLength(DirectionToLookGoal, LongestDistanceToLookGoal);
+		const float MaxCombatRadius = OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius;
+		const FVector& LookAtGoalLocation = LookAtGoal->GetActorLocation();
 
-		//Everything following isn't reliable when we are too close to the target but with 5m distance it is definitely
-		//a good idea to look at an attacker closely
-		constexpr float TooCloseDistance = 500.f;
-		if(LongestDistanceToLookGoal <= TooCloseDistance)
+		//only consider to keep looking at the target if both the current position as well as the target
+		//position are close enough for it to be relevant
+		if(FVector::Distance(GetComponentLocation(), LookAtGoalLocation) <= MaxCombatRadius &&
+			FVector::Distance(TargetLocation, LookAtGoalLocation) <= MaxCombatRadius)
 		{
-			SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
-			return;
-		}
-
-		//determine the truly furthest away point
-		for(const FNavPathPoint& PathPoint : NavPath->Get()->GetPathPoints())
-		{
-			const float DistanceToLookGoal = FVector::Distance(PathPoint.Location, LookAtGoal->GetActorLocation());
-			if(DistanceToLookGoal > LongestDistanceToLookGoal) LongestDistanceToLookGoal = DistanceToLookGoal;
-		}
-		
-		float PathLength = NavPath->Get()->GetLength();
-		//sanity check
-		if(PathLength < DistanceFromTarget) PathLength = DistanceFromTarget;
-		
-
-		constexpr float MaxEffectRange = 5000.f;
-		constexpr float MaxMovementDistance = 2000.f;
-		constexpr float MaxBackwardsDistance = 500.f;
-		if(FVector::Distance(TargetLocation, LookAtGoal->GetActorLocation()) < MaxEffectRange &&
-			PathLength < MaxMovementDistance && LongestDistanceToLookGoal < MaxEffectRange)
-		{
-			constexpr float RelevantAngle = 45.f;
-			
-			const float AngleToTarget = UKismetMathLibrary::DegAcos(
-				FVector::DotProduct(DirectionToLookGoal, DirectionToTarget));
-			
-			//Walking in the direction of the player
-			if(AngleToTarget <= RelevantAngle && AngleToTarget >= 0.f)
+			bool ShouldLookAtTarget = true;
+			//Also: all path points have to be close enough, to guarantee,
+			//that we don't make a long detour to get around some obstacle
+			UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+			UNavigationPath* NavigationPath = NavigationSystem->FindPathToLocationSynchronously(GetWorld(),
+				GetComponentLocation(), TargetLocation);
+			for(const FNavPathPoint& PathPoint : NavigationPath->GetPath()->GetPathPoints())
 			{
-				SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
-				return;
-			}
-			//Walking away from the player
-			if(AngleToTarget <= 180.f && AngleToTarget >= 180.f - RelevantAngle)
-			{
-				//only when walking short distances it makes sense to walk backwards
-				if(DistanceFromTarget <= MaxBackwardsDistance)
+				UKismetSystemLibrary::DrawDebugPoint(GetWorld(), PathPoint.Location, 20.f, FLinearColor(1.f, 0.f, 0.f), 5.f);
+				//For some random reason, it sometimes happens that invalid locations are part of the array
+				if(FVector::Distance(PathPoint.Location, LookAtGoalLocation) > MaxCombatRadius) // &&
+					//PathPoint.Location != FAISystem::InvalidLocation && PathPoint.Location != FVector(0.f))
 				{
-					SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
-					return;
+					GLog->Log(PathPoint.Location.ToString() + " - " + LookAtGoalLocation.ToString() + " > " +
+						FString::SanitizeFloat(MaxCombatRadius));
+					ShouldLookAtTarget = false;
+					break;
 				}
 			}
-		}		
+			
+			if(ShouldLookAtTarget)
+			{
+				SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
+			}
+			else 
+				GLog->Log("Second failed");
+		}
+		else
+		{
+			
+			GLog->Log(TargetLocation.ToString() + " - " + LookAtGoalLocation.ToString() + " > " +
+				FString::SanitizeFloat(MaxCombatRadius));
+		}
 	}
 	
 	SetRotationMode(ECharacterRotationMode::OrientToMovement, false);

@@ -8,6 +8,7 @@
 #include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "OpponentCharacter.generated.h"
 
+class UBlackboardComponent;
 class UBTTask_ExecuteAttackTask;
 class UPatrolManagerComponent;
 class UPlayerFacingWidgetComponent;
@@ -71,6 +72,13 @@ private:
 	FExecuteAttackKey(){}
 };
 
+struct FSetUsedBlackboardKey final
+{
+	friend AOpponentController;
+private:
+	FSetUsedBlackboardKey(){}
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenGrantedDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenRemovedDelegate);
 
@@ -100,7 +108,7 @@ public:
 	void ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey) const
 		{ OnAggressionTokensRemoved.Broadcast(); }
 
-	UShapeComponent* GetRequiredSpace() const;
+	FRequiredSpace GetRequiredSpace() const;
 
 	FCircularDistanceConstraint GetActivePlayerDistanceConstraint() const;
 	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; };
@@ -113,6 +121,8 @@ public:
 	ACharacter* GetCombatTarget() const;
 	void RegisterCombatTarget(AController* NewOpponent, FSetCombatTargetKey);
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey){ LocalFieldOfView = FieldOfView; }
+	UBlackboardComponent* GetUsedBlackboardComponent() const { return UsedBlackboardComponent; }
+	void SetUsedBlackboardComponent(UBlackboardComponent* NewBlackboard, FSetUsedBlackboardKey);
 
 	FORCEINLINE bool ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey);
 
@@ -139,6 +149,9 @@ protected:
 
 	UPROPERTY()
 	AController* TargetPlayer;
+
+	UPROPERTY()
+	UBlackboardComponent* UsedBlackboardComponent;
 	
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers StatsModifiers;

@@ -6,7 +6,25 @@
 #include "PositionalConstraint.generated.h"
 
 
+class UBoxComponent;
+class USphereComponent;
 class UNavigationSystemV1;
+
+USTRUCT()
+struct MAPROJECT_API FRequiredSpace
+{
+	GENERATED_BODY()
+public:
+	FRequiredSpace(): RequiredSpaceBox(nullptr), RequiredSpaceSphere(nullptr){}
+	FRequiredSpace(UBoxComponent* RequiredSpace) : RequiredSpaceBox(RequiredSpace), RequiredSpaceSphere(nullptr){}
+	FRequiredSpace(USphereComponent* RequiredSpace) : RequiredSpaceBox(nullptr), RequiredSpaceSphere(RequiredSpace){}
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* RequiredSpaceBox;
+	UPROPERTY(EditAnywhere)
+	USphereComponent* RequiredSpaceSphere;
+
+	UShapeComponent* GetShape() const;
+};
 
 USTRUCT()
 struct MAPROJECT_API FPositionalConstraint
@@ -29,7 +47,27 @@ public:
 #endif
 };
 
+/* Limitation: Reserved space by others
+ */
+USTRUCT()
+struct MAPROJECT_API FReservedSpaceConstraint : public FPositionalConstraint
+{
+	GENERATED_BODY();
+public:
+	int32 MatchLevelFactor;
+	FVector ReserverLocation;
+	FVector FacingToPoint;
+	float OtherRadius;
 
+	FRequiredSpace RequiredSpace;
+	
+	FReservedSpaceConstraint();
+	FReservedSpaceConstraint(const FRequiredSpace& NewRequiredSpace, const FVector& NewReserverLocation,
+	                         const FVector& NewFacingToPoint, float CheckerRadius = 0.f, int32 NewMatchLevelFactor = 1);
+	
+	virtual uint8 GetMaxMatchLevel() const override { return MatchLevelFactor; }
+	virtual uint8 GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const override;
+};
 
 
 /* Limitation: Collision with obstacles
@@ -40,16 +78,14 @@ struct MAPROJECT_API FObstacleSpaceConstraint : public FPositionalConstraint
 	GENERATED_BODY();
 public:
 	int32 MatchLevelFactor;
-	FVector OffsetFromCenter;
 	FVector FacingToPoint;
-	UPROPERTY()
-	UShapeComponent* RequiredSpace;	
+	FRequiredSpace RequiredSpace;
 	UPROPERTY()
 	TArray<AActor*> IrrelevantObstacles;
 	
 	FObstacleSpaceConstraint();
-	FObstacleSpaceConstraint(UShapeComponent* NewRequiredSpace, const FVector& NewOffsetFromCenter,
-		const FVector& NewFacingToPoint, const TArray<AActor*>& NewIrrelevantObstacles, int32 NewMatchLevelFactor = 1);
+	FObstacleSpaceConstraint(const FRequiredSpace& NewRequiredSpace, const FVector& NewFacingToPoint,
+	                         const TArray<AActor*>& NewIrrelevantObstacles, int32 NewMatchLevelFactor = 1);
 	
 	virtual uint8 GetMaxMatchLevel() const override { return MatchLevelFactor; }
 	virtual uint8 GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const override;
@@ -161,11 +197,11 @@ class UConstraintsFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
-	static bool ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent,
+	static bool ShapeTraceMultiForObjects(UWorld* WorldContext, const FRequiredSpace& RequiredSpace,
 										  const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
 										  const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults);
 
-	static bool ShapeTraceMultiForObjects(UWorld* WorldContext, UShapeComponent* ShapeComponent, FVector Location,
+	static bool ShapeTraceMultiForObjects(UWorld* WorldContext, const FRequiredSpace& RequiredSpace, FVector Location,
 	                                      const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectType,
 	                                      const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults);
 
