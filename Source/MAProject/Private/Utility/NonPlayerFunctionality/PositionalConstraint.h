@@ -37,8 +37,11 @@ public:
 	virtual ~FPositionalConstraint() = default;
 
 	bool IsConstraintSatisfied(const FVector& Position, UNavigationSystemV1* NavigationSystem = nullptr, const uint8 RequiredMatchLevel = 1) const
-	{ return RequiredMatchLevel <= GetMatchLevel(Position, NavigationSystem); }	
+	{ return RequiredMatchLevel <= GetMatchLevel(Position, NavigationSystem); }
 
+	inline static uint32 ConstraintID = 0;
+	virtual uint32 GetConstraintType() const { return ConstraintID; }
+	virtual bool IsOfType(uint32 ID) const { return ConstraintID == ID; }
 	virtual uint8 GetMaxMatchLevel() const { return 0; }
 	virtual uint8 GetMatchLevel(const FVector& Position,  UNavigationSystemV1* NavigationSystem) const{ unimplemented(); return 0;};
 
@@ -64,6 +67,10 @@ public:
 	FReservedSpaceConstraint();
 	FReservedSpaceConstraint(const FRequiredSpace& NewRequiredSpace, const FVector& NewReserverLocation,
 	                         const FVector& NewFacingToPoint, float CheckerRadius = 0.f, int32 NewMatchLevelFactor = 1);
+
+	inline static uint32 ConstraintID = 1;
+	virtual uint32 GetConstraintType() const override { return ConstraintID; }
+	virtual bool IsOfType(uint32 ID) const override { return ConstraintID == ID || Super::IsOfType(ID); }
 	
 	virtual uint8 GetMaxMatchLevel() const override { return MatchLevelFactor; }
 	virtual uint8 GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const override;
@@ -86,6 +93,10 @@ public:
 	FObstacleSpaceConstraint();
 	FObstacleSpaceConstraint(const FRequiredSpace& NewRequiredSpace, const FVector& NewFacingToPoint,
 	                         const TArray<AActor*>& NewIrrelevantObstacles, int32 NewMatchLevelFactor = 1);
+
+	inline static uint32 ConstraintID = 2;
+	virtual uint32 GetConstraintType() const override { return ConstraintID; }
+	virtual bool IsOfType(uint32 ID) const override { return ConstraintID == ID || Super::IsOfType(ID); }
 	
 	virtual uint8 GetMaxMatchLevel() const override { return MatchLevelFactor; }
 	virtual uint8 GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const override;
@@ -107,6 +118,10 @@ public:
 
 	FPlayerRelativeConstraint(AController* Anchor, bool UseNavPath = false): FPositionalConstraint(UseNavPath),
 		AnchorController(Anchor){}
+
+	inline static uint32 ConstraintID = 3;
+	virtual uint32 GetConstraintType() const override { return ConstraintID; }
+	virtual bool IsOfType(uint32 ID) const override { return ConstraintID == ID || Super::IsOfType(ID); }
 };
 
 /* Limitation: Inside a circular ring around the player (with support for minimal & optimal requirements)
@@ -130,6 +145,10 @@ public:
 
 	FCircularDistanceConstraint(bool UseNavPath = false);
 	FCircularDistanceConstraint(AController* Anchor, bool UseNavPath = false);
+
+	inline static uint32 ConstraintID = 4;
+	virtual uint32 GetConstraintType() const override { return ConstraintID; }
+	virtual bool IsOfType(uint32 ID) const override { return ConstraintID == ID || Super::IsOfType(ID); }
 
 	virtual uint8 GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const override;
 
@@ -177,6 +196,10 @@ public:
 	ConstraintZone(EWorldConstraintZone::Invalid){}
 
 	FPlayerRelativeWorldZoneConstraint(AController* SourcePlayer, const FVector& TargetPosition);
+
+	inline static uint32 ConstraintID = 5;
+	virtual uint32 GetConstraintType() const override { return ConstraintID; }
+	virtual bool IsOfType(uint32 ID) const override { return ConstraintID == ID || Super::IsOfType(ID); }
 
 	virtual uint8 GetMaxMatchLevel() const override { return 2; }
 	virtual uint8 GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const override;
@@ -227,12 +250,12 @@ public:
 	/// @param DebuggingEnabled whether debugging elements should be drawn
 	/// @return whether a valid point was found
 	static bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
-	                                  float Distribution, float MaxSampleRange, const TArray<const FPositionalConstraint*>& RelevantConstraints,
+	                                  double Distribution, float MaxSampleRange, const TArray<const FPositionalConstraint*>& RelevantConstraints,
 	                                  UWorld* World, float ProjectionHalfHeight, ETestType TestType = RequireOneValid,
 	                                  bool ForceNoNavPath = false, bool DebuggingEnabled = false);
 
 	static bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-	                                      const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 TotalMaxMatch,
+	                                      const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 MaxMatch,
 	                                      UWorld* World, const FVector& ProjectionExtent, ETestType TestType = RequireOneValid,
 	                                      bool ForceNoNavPath = false, bool DebuggingEnabled = false);
 	
@@ -245,6 +268,10 @@ public:
 	/// @param ForceNoNavPath if distance calculations are forced to rely on air distance (even if nav distance is demanded)
 	/// @return The match level of the test location
 	static uint32 GetMatchLevel(const FVector& TestLocation, const TArray<const FPositionalConstraint*>& RelevantConstraints,
-		UWorld* World, const FVector& DistanceFromNavMesh = FVector(NAN),
-		ETestType TestType = RequireOneValid, bool ForceNoNavPath = false);
+	                            UWorld* World, const FVector& DistanceFromNavMesh = FVector(NAN),
+	                            ETestType TestType = RequireOneValid, bool ForceNoNavPath = false, bool DebuggingEnabled = false);
+
+#if WITH_EDITORONLY_DATA
+	static void DebugConstraint(const FVector& TestLocation, const FPositionalConstraint* Constraint, FColor Mask, UWorld* WorldContext);
+#endif
 };

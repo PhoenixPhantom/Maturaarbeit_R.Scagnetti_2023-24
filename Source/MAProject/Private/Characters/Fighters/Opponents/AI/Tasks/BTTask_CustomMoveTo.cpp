@@ -6,6 +6,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "Characters/Fighters/FighterCharacter.h"
+#include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Characters/Fighters/Opponents/AI/OpponentController.h"
 #include "Components/CapsuleComponent.h"
 
@@ -53,7 +54,7 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteTask(UBehaviorTreeComponent& Ow
 		//ai is close enough to it's target
 
 		float RequiredRadius = AcceptableRadius + Character->GetCapsuleComponent()->GetScaledCapsuleRadius() +
-			AOpponentController::MoveToDistanceMarginOfError;
+			AOpponentCharacter::MoveToDistanceMarginOfError;
 		if(BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 		{
 			const ACharacter* TargetCharacter =

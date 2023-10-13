@@ -59,10 +59,7 @@ UCLASS()
 class MAPROJECT_API AOpponentController : public AAIController
 {
 	GENERATED_BODY()
-public:
-	//MoveTo calculates distance differently from us, so we need some margin of error for our distance calculations
-	static constexpr float MoveToDistanceMarginOfError = 15.f;
-	
+public:	
 	AOpponentController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	
@@ -82,10 +79,16 @@ public:
 	
 	float GetFieldOfView() const;
 	ACombatManager* GetCombatManager() const{ return CombatManager; }
+
+#if WITH_EDITORONLY_DATA
+	bool GetIsDebugging() const { return bIsDebugging; }
+	void SetIsDebugging(bool IsDebugging){ bIsDebugging = IsDebugging; }
+#endif
 	
 protected:
 	FGenericTeamId InternalTeamId;
 	TArray<FTimestampedStimulus> LastSightStimuli;
+	TArray<FTimestampedStimulus> TooCloseToForgetStimuli;
 	
 	UPROPERTY()
 	AMovementTarget* MoveTarget;
@@ -133,7 +136,7 @@ protected:
 	void ActiveUpdateCombat(AActor* CombatTarget, const FAIStimulus& KnownInformation);
 	void EndCombat();
 
-	void OnSightForgotten(AActor* SightedActor);
+	bool OnSightForgotten(AActor* SightedActor);
 
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);

@@ -83,11 +83,18 @@ bool FAttacks::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, UWorld* Wor
 {
 	
 	const FAttackProperties& AttackProperties = NodeToExecute->GetAttackProperties();
-	
-	check((GetRootNode()->ChildrenNodes.Contains(NodeToExecute) ||
-		(!HasExceededComboTime(WorldContext) && CurrentNode->ChildrenNodes.Contains(NodeToExecute))) &&
-		!AttackProperties.GetIsOnCd() &&
-		(!OnCheckCanExecuteAttack.IsBound() || OnCheckCanExecuteAttack.Execute(AttackProperties)));
+
+	if(!GetRootNode()->ChildrenNodes.Contains(NodeToExecute) &&
+		(!HasExceededComboTime(WorldContext) && !CurrentNode->ChildrenNodes.Contains(NodeToExecute)))
+	{
+		checkNoEntry();
+		return false;
+	}
+	if(AttackProperties.GetIsOnCd() || (OnCheckCanExecuteAttack.IsBound() && !OnCheckCanExecuteAttack.Execute(AttackProperties)))
+	{
+		checkNoEntry();
+		return false;
+	}
 
 	CurrentNode = NodeToExecute;
 	NodeAccessTime = WorldContext->RealTimeSeconds;

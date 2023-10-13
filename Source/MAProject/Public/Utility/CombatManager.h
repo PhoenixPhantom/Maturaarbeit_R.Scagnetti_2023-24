@@ -7,6 +7,7 @@
 #include "CombatManager.generated.h"
 
 
+class UAttackTreeNode;
 class AFighterCharacter;
 class AOpponentCharacter;
 class APlayerCharacter;
@@ -32,22 +33,28 @@ private:
 	FManageAggressionTokensKey(){};
 };
 
-struct FAggressionData
+struct FAggressorInfo
 {
-	FAggressionData() : AggressionScore(std::numeric_limits<float>::lowest()), Holder(nullptr), RequestedTokens(0) {}
-	FAggressionData(float NewScore, uint32 NewToken) : FAggressionData(NewScore, nullptr, NewToken){}
-	FAggressionData(float NewScore, AOpponentCharacter* NewHolder, uint32 NewToken) : AggressionScore(NewScore), Holder(NewHolder),
-		RequestedTokens(NewToken){}
-	FAggressionData(const FAggressionData& AggressionData) = default;
+	FAggressorInfo() : Aggressor(nullptr),
+	                   RequestedAttack(nullptr), RequestedTokens(0)
+	{}
+	FAggressorInfo(AOpponentCharacter* NewHolder, UAttackTreeNode* AttackTreeNode, uint32 NewTokens) : Aggressor(NewHolder),
+		RequestedAttack(AttackTreeNode), RequestedTokens(NewTokens)
+	{
+	}
 	
-	float AggressionScore;
-	AOpponentCharacter* Holder;
+	AOpponentCharacter* Aggressor;
+	UAttackTreeNode* RequestedAttack;
 	uint32 RequestedTokens;
 
-	bool operator==(const FAggressionData& AggressionData) const;
+	bool operator==(const FAggressorInfo& AggressionData) const;
+};
 
-
-	float GetScorePerToken() const { return AggressionScore/static_cast<float>(RequestedTokens); }
+struct FScoredAggressorInfo : public FAggressorInfo
+{
+	FScoredAggressorInfo() : Score(std::numeric_limits<float>::lowest()){}
+	FScoredAggressorInfo(AOpponentCharacter* NewHolder, UAttackTreeNode* AttackTreeNode, float NewScore, uint32 NewTokens);
+	float Score;
 };
 
 UENUM()
@@ -84,9 +91,9 @@ public:
 #endif
 
 protected:
-	TArray<FAggressionData> ActiveRequests;	
+	TArray<FAggressorInfo> ActiveRequests;	
 	
-	FAggressionData AnticipatedActive;
+	FAggressorInfo AnticipatedActive;
 	
 	UPROPERTY()
 	APlayerCharacter* PlayerCharacter;
@@ -109,13 +116,15 @@ protected:
 	bool RemoveAggressionTokens(AOpponentCharacter* Participant);
 
 	//Grants the requested number of tokens, if enough are available. If not, returns false.
-	bool GrantTokens(const FAggressionData& AggressionData);
+	bool GrantTokens(const FAggressorInfo& AggressorInfo);
 
 	bool MakeActiveParticipant(int32 Index);
 	bool MakePassiveParticipant(int32 Index);
+	static float GetAttackValue(UAttackTreeNode* AttackNode, AOpponentCharacter* Attacker);
 
 	//Try to distribute the AvailableAggressionTokens so the highest scoring objects will be inserted
-	void AttemptDistributeRemainingTokens();
+	void AttemptDistributeFreeTokens();
+	void RequestToken(AOpponentCharacter* Requestor);
 
 #if WITH_EDITORONLY_DATA
 	TTuple<float, FDrawDebugImagesDelegate> DebugImagesToDraw;

@@ -114,9 +114,19 @@ void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable
 	FMeleeControlsKey Key)
 {
 	if(RefreshHitActors) RecentlyDamagedActors.Empty();
-	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.Remove(BoneToDisable);
+	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.RemoveSwap(BoneToDisable);
 }
 
+void AFighterCharacter::AddOnInputLimitsResetDelegate(const TDelegate<void(bool)>& FunctionToAdd, FModifyInputLimitsKey)
+{
+	AcceptedInputs.OnInputLimitsReset.Add(FunctionToAdd);
+}
+
+void AFighterCharacter::RemoveOnInputLimitsResetDelegate(const TDelegate<void(bool)>& FunctionToAdd,
+	FModifyInputLimitsKey)
+{
+	AcceptedInputs.OnInputLimitsReset.RemoveSwap(FunctionToAdd);
+}
 
 
 void AFighterCharacter::MakeInvincible(float InvincibilityTime)
@@ -266,15 +276,15 @@ void AFighterCharacter::GetStaggered(const FAttackDamageEvent* DamageEvent)
 void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits)
 {
 	if(InputLimits.IsEmpty()) return;
-	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
-		[this, InputLimits]
-		(bool IsLimitDurationOver)
-	{
-		AcceptedInputs.LimitAvailableInputs(InputLimits[0], GetWorld());			
-		TArray NewLimits(InputLimits);
-		NewLimits.RemoveAt(0);
-		QueueFollowUpLimit(NewLimits);
-	});
+	TDelegate<void(bool)> FollowUpWithLimit;
+	FollowUpWithLimit.BindWeakLambda(this,[this, InputLimits](bool IsLimitDurationOver)
+		{
+			AcceptedInputs.LimitAvailableInputs(InputLimits[0], GetWorld());			
+			TArray NewLimits(InputLimits);
+			NewLimits.RemoveAt(0);
+			QueueFollowUpLimit(NewLimits);
+		});
+	AcceptedInputs.OnInputLimitsReset.Add(FollowUpWithLimit);
 }
 
 void AFighterCharacter::RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget)
@@ -362,9 +372,10 @@ void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
 	MakeInvincible(0.f);
 	
 	AcceptedInputs.LimitAvailableInputs({EInputType::Death, DeathAnimation->GetPlayLength()*0.9f}, GetWorld());
-	AcceptedInputs.OnInputLimitsReset.AddWeakLambda(this,
-		[this](bool IsLimitDurationOver)
+	TDelegate<void(bool)> OnDeathDelegate;
+	OnDeathDelegate.BindWeakLambda(this, [this](bool IsLimitDurationOver)
 	{
 		Destroy();
 	});
+	AcceptedInputs.OnInputLimitsReset.Add(OnDeathDelegate);
 }

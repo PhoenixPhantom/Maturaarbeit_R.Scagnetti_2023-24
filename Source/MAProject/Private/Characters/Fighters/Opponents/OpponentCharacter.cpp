@@ -3,11 +3,11 @@
 
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
-#include "Characters/AdvancedCharacterMovementComponent.h"
+#include <Characters/AdvancedCharacterMovementComponent.h>
+
 #include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "UserInterface/HUD/Worldspace/PlayerFacingWidgetComponent.h"
@@ -46,6 +46,8 @@ AOpponentCharacter::AOpponentCharacter(const FObjectInitializer& ObjectInitializ
 	HealthWidgetComponent = CreateDefaultSubobject<UPlayerFacingWidgetComponent>(TEXT("HealthWidgetComp"));
 	HealthWidgetComponent->SetupAttachment(RootComponent);
 	HealthWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+
+	SetUsePassiveSpace();
 }
 
 void AOpponentCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -57,15 +59,52 @@ void AOpponentCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 }
 
+void AOpponentCharacter::BindOnAggressionTokensGranted(const TDelegate<void()>& FunctionToBind, FEditOnAggressionTokensGrantedOrReleasedKey)
+{
+	OnAggressionTokensGranted = FunctionToBind;
+}
+
+void AOpponentCharacter::BindOnAggressionTokensReleased(const TDelegate<void()>& FunctionToBind, FEditOnAggressionTokensGrantedOrReleasedKey)
+{
+	OnAggressionTokensRemoved = FunctionToBind;
+}
+
+void AOpponentCharacter::ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey) const
+{
+	SetUseActiveCombatSpace();
+	// ReSharper disable once CppExpressionWithoutSideEffects
+	OnAggressionTokensGranted.ExecuteIfBound();
+}
+
+void AOpponentCharacter::ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey) const
+{
+	SetUsePassiveSpace();
+	// ReSharper disable once CppExpressionWithoutSideEffects
+	OnAggressionTokensRemoved.ExecuteIfBound();
+}
+
 FRequiredSpace AOpponentCharacter::GetRequiredSpace() const
 {
 	if(RequiredSpaceActiveCombat->ComponentHasTag(RequiredSpaceActiveTag)) return RequiredSpaceActiveCombat;
 	return RequiredSpacePassive;
 }
 
+USphereComponent* AOpponentCharacter::GetRequiredSpaceActive() const
+{
+	return RequiredSpaceActiveCombat;
+}
+
 FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstraint() const
 {
 	FCircularDistanceConstraint DistanceConstraint(TargetPlayer, true);
+	if(IsValid(RequestedAttack))
+	{
+		DistanceConstraint.MaxRadius = FMath::Max(RequestedAttack->GetAttackProperties().MaximalMovementDistance - 100.f, 50.f);
+		DistanceConstraint.MinRadius = 0.f;
+		DistanceConstraint.OptimalMaxRadius = FMath::Max(RequestedAttack->GetAttackProperties().DefaultMovementDistance - 50.f, 25.f);
+		DistanceConstraint.OptimalMinRadius = 0.f;
+		return DistanceConstraint;
+	}
 	bool FoundExecutableAttack = false;
 	float TotalDistance = 0.f;
 	float MaxDistance = std::numeric_limits<float>::lowest();
@@ -99,22 +138,22 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 	const float DistanceAverage = SourceNode->ChildrenNodes.IsEmpty() ? -1.f :
 		TotalDistance/NumValidAttacks;
 	
-	DistanceConstraint.MaxRadius = MaxDistance*0.9f;
+	DistanceConstraint.MaxRadius = FMath::Max(MaxDistance - 100.f, 50.f);
 	DistanceConstraint.MinRadius = 0.f;
-	DistanceConstraint.OptimalMaxRadius = DistanceAverage*0.9f;
+	DistanceConstraint.OptimalMaxRadius = FMath::Max(DistanceAverage - 50.f, 25.f);
 	DistanceConstraint.OptimalMinRadius = 0.f;
 	return DistanceConstraint;
 }
 
 AController* AOpponentCharacter::GetCombatTargetController() const
 {
-	if(TargetPlayer == DistanceFromTargetPassive.AnchorController) return TargetPlayer;
+	if(TargetPlayer == DistanceFromTargetPassive.AnchorController && IsValid(TargetPlayer)) return TargetPlayer;
 	return nullptr;
 }
 
 ACharacter* AOpponentCharacter::GetCombatTarget() const
 {
-	if(TargetPlayer == DistanceFromTargetPassive.AnchorController) return TargetPlayer->GetCharacter();
+	if(TargetPlayer == DistanceFromTargetPassive.AnchorController && IsValid(TargetPlayer)) return TargetPlayer->GetCharacter();
 	return nullptr;
 }
 
@@ -138,9 +177,98 @@ void AOpponentCharacter::SetUsedBlackboardComponent(UBlackboardComponent* NewBla
 	UsedBlackboardComponent = NewBlackboard;
 }
 
-bool AOpponentCharacter::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey)
+bool AOpponentCharacter::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey) const
 {
 	return CharacterStats->Attacks.ExecuteAttackFromNode(NodeToExecute, GetWorld());
+}
+
+UAttackTreeNode* AOpponentCharacter::GetRequestedAttack() const
+{
+	return RequestedAttack;
+}
+
+UAttackTreeNode* AOpponentCharacter::GetRandomValidAttack() const
+{
+	if(!AcceptedInputs.CanOverrideCurrentInput(EInputType::Attack)) return nullptr;
+
+	const ACharacter* TargetCharacter = GetCombatTarget();
+	if (!IsValid(TargetCharacter))
+	{
+		return nullptr;
+	}
+
+	const UAttackTreeNode* SourceNode = GetCharacterStats()->Attacks.GetCurrentNode(GetWorld());
+	
+	//Sort through all available attacks and remove those that cannot be executed
+	TArray<TTuple<UGenericGraphNode*, float>> ValidAttacks;
+	double TotalScore = 0.f;
+	for (UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
+	{
+		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
+		if (AttackProperties.GetIsOnCd()) continue;
+		const float Priority = AttackProperties.Priority;
+		ValidAttacks.Add({ChildNode, Priority});
+		TotalScore += Priority;
+	}
+
+	if(ValidAttacks.IsEmpty()) return nullptr;
+
+	//Randomly chose a valid attack
+	UAttackTreeNode* ChosenNode = nullptr;
+	float RandomNumber = FMath::FRandRange(0.0, TotalScore);
+	for (const TTuple<UGenericGraphNode*, float>& Attack : ValidAttacks)
+	{
+		RandomNumber -= Attack.Value;
+		if (RandomNumber <= 0.f)
+		{
+			ChosenNode = CastChecked<UAttackTreeNode>(Attack.Key);
+			break;
+		}
+	}
+	return ChosenNode;
+}
+
+UAttackTreeNode* AOpponentCharacter::GetRandomValidAttackInRange() const
+{
+	if(!GetAcceptedInputs().bCanAttack) return nullptr;
+
+	const ACharacter* TargetCharacter = GetCombatTarget();
+	if (!IsValid(TargetCharacter))
+	{
+		return nullptr;
+	}
+
+	const float RequiredRange = FVector::Distance(GetTargetPlayer()->GetActorLocation(), GetActorLocation());
+	const UAttackTreeNode* SourceNode = GetCharacterStats()->Attacks.GetCurrentNode(GetWorld());
+	
+	//Sort through all available attacks and remove those that cannot be executed
+	TArray<TTuple<UGenericGraphNode*, float>> ValidAttacks;
+	double TotalScore = 0.f;
+	for (UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
+	{
+		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
+		if (AttackProperties.GetIsOnCd() ||
+			AttackProperties.MaximalMovementDistance < RequiredRange) continue;
+		const float Priority = AttackProperties.Priority;
+		ValidAttacks.Add({ChildNode, Priority});
+		TotalScore += Priority;
+	}
+
+	if(ValidAttacks.IsEmpty()) return nullptr;
+
+	//Randomly chose a valid attack
+	UAttackTreeNode* ChosenNode = nullptr;
+	float RandomNumber = FMath::FRandRange(0.0, TotalScore);
+	for (const TTuple<UGenericGraphNode*, float>& Attack : ValidAttacks)
+	{
+		RandomNumber -= Attack.Value;
+		if (RandomNumber <= 0.f)
+		{
+			ChosenNode = CastChecked<UAttackTreeNode>(Attack.Key);
+			break;
+		}
+	}
+	return ChosenNode;
 }
 
 float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const
@@ -164,9 +292,6 @@ void AOpponentCharacter::BeginPlay()
 	CharacterStats = new FCharacterStats();
 	CharacterStats->FromBase(BaseStats, StatsModifiers, this);
 	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
-	OnAggressionTokensGranted.AddDynamic(this, &AOpponentCharacter::SetUseActiveCombatSpace);
-	OnAggressionTokensRemoved.AddDynamic(this, &AOpponentCharacter::SetUsePassiveSpace);
-	SetUsePassiveSpace();
 
 	HealthWidgetComponent->OnHealthMonitorWidgetInitialized.AddDynamic(this, &AOpponentCharacter::RegisterHealthInfoWidget);
 	Super::BeginPlay();
@@ -207,16 +332,16 @@ float AOpponentCharacter::EarliestAttackSeconds(const UGenericGraphNode* SourceN
 	return ShortestCd;
 }
 
-void AOpponentCharacter::SetUseActiveCombatSpace()
+void AOpponentCharacter::SetUseActiveCombatSpace() const
 {
 	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }
 
-void AOpponentCharacter::SetUsePassiveSpace()
+void AOpponentCharacter::SetUsePassiveSpace() const
 {
-	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
-	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
+	RequiredSpaceActiveCombat->ComponentTags.Remove(RequiredSpaceActiveTag);
+	RequiredSpacePassive->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 }
 
 void AOpponentCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)

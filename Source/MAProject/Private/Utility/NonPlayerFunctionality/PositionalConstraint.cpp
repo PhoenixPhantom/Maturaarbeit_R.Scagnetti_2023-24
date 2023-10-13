@@ -101,16 +101,15 @@ FCircularDistanceConstraint::FCircularDistanceConstraint(AController* Anchor, bo
 
 uint8 FCircularDistanceConstraint::GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const
 {
-	double Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
+	const FVector& TargetLocation = AnchorController->GetPawn()->GetActorLocation();
+	double Distance = FVector::Distance(Position, TargetLocation);
 	if(bUseNavPath && IsValid(NavigationSystem))
 	{
 		double PathLength;
-		//TODO: this leads to inconsistency
-		NavigationSystem->GetPathLength(AnchorController->GetWorld(), Position,
-			AnchorController->GetPawn()->GetActorLocation(), PathLength);
+		NavigationSystem->GetPathLength(AnchorController->GetWorld(), Position,TargetLocation, PathLength);
 
 		//only use path length (which seems to be an approximation
-		//(as discussed here: https://forums.unrealengine.com/t/get-path-length-inconsistent-results/285948/7)
+		//(as discussed here: https://forums.unrealengine.com/t/get-path-length-inconsistent-results/285948/7))
 		//If the result makes sense
 		if(PathLength > Distance) Distance = PathLength; 
 		
@@ -257,8 +256,8 @@ bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext
 }
 
 bool UConstraintsFunctionLibrary::SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
-                           float Distribution, float MaxSampleRange, const TArray<const FPositionalConstraint*>& RelevantConstraints,
-                           UWorld* World, float ProjectionHalfHeight, ETestType TestType, bool ForceNoNavPath, bool DebuggingEnabled)
+                                                        double Distribution, float MaxSampleRange, const TArray<const FPositionalConstraint*>& RelevantConstraints,
+                                                        UWorld* World, float ProjectionHalfHeight, ETestType TestType, bool ForceNoNavPath, bool DebuggingEnabled)
 {
 	uint32 MaxPossibleMatch = 0;
 	for(const FPositionalConstraint* Constraint : RelevantConstraints)
@@ -266,22 +265,29 @@ bool UConstraintsFunctionLibrary::SampleGetClosestValid(FVector& ResultingLocati
 		MaxPossibleMatch += Constraint->GetMaxMatchLevel();
 	}
 
+	//experimentally, it can be seen, that the points created by this algorithms are distributed too
+	//grid like in the direction of the sampling
+	//(the best distribution seems to be around 135° (clockwise) from the sampling direction)
+	//RotateAngleAxis seems to work with a counterclockwise input
+	const FVector CorrectedStartDirection = SpacedStartDirection.RotateAngleAxis(135.0, FVector(0.0, 0.0, 1.0));
 	TArray<FVector> AcceptableLocations;
 	for(uint32 i = 1; true; i++)
 	{
-		FVector Direction = SpacedStartDirection * i;
+		FVector Direction = CorrectedStartDirection * static_cast<double>(i);
 		const double DirectionLength = Direction.Length();
 		if(DirectionLength > MaxSampleRange) break;
 	
-		const int32 Steps = round(DOUBLE_PI * 2.0 * DirectionLength / Distribution);
+		const int32 PointsOnCircle = ceil(DOUBLE_PI * 2.0 * DirectionLength / Distribution);
+		//360°/Radius * Distribution = 360°/PointsOnCircle = RotationPerStep <==>
+		//2*PI/(2*PI*DirLen / Dist) = Dist/DirLen = RotationPerStep 
 		const double RotationPerStep = Distribution/DirectionLength;
 
 		TArray<FVector> SamplePoints;
-		for(int32 j = 0; j < Steps; j++)
+		SamplePoints.SetNumUninitialized(PointsOnCircle);
+		for(int32 j = 0; j < PointsOnCircle; j++)
 		{
-			SamplePoints.Add(SourcePoint +
-				Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(j),
-					FVector(0.f, 0.f, 1.f)));
+			SamplePoints[j] = SourcePoint + Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(j),
+				FVector(0.f, 0.f, 1.f));
 		}
 		if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, MaxPossibleMatch,
 				World,FVector(Distribution/2.f, Distribution/2.f, ProjectionHalfHeight),
@@ -299,7 +305,7 @@ bool UConstraintsFunctionLibrary::SampleGetClosestValid(FVector& ResultingLocati
 }
 
 bool UConstraintsFunctionLibrary::CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-										  const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 TotalMaxMatch,
+										  const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 MaxMatch,
 										  UWorld* World, const FVector& ProjectionExtent, ETestType TestType,
 										  bool ForceNoNavPath, bool DebuggingEnabled)
 {
@@ -308,32 +314,18 @@ bool UConstraintsFunctionLibrary::CheckSamplesForFirstValid(FVector& ValidPoint,
 	CurrentBest.Key = 0;
 	for(const FVector& SamplePoint : SamplePoints)
 	{
-		const uint32 TotalMatch = GetMatchLevel(SamplePoint, RelevantConstraints, World,
-			ProjectionExtent,  TestType, ForceNoNavPath);
-		const bool IsMaximalValueReached = TotalMatch >= TotalMaxMatch;
-#if WITH_EDITORONLY_DATA
-		if(DebuggingEnabled)
-		{
-			if(IsMaximalValueReached) DrawDebugPoint(World, SamplePoint + FVector(0.f, 0.f, 20.f),
-				10.f, FColor(0, 255, 0), false, 1, SDPG_World);
-			else
-			{
-				const float ReachFactor = static_cast<float>(TotalMatch)/static_cast<float>(TotalMaxMatch);
-					DrawDebugPoint(World, SamplePoint + FVector(0.f, 0.f, 20.f), 10.f,
-					FColor(0, ReachFactor*255.f, (1.f - ReachFactor)*255.f),
-					false, 0.1, SDPG_World);
-			}
-		}
-#endif
-	
-		if(IsMaximalValueReached)
+		const uint32 Match = GetMatchLevel(SamplePoint, RelevantConstraints, World,
+		                ProjectionExtent,  TestType, ForceNoNavPath, DebuggingEnabled);
+
+		if((TestType == ETestType::RequireAllOptimal && Match >= MaxMatch) ||
+			((TestType == ETestType::RequireAllValid || TestType == ETestType::RequireOneValid) && Match != 0))
 		{
 			ValidPoint = SamplePoint;
 			return true;
 		}
-		if(CurrentBest.Key < TotalMatch)
+		if(CurrentBest.Key < Match)
 		{
-			CurrentBest.Key = TotalMatch;
+			CurrentBest.Key = Match;
 			CurrentBest.Value = SamplePoint;
 		}
 	}
@@ -343,13 +335,20 @@ bool UConstraintsFunctionLibrary::CheckSamplesForFirstValid(FVector& ValidPoint,
 }
 
 uint32 UConstraintsFunctionLibrary::GetMatchLevel(const FVector& TestLocation, const TArray<const FPositionalConstraint*>& RelevantConstraints,
-                     UWorld* World, const FVector& DistanceFromNavMesh, ETestType TestType, bool ForceNoNavPath)
+                                                  UWorld* World, const FVector& DistanceFromNavMesh, ETestType TestType, bool ForceNoNavPath, bool DebuggingEnabled)
 {
 	UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetNavigationSystem(World);
 		
 	if(!DistanceFromNavMesh.ContainsNaN()){
 		FNavLocation ProjectedLocation;
-		if(!NavigationSystem->ProjectPointToNavigation(TestLocation ,ProjectedLocation, DistanceFromNavMesh)) return 0;
+		if(!NavigationSystem->ProjectPointToNavigation(TestLocation ,ProjectedLocation, DistanceFromNavMesh))
+		{
+#if WITH_EDITORONLY_DATA
+			if(DebuggingEnabled) DrawDebugPoint(World, TestLocation + FVector(0.f, 0.f, 0.f),
+		10.f, FColor(0, 0, 0) , false, 1, SDPG_World);
+#endif
+			return 0;
+		}
 	}
 		
 	uint32 TotalMatch = 0;
@@ -358,10 +357,47 @@ uint32 UConstraintsFunctionLibrary::GetMatchLevel(const FVector& TestLocation, c
 		const uint32 Match = Constraint->GetMatchLevel(TestLocation, ForceNoNavPath ? nullptr : NavigationSystem);
 		if(TestType == RequireAllValid && Match == 0)
 		{
+#if WITH_EDITORONLY_DATA
+			if(DebuggingEnabled) DebugConstraint(TestLocation, Constraint, FColor(1, 1, 1), World);
+#endif
 			return 0;
 		}
-		if(TestType == RequireAllOptimal && Match != Constraint->GetMaxMatchLevel()) return 0;
+		if(TestType == RequireAllOptimal && Match != Constraint->GetMaxMatchLevel())
+		{
+#if WITH_EDITORONLY_DATA
+			if(DebuggingEnabled) DebugConstraint(TestLocation, Constraint, FColor(50, 50, 50), World);
+#endif
+			return 0;
+		}
 		TotalMatch += Match;
 	}
 	return TotalMatch;
 }
+
+#if WITH_EDITORONLY_DATA
+void UConstraintsFunctionLibrary::DebugConstraint(const FVector& TestLocation, const FPositionalConstraint* Constraint,
+	FColor Mask, UWorld* WorldContext)
+{
+	FColor Color;
+	if(Constraint->IsOfType(FCircularDistanceConstraint::ConstraintID))
+	{
+		Color = FColor(0, 255, 0);
+	}
+	else if(Constraint->IsOfType(FPlayerRelativeWorldZoneConstraint::ConstraintID))
+	{
+		Color = FColor(255, 0, 255);
+	}
+	else if(Constraint->IsOfType(FObstacleSpaceConstraint::ConstraintID))
+	{
+		Color = FColor(255, 0, 0);
+	}
+	else if(Constraint->IsOfType(FReservedSpaceConstraint::ConstraintID))
+	{
+		Color = FColor(0, 0, 255);
+	}
+	DrawDebugPoint(WorldContext, TestLocation + FVector(0.f, 0.f, 0.f),
+		10.f, FColor(FMath::Min(Color.R * Mask.R + Mask.R, 255),
+			FMath::Min(Color.G * Mask.G + Mask.G, 255),
+			FMath::Min(Color.B * Mask.B + Mask.B, 255)) , false, 1, SDPG_World);
+}
+#endif

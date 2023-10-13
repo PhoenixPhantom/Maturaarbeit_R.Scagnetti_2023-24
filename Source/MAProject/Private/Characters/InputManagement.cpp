@@ -95,8 +95,13 @@ bool FInputLimits::operator==(const FInputLimits& Compare) const
 		MovementProperties == Compare.MovementProperties;
 }
 
+bool operator==(const TDelegate<void(bool)>& a, const TDelegate<void(bool)>& b)
+{
+	return a.GetHandle() == b.GetHandle();
+}
+
 FAcceptedInputs::FAcceptedInputs() : bCanAttack(true), bCanGetStaggered(true), bCanRun(true),
-	bFreeCameraAdjustment(true), bCanSwitchOut(true), DefaultLimits(EInputType::Force, true)
+                                     bFreeCameraAdjustment(true), bCanSwitchOut(true), DefaultLimits(EInputType::Force, true)
 {
 	MovementProperties.bCanJump = true;
 	MovementProperties.bCanWalk = true;
@@ -182,11 +187,15 @@ void FAcceptedInputs::ResetLimits(UWorld* World, bool IsLimitDurationOver)
 	EnactLimits(DefaultLimits);
 
 	//copy the execution stack, since some functions bound to OnInputLimitsReset bind new ones to OnInputLimitsReset 
-	const FOnInputLimitsResetDelegate ExecutionStack = OnInputLimitsReset;
+	const TArray<TDelegate<void(bool)>> ExecutionStack = OnInputLimitsReset;
 	//the on reset functions, in general, are specific to this limit and will not be called the next time
-	OnInputLimitsReset.Clear();
-	
-	ExecutionStack.Broadcast(IsLimitDurationOver);
+	OnInputLimitsReset.Empty();
+
+	for(TDelegate<void(bool)> Delegate : ExecutionStack)
+	{
+		// ReSharper disable once CppExpressionWithoutSideEffects
+		Delegate.ExecuteIfBound(IsLimitDurationOver);
+	}
 }
 
 bool FAcceptedInputs::IsAlreadyReset() const

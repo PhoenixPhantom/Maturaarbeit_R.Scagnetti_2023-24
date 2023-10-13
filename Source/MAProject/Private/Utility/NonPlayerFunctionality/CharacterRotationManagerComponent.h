@@ -27,6 +27,8 @@ class MAPROJECT_API UCharacterRotationManagerComponent : public USceneComponent
 public:
 	UCharacterRotationManagerComponent();
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	void SwitchToOptimal(const FVector& TargetLocation);
 	void SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack = false, AActor* NewTarget = nullptr);
 

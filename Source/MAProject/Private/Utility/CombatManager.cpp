@@ -3,15 +3,21 @@
 
 #include "Utility/CombatManager.h"
 
+#include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
 
-bool FAggressionData::operator==(const FAggressionData& AggressionData) const
+bool FAggressorInfo::operator==(const FAggressorInfo& AggressionData) const
 {
-	return AggressionScore == AggressionData.AggressionScore && Holder == AggressionData.Holder &&
+	return RequestedAttack == AggressionData.RequestedAttack && Aggressor == AggressionData.Aggressor &&
 		RequestedTokens == AggressionData.RequestedTokens;
+}
+
+FScoredAggressorInfo::FScoredAggressorInfo(AOpponentCharacter* NewHolder, UAttackTreeNode* AttackTreeNode,
+	float NewScore, uint32 NewTokens) : FAggressorInfo(NewHolder, AttackTreeNode, NewTokens), Score(NewScore)
+{
 }
 
 // Sets default values
@@ -42,22 +48,22 @@ bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, 
 {
 	if(ECombatParticipantStatus::NotRegistered != GetParticipationStatus(Participant)) return false;
 	PassiveParticipants.Add(Participant);
-	AttemptDistributeRemainingTokens();
+	RequestToken(Participant);
 	return true;
 }
 
 void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
-	if(AnticipatedActive.Holder == Participant) AnticipatedActive = FAggressionData();
+	if(AnticipatedActive.Aggressor == Participant) AnticipatedActive = FAggressorInfo();
 	//we can't use ReleaseAggressionTokens as this could lead to token redistribution and Participant not becoming passive
-	RemoveAggressionTokens(Participant);
-	PassiveParticipants.Remove(Participant);
-	AttemptDistributeRemainingTokens();
+	const bool WasActiveParticipant = RemoveAggressionTokens(Participant);
+	PassiveParticipants.RemoveSwap(Participant);
+	if(WasActiveParticipant) AttemptDistributeFreeTokens();
 }
 
 void ACombatManager::ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key)
 {
-	if(RemoveAggressionTokens(Participant))	AttemptDistributeRemainingTokens();
+	if(RemoveAggressionTokens(Participant))	AttemptDistributeFreeTokens();
 }
 
 #if WITH_EDITORONLY_DATA
@@ -109,18 +115,19 @@ bool ACombatManager::RemoveAggressionTokens(AOpponentCharacter* Participant)
 	return MakePassiveParticipant(ActiveParticipants.Find(Participant));
 }
 
-bool ACombatManager::GrantTokens(const FAggressionData& AggressionData)
+bool ACombatManager::GrantTokens(const FAggressorInfo& AggressorInfo)
 {
-	if(!PassiveParticipants.Contains(AggressionData.Holder) || ActiveParticipants.Contains(AggressionData.Holder))
+	if(!PassiveParticipants.Contains(AggressorInfo.Aggressor) || ActiveParticipants.Contains(AggressorInfo.Aggressor))
 	{
 		//non-passive (active) participants cannot be granted a token 
 		checkNoEntry();
 		return false;
 	}
-	if(AggressionData.RequestedTokens > AvailableAggressionTokens) return false;
-	AvailableAggressionTokens -= AggressionData.RequestedTokens;
-	MakeActiveParticipant(PassiveParticipants.Find(AggressionData.Holder));
-	AggressionData.Holder->ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey());
+	if(AggressorInfo.RequestedTokens > AvailableAggressionTokens) return false;
+	AvailableAggressionTokens -= AggressorInfo.RequestedTokens;
+	MakeActiveParticipant(PassiveParticipants.Find(AggressorInfo.Aggressor));
+	AggressorInfo.Aggressor->SetRequestedAttack(AggressorInfo.RequestedAttack, FRequestAttackKey());
+	AggressorInfo.Aggressor->ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey());
 	return true;
 }
 
@@ -132,7 +139,7 @@ bool ACombatManager::MakeActiveParticipant(int32 Index)
 		return false;
 	}
 	ActiveParticipants.Add(PassiveParticipants[Index]);
-	PassiveParticipants.RemoveAt(Index);
+	PassiveParticipants.RemoveAtSwap(Index);
 	return true;
 }
 
@@ -144,76 +151,106 @@ bool ACombatManager::MakePassiveParticipant(int32 Index)
 		return false;
 	}
 	PassiveParticipants.Add(ActiveParticipants[Index]);
-	ActiveParticipants.RemoveAt(Index);
+	ActiveParticipants.RemoveAtSwap(Index);
 	return true;
 }
 
-void ACombatManager::AttemptDistributeRemainingTokens()
+float ACombatManager::GetAttackValue(UAttackTreeNode* AttackNode, AOpponentCharacter* Attacker)
 {
-	if(IsValid(AnticipatedActive.Holder))
+	if(!IsValid(AttackNode)) return -1.f;
+	//getOverallValue is normally around 12.5 and the character's attack stat is around 100
+	//Since we want the attack score to weigh about half as much as the aggression score, we multiply with  6/12500
+	return 0.00048f * static_cast<float>(Attacker->GetCharacterStats()->Attack.GetResulting()) *
+		AttackNode->GetAttackProperties().GetOverallValue();
+}
+
+void ACombatManager::AttemptDistributeFreeTokens()
+{
+	if(IsValid(AnticipatedActive.Aggressor) && IsValid(AnticipatedActive.RequestedAttack))
 	{
 		if(!GrantTokens(AnticipatedActive)) return;
 	}
 	
-	//Generate the aggression score for every passive participant
-	float LowestScore = std::numeric_limits<float>::max();
-	TArray<FAggressionData> RelevantData;
+	//The resulting sorted list of options from best to worst
+	TList<FScoredAggressorInfo>* BestOption = nullptr;
 	for(AOpponentCharacter* Participant : PassiveParticipants)
 	{
-		const uint32 RequestedTokens = Participant->GetRequestedTokens();
-		//There is no use trying to distribute tokens to either an entity that needs more than what can maximally be provided
-		//or to an entity that doesn't need tokens
-		if(RequestedTokens > MaxAggressionTokens || RequestedTokens == 0) continue;
-		const float Score = Participant->GenerateAggressionScore(PlayerCharacter);
+		float Score = Participant->GenerateAggressionScore(PlayerCharacter);
 		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
 		if(Score >= 0.f)
 		{
-			if(LowestScore > Score) LowestScore = Score;
-			RelevantData.Add(FAggressionData(Score, Participant, RequestedTokens));
-		}
-	}
-	double TotalScoreAdjusted = 0.0;
-	for(FAggressionData& Data : RelevantData)
-	{
-		const double ScoreAdjusted = pow(Data.AggressionScore - LowestScore, PreferBestScorePower);
-		TotalScoreAdjusted += ScoreAdjusted;
-		//Save the adjusted score so we have the calculation in only one place
-		Data.AggressionScore = ScoreAdjusted;
-	}
-	
-	while(AvailableAggressionTokens > 0 && !RelevantData.IsEmpty())
-	{
-		FAggressionData ChosenOption;
-		//we use double in the assignment because we could be dealing with very small numbers and we still want high accuracy
-		float RandomNumber = static_cast<double>(rand()) * TotalScoreAdjusted / static_cast<double>(RAND_MAX);
-		for(const FAggressionData& AggressionData : RelevantData)
-		{
-			RandomNumber -= AggressionData.AggressionScore;
-			if(RandomNumber <= 0.f)
+			UAttackTreeNode* RequestedAttack = Participant->GetRandomValidAttack();
+			Score += GetAttackValue(RequestedAttack, Participant);
+
+			//Add the information generated to the list in the correct place
+			const FScoredAggressorInfo ScoredAggressorInfo(Participant, RequestedAttack, Score, Participant->GetRequestedTokens());
+			TList<FScoredAggressorInfo>** CurrentElement = &BestOption;
+			while(true)
 			{
-				ChosenOption = AggressionData;
-				break;
+				if(*CurrentElement == nullptr)
+				{
+					*CurrentElement = new TList(ScoredAggressorInfo);
+					break;
+				}
+				if(Score > (*CurrentElement)->Element.Score)
+				{
+					TList<FScoredAggressorInfo>* NextElement = *CurrentElement;
+					*CurrentElement = new TList(ScoredAggressorInfo, NextElement);
+					break;
+				}
+				CurrentElement = &(*CurrentElement)->Next;
 			}
 		}
+	}
 
-		//Try to grant tokens to the chosen entity
-		if(!GrantTokens(ChosenOption))
+	TList<FScoredAggressorInfo>* CurrentOption = BestOption;
+	while(true)
+	{
+		if(CurrentOption == nullptr) break;
+		//Try grant tokens to the entity, thereby checking whether that is even possible
+		if(!GrantTokens(CurrentOption->Element))
 		{
-			if(AvailableAggressionTokens >= 1 && RelevantData.Num() >= 2)
+			if(AvailableAggressionTokens >= 1 && CurrentOption->Next != nullptr)
 			{
 				//if an entity requires more tokens than what is left over, and there are still other entities that might
 				//be satisfied with the available amount of tokens, we queue the entity (to be guaranteed to be the
 				//next one to receive a token) before stopping token distribution
 				//(this should prevent entities requiring a high amount of tokens from never being able to get active,
 				//but obviously brings with it some other problems)
-				AnticipatedActive = ChosenOption;
+				AnticipatedActive = static_cast<FAggressorInfo>(CurrentOption->Next->Element);
 			}
-			
+			else AnticipatedActive = FAggressorInfo();
 			break;
 		}
-		
-		//An entity cannot be granted a token twice
-		RelevantData.Remove(ChosenOption);
-		TotalScoreAdjusted -= ChosenOption.AggressionScore;
-	}
+		CurrentOption = CurrentOption->Next;
+	}	
 }
+
+void ACombatManager::RequestToken(AOpponentCharacter* Requestor)
+{
+	uint32 OverridableTokens = MaxAggressionTokens;
+	
+	float RequestorScore = Requestor->GenerateAggressionScore(PlayerCharacter);
+	if(RequestorScore < 0.f) return;
+	
+	UAttackTreeNode* DesiredAttack = Requestor->GetRandomValidAttack();
+	RequestorScore += GetAttackValue(DesiredAttack, Requestor);
+	
+	for(AOpponentCharacter* Participant : ActiveParticipants)
+	{
+		float Score = Participant->GenerateAggressionScore(PlayerCharacter);
+		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
+		if(Score >= 0.f)
+		{
+			UAttackTreeNode* RequestedAttack = Participant->GetRequestedAttack();
+			Score += GetAttackValue(RequestedAttack, Participant);
+			//only lower priorities can be overridden by the new requestor
+			if(Score >= RequestorScore) OverridableTokens -= Participant->GetRequestedTokens();
+		}
+	}
+
+	if(OverridableTokens < Requestor->GetRequestedTokens()) return;
+	
+	GrantTokens(FAggressorInfo(Requestor, DesiredAttack, Requestor->GetRequestedTokens()));
+}
+

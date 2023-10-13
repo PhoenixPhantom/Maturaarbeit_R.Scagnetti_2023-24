@@ -73,6 +73,8 @@ struct FInputLimits
 	FMovementProperties MovementProperties;
 };
 
+bool operator==(const TDelegate<void(bool)>& a, const TDelegate<void(bool)>& b);
+
 struct FAcceptedInputs
 {
 	FAcceptedInputs();
@@ -88,8 +90,10 @@ struct FAcceptedInputs
 
 	//Handle for the limit reset timer
 	FTimerHandle ResetHandle;
-	
-	FOnInputLimitsResetDelegate OnInputLimitsReset;
+
+	//for some random reason UE5's multicast delegate stores the state of
+	//the caller object wrongly, so we can't use that one here
+	TArray<TDelegate<void(bool)>> OnInputLimitsReset;
 	
 	//Limit available inputs according to the given parameters for the given time. After the time has passed,
 	//the state returns to what it was before the first limits enacted

@@ -30,6 +30,13 @@ private:
 	FMeleeControlsKey(){}
 };
 
+struct FModifyInputLimitsKey final
+{
+	friend class UBTTask_ExecuteAttackTask;
+private:
+	FModifyInputLimitsKey(){}
+};
+
 /**
  * 
  */
@@ -58,9 +65,10 @@ public:
 	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitRecentVictims,
 		FMeleeControlsKey Key);
 	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
-	FOnInputLimitsResetDelegate& OnInputLimitsResetDelegate(){ return AcceptedInputs.OnInputLimitsReset; }
+	void AddOnInputLimitsResetDelegate(const TDelegate<void(bool)>& FunctionToAdd, FModifyInputLimitsKey);
+	void RemoveOnInputLimitsResetDelegate(const TDelegate<void(bool)>& FunctionToAdd, FModifyInputLimitsKey);
 
-	const FCharacterStats* GetCharacterStats() const { return CharacterStats; };
+	const FCharacterStats* GetCharacterStats() const { return CharacterStats; }
 	
 	void SwitchMovementToWalk(FSetWalkOrRunKey) const;
 	void SwitchMovementToRun(FSetWalkOrRunKey) const;

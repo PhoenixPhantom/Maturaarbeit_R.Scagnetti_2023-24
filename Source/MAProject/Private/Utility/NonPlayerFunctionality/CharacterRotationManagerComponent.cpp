@@ -9,16 +9,34 @@
 #include "NavigationSystem.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Characters/Fighters/Opponents/AI/OpponentController.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 
 // Sets default values for this component's properties
 UCharacterRotationManagerComponent::UCharacterRotationManagerComponent() :
 	CharacterRotationMode(ECharacterRotationMode::OrientToMovement),
-	StoredCharacterRotationMode(ECharacterRotationMode::FlickBack),
-	OpponentCharacter(nullptr), OpponentController(nullptr), StoredTarget(nullptr)
+	StoredCharacterRotationMode(ECharacterRotationMode::FlickBack), OpponentCharacter(nullptr),
+	OpponentController(nullptr), StoredTarget(nullptr)
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+}
+
+void UCharacterRotationManagerComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+                                                       FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if(!IsValid(OpponentCharacter->GetTargetPlayer()))
+	{
+		PrimaryComponentTick.SetTickFunctionEnable(false);
+		return;
+	}
+	
+	if(FVector::Distance(GetComponentLocation(), OpponentCharacter->GetTargetPlayer()->GetActorLocation()) <=
+			OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius){
+		PrimaryComponentTick.SetTickFunctionEnable(false);
+		SetRotationMode(ECharacterRotationMode::OrientToTarget, false,
+			OpponentCharacter->GetTargetPlayer());
+	}
 }
 
 void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLocation)
@@ -29,43 +47,32 @@ void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLo
 		const float MaxCombatRadius = OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius;
 		const FVector& LookAtGoalLocation = LookAtGoal->GetActorLocation();
 
-		//only consider to keep looking at the target if both the current position as well as the target
-		//position are close enough for it to be relevant
-		if(FVector::Distance(GetComponentLocation(), LookAtGoalLocation) <= MaxCombatRadius &&
-			FVector::Distance(TargetLocation, LookAtGoalLocation) <= MaxCombatRadius)
-		{
-			bool ShouldLookAtTarget = true;
-			//Also: all path points have to be close enough, to guarantee,
-			//that we don't make a long detour to get around some obstacle
-			UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
-			UNavigationPath* NavigationPath = NavigationSystem->FindPathToLocationSynchronously(GetWorld(),
-				GetComponentLocation(), TargetLocation);
-			for(const FNavPathPoint& PathPoint : NavigationPath->GetPath()->GetPathPoints())
+		if(FVector::Distance(TargetLocation, LookAtGoalLocation) <= MaxCombatRadius){
+			//only consider to keep looking at the target if both the current position as well as the target
+			//position are close enough for it to be relevant
+			if(FVector::Distance(GetComponentLocation(), LookAtGoalLocation) <= MaxCombatRadius)
 			{
-				UKismetSystemLibrary::DrawDebugPoint(GetWorld(), PathPoint.Location, 20.f, FLinearColor(1.f, 0.f, 0.f), 5.f);
-				//For some random reason, it sometimes happens that invalid locations are part of the array
-				if(FVector::Distance(PathPoint.Location, LookAtGoalLocation) > MaxCombatRadius) // &&
-					//PathPoint.Location != FAISystem::InvalidLocation && PathPoint.Location != FVector(0.f))
+				bool ShouldLookAtTarget = true;
+				//Also: all path points have to be close enough, to guarantee,
+				//that we don't make a long detour to get around some obstacle
+				UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+				UNavigationPath* NavigationPath = NavigationSystem->FindPathToLocationSynchronously(GetWorld(),
+					GetComponentLocation(), TargetLocation);
+				for(const FNavPathPoint& PathPoint : NavigationPath->GetPath()->GetPathPoints())
 				{
-					GLog->Log(PathPoint.Location.ToString() + " - " + LookAtGoalLocation.ToString() + " > " +
-						FString::SanitizeFloat(MaxCombatRadius));
-					ShouldLookAtTarget = false;
-					break;
+					if(FVector::Distance(PathPoint.Location, LookAtGoalLocation) > MaxCombatRadius)
+					{
+						ShouldLookAtTarget = false;
+						break;
+					}
+				}
+				
+				if(ShouldLookAtTarget)
+				{
+					SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
 				}
 			}
-			
-			if(ShouldLookAtTarget)
-			{
-				SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
-			}
-			else 
-				GLog->Log("Second failed");
-		}
-		else
-		{
-			
-			GLog->Log(TargetLocation.ToString() + " - " + LookAtGoalLocation.ToString() + " > " +
-				FString::SanitizeFloat(MaxCombatRadius));
+			else PrimaryComponentTick.SetTickFunctionEnable(true);
 		}
 	}
 	

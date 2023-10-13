@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "AttackDamageEvent.h"
-#include "GenericGraphNode.h"
 #include "Characters/InputManagement.h"
 #include "AttackProperties.generated.h"
 
@@ -18,7 +17,7 @@ struct MAPROJECT_API FAttackProperties
 	FAttackProperties(const FAttackProperties& Properties);
 
 	
-	UPROPERTY(EditAnywhere, Category = Combat, meta=(Units="%"))
+	UPROPERTY(EditAnywhere, Category = Combat, meta=(Units="%", UIMin=0, ClampMin=0))
 	float DamagePercent;
 	
 	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay, meta=(ForceUnits="s",
@@ -35,7 +34,8 @@ struct MAPROJECT_API FAttackProperties
 	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay, meta=(ForceUnits="s",
 		ToolTip="The maximum time the character can wait after this attack to continue the combo (reccomendation: around 1s for players and around 10s for opponents)"))
 	float MaxComboTime;
-	UPROPERTY(EditAnywhere, Category = "Combat", AdvancedDisplay, meta=(ToolTip="Attack priority (compared to other attacks) only has an effect on opponents"))
+	UPROPERTY(EditAnywhere, Category = "Combat", AdvancedDisplay, meta=(UIMin=0, ClampMin=0,
+		ToolTip="Attack priority (compared to other attacks) only has an effect on opponents"))
 	float Priority;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
@@ -45,7 +45,9 @@ struct MAPROJECT_API FAttackProperties
 
 	bool operator==(const FAttackProperties& AttackProperties) const;
 
+	[[deprecated("Access Priority directly")]]
 	float GetPriority(float DistanceFromTarget) const;
+	float GetOverallValue() const;
 	bool GetIsOnCd() const { return bIsOnCd; }
 	void Execute(UWorld* WorldContext);
 	float CdTimeElapsed() const;

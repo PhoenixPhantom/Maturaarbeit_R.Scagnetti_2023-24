@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
-#include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
 #include "OpponentCharacter.generated.h"
 
@@ -61,6 +60,7 @@ private:
 struct FExecuteOnAggressionTokensReleasedKey final
 {
 	friend UBTTask_ReleaseAggressionTokens;
+	friend UBTTask_ExecuteAttackTask;
 private:
 	FExecuteOnAggressionTokensReleasedKey(){}
 };
@@ -72,15 +72,26 @@ private:
 	FExecuteAttackKey(){}
 };
 
+struct FRequestAttackKey final
+{
+	friend ACombatManager;
+private:
+	FRequestAttackKey(){}
+};
+
+struct FClearRequestedAttackKey final
+{
+	friend UBTTask_ExecuteAttackTask;
+private:
+	FClearRequestedAttackKey(){}
+};
+
 struct FSetUsedBlackboardKey final
 {
 	friend AOpponentController;
 private:
 	FSetUsedBlackboardKey(){}
 };
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenGrantedDelegate);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAggressionTokenRemovedDelegate);
 
 /**
  * 
@@ -90,6 +101,9 @@ class MAPROJECT_API AOpponentCharacter : public AFighterCharacter
 {
 	GENERATED_BODY()
 public:
+	//MoveTo calculates distance differently from us, so we need some margin of error for our distance calculations
+	static constexpr float MoveToDistanceMarginOfError = 15.f;
+	
 	inline static FName RequiredSpaceActiveTag = "RSActive";
 	
 	AOpponentCharacter(const FObjectInitializer& ObjectInitializer);
@@ -98,17 +112,15 @@ public:
 	virtual float GetFieldOfView() const override { return LocalFieldOfView; }
 	
 	virtual FGenericTeamId GetGenericTeamId() const override { return 1; }
+
+	void BindOnAggressionTokensGranted(const TDelegate<void()>& FunctionToBind, FEditOnAggressionTokensGrantedOrReleasedKey);
+	void BindOnAggressionTokensReleased(const TDelegate<void()>& FunctionToBind, FEditOnAggressionTokensGrantedOrReleasedKey);
 	
-	FOnAggressionTokenGrantedDelegate& GetOnAggressionTokensGranted(FEditOnAggressionTokensGrantedOrReleasedKey)
-		{ return OnAggressionTokensGranted; }
-	FOnAggressionTokenRemovedDelegate& GetOnAggressionTokensReleased(FEditOnAggressionTokensGrantedOrReleasedKey)
-		{ return OnAggressionTokensRemoved; }
-	void ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey) const
-		{ OnAggressionTokensGranted.Broadcast(); }
-	void ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey) const
-		{ OnAggressionTokensRemoved.Broadcast(); }
+	void ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey) const;
+	void ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey) const;
 
 	FRequiredSpace GetRequiredSpace() const;
+	USphereComponent* GetRequiredSpaceActive() const;
 
 	FCircularDistanceConstraint GetActivePlayerDistanceConstraint() const;
 	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; };
@@ -124,29 +136,32 @@ public:
 	UBlackboardComponent* GetUsedBlackboardComponent() const { return UsedBlackboardComponent; }
 	void SetUsedBlackboardComponent(UBlackboardComponent* NewBlackboard, FSetUsedBlackboardKey);
 
-	FORCEINLINE bool ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey);
+	FORCEINLINE bool ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey) const;
+	
+	void SetRequestedAttack(UAttackTreeNode* NewRequestedAttack, FRequestAttackKey){ RequestedAttack = NewRequestedAttack; }
+	void ClearRequestedAttack(FClearRequestedAttackKey){ RequestedAttack = nullptr; }
+	UAttackTreeNode* GetRequestedAttack() const;
+	UAttackTreeNode* GetRandomValidAttack() const;
+	UAttackTreeNode* GetRandomValidAttackInRange() const;
 
 	/**
-	 * @brief Generate a score for the importance of the opponent to the player. Screen centered-ness,
+	 * @brief Generate a score representing the importance of the opponent to the given player. Screen centered-ness,
 	 * distance from player and opponent preferences as well as opponent importance are taken into account
 	 * @param PlayerCharacter The player in regards to which the score is generated
-	 * @return the score is always >= 0.f if the opponent is allowed to become aggressive*/
+	 * @return the score is always >= 0.f if the opponent is allowed to become aggressive (normally <= 6.f)*/
 	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const;
 
 protected:
 	uint8 bCanBecomeAggressive:1;
 	float LocalFieldOfView;
+
 	
-	FOnAggressionTokenGrantedDelegate OnAggressionTokensGranted;
-	FOnAggressionTokenRemovedDelegate OnAggressionTokensRemoved;
+	TDelegate<void()> OnAggressionTokensGranted;
+	TDelegate<void()> OnAggressionTokensRemoved;
 
 	UPROPERTY()
-	UAdvancedCharacterMovementComponent* AdvancedCharacterMovementComponent;
-
-	UPROPERTY()
-	UCharacterRotationManagerComponent* RotationManagerComponent;
-
-
+	UAttackTreeNode* RequestedAttack;
+	
 	UPROPERTY()
 	AController* TargetPlayer;
 
@@ -155,6 +170,12 @@ protected:
 	
 	UPROPERTY(SaveGame)
 	FSavableCharacterModifiers StatsModifiers;
+
+	UPROPERTY(EditAnywhere)
+	UAdvancedCharacterMovementComponent* AdvancedCharacterMovementComponent;
+	
+	UPROPERTY(EditAnywhere)
+	UCharacterRotationManagerComponent* RotationManagerComponent;
 
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	UPlayerFacingWidgetComponent* HealthWidgetComponent;
@@ -189,13 +210,9 @@ protected:
 	bool CanAttack() const{ return CanAttackInSeconds() <= 0.f; };
 	float CanAttackInSeconds() const;
 	static float EarliestAttackSeconds(const UGenericGraphNode* SourceNode);
-
-
-	UFUNCTION()
-	void SetUseActiveCombatSpace();
-
-	UFUNCTION()
-	void SetUsePassiveSpace();
+	
+	void SetUseActiveCombatSpace() const;
+	void SetUsePassiveSpace() const;
 	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);	

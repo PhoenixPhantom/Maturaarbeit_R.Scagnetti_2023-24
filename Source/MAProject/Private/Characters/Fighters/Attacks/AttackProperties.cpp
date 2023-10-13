@@ -5,18 +5,18 @@
 
 
 FAttackProperties::FAttackProperties() : DamagePercent(100.f), CdTime(0.f), MaximalMovementDistance(200.f),
-	DefaultMovementDistance(100.f), Priority(1.f), AtkAnimation(nullptr), World(nullptr), bIsOnCd(false)
+    DefaultMovementDistance(100.f), MaxComboTime(0), Priority(1.f), AtkAnimation(nullptr), World(nullptr), bIsOnCd(false)
 {
 	InputLimits.SetNum(0, true);
 	InputLimits.Add({EInputType::Attack, 1.f});
 }
 
 FAttackProperties::FAttackProperties(const FAttackProperties& Properties) : DamagePercent(Properties.DamagePercent),
-            CdTime(Properties.CdTime), DamageEvent(Properties.DamageEvent),
-			MaximalMovementDistance(Properties.MaximalMovementDistance),
-			DefaultMovementDistance(Properties.DefaultMovementDistance), Priority(Properties.Priority),
-			AtkAnimation(Properties.AtkAnimation), InputLimits(Properties.InputLimits),
-			World(Properties.World), bIsOnCd(Properties.bIsOnCd)
+	CdTime(Properties.CdTime), DamageEvent(Properties.DamageEvent),
+	MaximalMovementDistance(Properties.MaximalMovementDistance),
+	DefaultMovementDistance(Properties.DefaultMovementDistance), MaxComboTime(Properties.DefaultMovementDistance),
+	Priority(Properties.Priority), AtkAnimation(Properties.AtkAnimation), InputLimits(Properties.InputLimits),
+	World(Properties.World), bIsOnCd(Properties.bIsOnCd)
 {
 }
 
@@ -34,6 +34,12 @@ float FAttackProperties::GetPriority(float DistanceFromTarget) const
 {
 	return DistanceFromTarget <= DefaultMovementDistance ? Priority : Priority *
 		(1.f + (DistanceFromTarget-DefaultMovementDistance) / (MaximalMovementDistance-DefaultMovementDistance));
+}
+
+float FAttackProperties::GetOverallValue() const
+{
+	return DamagePercent / 100.f * (static_cast<float>(DamageEvent.StaggerChance)*0.005f + Priority*2.5f) /
+		FMath::Sqrt(AtkAnimation->GetPlayLength());
 }
 
 void FAttackProperties::Execute(UWorld* WorldContext)
