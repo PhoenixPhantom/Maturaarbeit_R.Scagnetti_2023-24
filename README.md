@@ -36,6 +36,7 @@ To provide the most essential functionalities, this work will make use of the cu
 ### Combat
 * Evolving Combat in 'God of War' for a New Perspective - GDC (by Santa Monica Studio's Mihir Sheth): https://www.youtube.com/watch?v=hE5tWF-Ou2k
 * Dreamscaper: Killer Combat on an Indie Budget - GDC (by Afterburner Studios' Ian Cofino): https://www.youtube.com/watch?v=3Omb5exWpd4
+* Attack representation inspired by: "How to make combo attacks - Beginner tutorial Unreal Engine 5" - LeafBranchGames: https://www.youtube.com/watch?v=rKbb4PBmFUA (accessed: 3.10.2023)
 
 ### Artificial Intelligence
 * Unreal Engine 5 Tutorial - AI Part 9: Prediction Sense - Ryan Laley: https://www.youtube.com/watch?v=-EU8EedeVi4
