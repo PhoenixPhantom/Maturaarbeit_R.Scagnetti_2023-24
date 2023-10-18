@@ -2,13 +2,10 @@
 
 #pragma once
 
-#include <functional>
-
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
 #include "InputActionValue.h"
 #include "PlayerPartyController.h"
-#include "Utility/Tools/Triple.h"
 #include "PlayerCharacter.generated.h"
 
 class USphereComponent;
@@ -26,6 +23,20 @@ struct FPreSpawnSetupKey final
 	friend class APlayerPartyController;
 private:
 	FPreSpawnSetupKey(){}
+};
+
+struct FStoredInput
+{
+	double Timestamp;
+	EInputType ActionType;
+	TDelegate<void()> RequestedAction;
+
+	FStoredInput();
+	FStoredInput(double CurrentTime, EInputType AttemptedActionType, const TDelegate<void()>& AttemptedAction);
+	bool IsValid() const { return ActionType != EInputType::Undefined && RequestedAction.IsBound(); }
+	void Invalidate();
+
+	bool operator==(const FStoredInput& SavedInput) const;
 };
 
 
@@ -72,7 +83,7 @@ protected:
 	FTimerHandle ResetPlayerVisibilityHandle;
 	TTuple<double, FVector> InputDirection;
 	FPlayerUserSettings* PlayerUserSettings;
-	TTriple<double, EInputType, std::function<void()>> LastInput;
+	FStoredInput LastInput;
 
 	
 
@@ -161,6 +172,7 @@ protected:
 	void OpenPauseMenu();
 
 	void UpdateTargetSelection();
+	bool IsOccluded(ETraceTypeQuery TraceType, const FVector& ObserverLocation, const FVector& TargetCenter, const FVector& TargetExtent, AActor* TargetActor) const;
 	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);

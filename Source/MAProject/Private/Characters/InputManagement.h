@@ -27,7 +27,8 @@ enum class EInputType
 	//Will always be executed for limits without predetermined ending (resets everything)
 	//and has no effect otherwise (doesn't set anything)
 	//(the behavior of FInputLimits using Reset CANNOT be changed through changing ANY values in FInputLimits)
-	Reset
+	Reset,
+	Undefined //should only be used as default value for certainly changed values
 	
 };
 

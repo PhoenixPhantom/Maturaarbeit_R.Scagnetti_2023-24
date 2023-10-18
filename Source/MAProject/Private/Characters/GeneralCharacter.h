@@ -48,8 +48,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Animation)
 	USuckToTargetComponent* SuckToTargetComponent;
 
-	bool AreMultipleVisible(AActor* Target, const FVector& TraceStart, TArray<FVector>& RemainingEnds,
-		int32 RequiredPositiveTests);
+	bool AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
+	                        TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const;
 
 
 #if WITH_EDITORONLY_DATA

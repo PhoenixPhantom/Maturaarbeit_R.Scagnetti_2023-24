@@ -49,7 +49,8 @@ uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent
 #if USE_UE5_DELEGATE
 		if(OnGetDamaged.IsBound()) OnGetDamaged.Broadcast(*DamageInfo);
 #else
-		if(IsValid(OnGetDamaged.Owner))	OnGetDamaged.Function(DamageInfo);
+		// ReSharper disable once CppExpressionWithoutSideEffects
+		OnGetDamaged.ExecuteIfBound(DamageInfo);
 #endif
 	}
 	

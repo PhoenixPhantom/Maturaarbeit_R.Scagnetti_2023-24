@@ -25,6 +25,8 @@ protected:
 	UPROPERTY(EditAnywhere)
 	int32 NewInt;
 	UPROPERTY(EditAnywhere)
+	uint8 NewEnum;
+	UPROPERTY(EditAnywhere)
 	FVector NewVector;
 	UPROPERTY(EditAnywhere)
 	UObject* NewObject;

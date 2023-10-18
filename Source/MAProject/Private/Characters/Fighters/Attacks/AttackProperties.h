@@ -37,6 +37,9 @@ struct MAPROJECT_API FAttackProperties
 	UPROPERTY(EditAnywhere, Category = "Combat", AdvancedDisplay, meta=(UIMin=0, ClampMin=0,
 		ToolTip="Attack priority (compared to other attacks) only has an effect on opponents"))
 	float Priority;
+	UPROPERTY(EditAnywhere, Category = "Combat", AdvancedDisplay,
+		meta=(ToolTip="Whether the attack needs to connect only has an effect on opponents"))
+	bool bIsMeleeAttack;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
 	UPROPERTY(EditAnywhere, Category = Animation, meta=(ToolTip="The limits that will be applied one after another in order of indices on attack execution."))

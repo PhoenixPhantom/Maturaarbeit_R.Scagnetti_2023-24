@@ -5,7 +5,8 @@
 
 
 FAttackProperties::FAttackProperties() : DamagePercent(100.f), CdTime(0.f), MaximalMovementDistance(200.f),
-    DefaultMovementDistance(100.f), MaxComboTime(0), Priority(1.f), AtkAnimation(nullptr), World(nullptr), bIsOnCd(false)
+	DefaultMovementDistance(100.f), MaxComboTime(0), Priority(1.f), bIsMeleeAttack(true), AtkAnimation(nullptr),
+	World(nullptr), bIsOnCd(false)
 {
 	InputLimits.SetNum(0, true);
 	InputLimits.Add({EInputType::Attack, 1.f});
@@ -15,8 +16,8 @@ FAttackProperties::FAttackProperties(const FAttackProperties& Properties) : Dama
 	CdTime(Properties.CdTime), DamageEvent(Properties.DamageEvent),
 	MaximalMovementDistance(Properties.MaximalMovementDistance),
 	DefaultMovementDistance(Properties.DefaultMovementDistance), MaxComboTime(Properties.DefaultMovementDistance),
-	Priority(Properties.Priority), AtkAnimation(Properties.AtkAnimation), InputLimits(Properties.InputLimits),
-	World(Properties.World), bIsOnCd(Properties.bIsOnCd)
+	Priority(Properties.Priority), bIsMeleeAttack(Properties.bIsMeleeAttack), AtkAnimation(Properties.AtkAnimation),
+	InputLimits(Properties.InputLimits), World(Properties.World), bIsOnCd(Properties.bIsOnCd)
 {
 }
 
@@ -26,8 +27,8 @@ bool FAttackProperties::operator==(const FAttackProperties& AttackProperties) co
 		DamageEvent == AttackProperties.DamageEvent &&
 		MaximalMovementDistance == AttackProperties.MaximalMovementDistance &&
 		DefaultMovementDistance == AttackProperties.DefaultMovementDistance &&
-		Priority == AttackProperties.Priority && AtkAnimation == AttackProperties.AtkAnimation &&
-		InputLimits == AttackProperties.InputLimits;
+		Priority == AttackProperties.Priority && bIsMeleeAttack == AttackProperties.bIsMeleeAttack &&
+		AtkAnimation == AttackProperties.AtkAnimation && InputLimits == AttackProperties.InputLimits;
 }
 
 float FAttackProperties::GetPriority(float DistanceFromTarget) const

@@ -57,13 +57,13 @@ struct FScoredAggressorInfo : public FAggressorInfo
 	float Score;
 };
 
-UENUM()
+UENUM(BlueprintType)
 enum class ECombatParticipantStatus : uint8
 {
-	NotRegistered,
-	Active,
-	Passive,
-	Player
+	NotRegistered UMETA(DisplayName="Not Registered"),
+	Active UMETA(DisplayName="Active"),
+	Passive UMETA(DisplayName="Passive"),
+	Player UMETA(DisplayName="Player")
 };
 
 UCLASS()

@@ -96,13 +96,14 @@ USphereComponent* AOpponentCharacter::GetRequiredSpaceActive() const
 
 FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstraint() const
 {
-	FCircularDistanceConstraint DistanceConstraint(TargetPlayer, true);
+	FCircularDistanceConstraint DistanceConstraint(TargetPlayer);
 	if(IsValid(RequestedAttack))
 	{
 		DistanceConstraint.MaxRadius = FMath::Max(RequestedAttack->GetAttackProperties().MaximalMovementDistance - 100.f, 50.f);
 		DistanceConstraint.MinRadius = 0.f;
 		DistanceConstraint.OptimalMaxRadius = FMath::Max(RequestedAttack->GetAttackProperties().DefaultMovementDistance - 50.f, 25.f);
 		DistanceConstraint.OptimalMinRadius = 0.f;
+		DistanceConstraint.bUseNavPath = RequestedAttack->GetAttackProperties().bIsMeleeAttack;
 		return DistanceConstraint;
 	}
 	bool FoundExecutableAttack = false;
@@ -142,6 +143,7 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 	DistanceConstraint.MinRadius = 0.f;
 	DistanceConstraint.OptimalMaxRadius = FMath::Max(DistanceAverage - 50.f, 25.f);
 	DistanceConstraint.OptimalMinRadius = 0.f;
+	//TODO: bUseNavPath is completely random here, fix this
 	return DistanceConstraint;
 }
 
@@ -215,7 +217,8 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttack() const
 
 	//Randomly chose a valid attack
 	UAttackTreeNode* ChosenNode = nullptr;
-	float RandomNumber = FMath::FRandRange(0.0, TotalScore);
+	std::uniform_real_distribution Distribution(0.0, TotalScore);
+	double RandomNumber = Distribution(RandomGenerator);
 	for (const TTuple<UGenericGraphNode*, float>& Attack : ValidAttacks)
 	{
 		RandomNumber -= Attack.Value;
@@ -243,7 +246,7 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttackInRange() const
 	
 	//Sort through all available attacks and remove those that cannot be executed
 	TArray<TTuple<UGenericGraphNode*, float>> ValidAttacks;
-	double TotalScore = 0.f;
+	double TotalScore = 0.0;
 	for (UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
 		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
@@ -258,7 +261,9 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttackInRange() const
 
 	//Randomly chose a valid attack
 	UAttackTreeNode* ChosenNode = nullptr;
-	float RandomNumber = FMath::FRandRange(0.0, TotalScore);
+	std::uniform_real_distribution Distribution(0.0, TotalScore);
+	double RandomNumber = Distribution(RandomGenerator);
+	//float RandomNumber = FMath::FRandRange(0.0, TotalScore);
 	for (const TTuple<UGenericGraphNode*, float>& Attack : ValidAttacks)
 	{
 		RandomNumber -= Attack.Value;
@@ -334,12 +339,14 @@ float AOpponentCharacter::EarliestAttackSeconds(const UGenericGraphNode* SourceN
 
 void AOpponentCharacter::SetUseActiveCombatSpace() const
 {
+	if(!IsValid(RequiredSpaceActiveCombat) || !IsValid(RequiredSpacePassive)) return;
 	RequiredSpaceActiveCombat->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 	RequiredSpacePassive->ComponentTags.Remove(RequiredSpaceActiveTag);
 }
 
 void AOpponentCharacter::SetUsePassiveSpace() const
 {
+	if(!IsValid(RequiredSpaceActiveCombat) || !IsValid(RequiredSpacePassive)) return;
 	RequiredSpaceActiveCombat->ComponentTags.Remove(RequiredSpaceActiveTag);
 	RequiredSpacePassive->ComponentTags.AddUnique(RequiredSpaceActiveTag);
 }

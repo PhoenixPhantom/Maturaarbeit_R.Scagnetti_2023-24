@@ -114,6 +114,8 @@ protected:
 	FName IsInvestigatingKeyName;
 	UPROPERTY(EditAnywhere, Category = Blackboard)
 	FName HasJustExecutedAttackKeyName;
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	FName LastCombatStatusKeyName;
 
 	UPROPERTY(EditAnywhere, Category = Movement)
 	TSubclassOf<AMovementTarget> MovementTargetClass;

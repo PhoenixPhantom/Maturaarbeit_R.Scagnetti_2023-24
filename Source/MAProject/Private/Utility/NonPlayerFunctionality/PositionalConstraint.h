@@ -154,7 +154,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	virtual void DrawConstraintDebug(UWorld* World, FLinearColor DebugColor, float ShowTime) const override;
-	void DrawOldConstraintDebug(UWorld* World, const FVector& Position, FLinearColor DebugColor, float ShowTime) const;
+	void DrawOldConstraintDebug(const UWorld* World, const FVector& Position, FLinearColor DebugColor, float ShowTime) const;
 #endif
 };
 

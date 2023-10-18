@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "CustomDamageEvent.h"
-#include "Utility/Tools/Delegates.h"
 #include "GeneralStats.generated.h"
 
 template<typename Value, typename Percentage>
@@ -96,7 +95,7 @@ struct FGeneralObjectStats
 	FOnGetDamagedDelegate OnGetDamaged;
 #else
 	//TODO: This is a hack to make passing FCustomDamageEvent* through without loss or errors
-	TOwnedFunction<void(const FCustomDamageEvent*)> OnGetDamaged;
+	TDelegate<void(const FCustomDamageEvent*)> OnGetDamaged;
 #endif
 	FOnNoHealthReachedDelegate OnNoHealthReached;
 

@@ -319,8 +319,8 @@ void AFighterCharacter::BeginPlay()
 	CharacterStats->OnGetDamaged.AddDynamic(this, &AFighterCharacter::OnGetDamagedUE);
 #else
 	//TODO: This is a hack to allow passing a FCustomDamageEvent* without loss or errors
-	CharacterStats->OnGetDamaged.Function = std::bind(&AFighterCharacter::OnGetDamaged, this, std::placeholders::_1);
-	CharacterStats->OnGetDamaged.Owner = this;
+	CharacterStats->OnGetDamaged.BindWeakLambda(this, [this](const FCustomDamageEvent* DamageEvent)
+		{ OnGetDamaged(DamageEvent); });
 #endif
 	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
 	SwitchMovementToWalk(FSetWalkOrRunKey());

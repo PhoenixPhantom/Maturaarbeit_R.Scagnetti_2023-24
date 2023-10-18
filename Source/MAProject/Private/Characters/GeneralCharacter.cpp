@@ -37,17 +37,17 @@ void AGeneralCharacter::SetIsDebugging(bool IsDebugging)
 }
 #endif
 
-bool AGeneralCharacter::AreMultipleVisible(AActor* Target, const FVector& TraceStart, TArray<FVector>& RemainingEnds,
-                                           int32 RequiredPositiveTests)
+bool AGeneralCharacter::AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
+                                           TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const
 {
 	if(RequiredPositiveTests <= 0) return true;
 	if(RemainingEnds.IsEmpty()) return false;
 	FHitResult VisibilityTrace;
-	UKismetSystemLibrary::LineTraceSingle(GetWorld(), TraceStart, RemainingEnds[0],
-	ETraceTypeQuery::TraceTypeQuery1, true, {this, Owner}, EDrawDebugTrace::None,
+	UKismetSystemLibrary::LineTraceSingle(GetWorld(), TraceStart, RemainingEnds[0], TraceType, true,
+	{const_cast<AGeneralCharacter*>(this), Owner}, EDrawDebugTrace::None,
 	VisibilityTrace, true);
 	if(!VisibilityTrace.bBlockingHit || VisibilityTrace.GetActor() == Target) RequiredPositiveTests--;
 	RemainingEnds.RemoveAt(0);
-	return AreMultipleVisible(Target, TraceStart, RemainingEnds, RequiredPositiveTests);
+	return AreMultipleVisible(Target, TraceType, TraceStart, RemainingEnds, RequiredPositiveTests);
 }
 

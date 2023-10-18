@@ -1,10 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
+#include <random>
 
 #include "CoreMinimal.h"
 #include "Characters/Fighters/FighterCharacter.h"
 #include "Utility/NonPlayerFunctionality/PositionalConstraint.h"
+#include "Utility/Tools/pcg-cpp/include/pcg_random.hpp"
 #include "OpponentCharacter.generated.h"
 
 class UBlackboardComponent;
@@ -152,6 +154,8 @@ public:
 	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const;
 
 protected:
+	inline static pcg_extras::seed_seq_from<std::random_device> SeedSource;
+	inline static pcg32 RandomGenerator = SeedSource;
 	uint8 bCanBecomeAggressive:1;
 	float LocalFieldOfView;
 

@@ -7,10 +7,12 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Float.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_NativeEnum.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 
-UBTTask_SetBlackboardKeyValue::UBTTask_SetBlackboardKeyValue(): NewBool(false), NewFloat(0), NewInt(0), NewObject(nullptr)
+UBTTask_SetBlackboardKeyValue::UBTTask_SetBlackboardKeyValue(): NewBool(false), NewFloat(0), NewInt(0), NewEnum(0),
+                                                                NewObject(nullptr)
 {
 	NodeName = "Set Blackboard Key Value";
 }
@@ -36,6 +38,10 @@ EBTNodeResult::Type UBTTask_SetBlackboardKeyValue::ExecuteTask(UBehaviorTreeComp
 	else if(BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsObject(BlackboardKey.SelectedKeyName, NewObject);		
+	}
+	else if(BlackboardKey.SelectedKeyType == UBlackboardKeyType_NativeEnum::StaticClass())
+	{
+		OwnerComp.GetBlackboardComponent()->SetValueAsEnum(BlackboardKey.SelectedKeyName, NewEnum);		
 	}
 
 	

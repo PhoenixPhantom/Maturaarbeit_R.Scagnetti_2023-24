@@ -22,14 +22,18 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	check(IsValid(OwningCharacter));
 	if (!OwningCharacter->GetAcceptedInputs().bCanAttack)
 	{
-		checkNoEntry();
-		OwningCharacter->ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey());
-		return EBTNodeResult::Failed;
+		//this suggests that the character was staggered (or killed) --> the result should be the same "token retention"
+		//that occurs when the opponent is staggered while executing the attack
+		TDelegate<void(bool)> OnInterruptionEnded;
+		OnInterruptionEnded.BindUObject(this, &UBTTask_ExecuteAttackTask::OnReactionFinished);
+		OwningCharacter->AddOnInputLimitsResetDelegate(OnInterruptionEnded, FModifyInputLimitsKey());
+		return EBTNodeResult::InProgress;
 	}
 
 	const ACharacter* TargetCharacter = OwningCharacter->GetCombatTarget();
 	if (!IsValid(TargetCharacter))
 	{
+		//this suggests that the attacker is not actively engaged in combat (which makes no sense when it is attacking)
 		checkNoEntry();
 		OwningCharacter->ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey());
 		return EBTNodeResult::Failed;
@@ -38,10 +42,16 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	UAttackTreeNode* RequestedNode = OwningCharacter->GetRequestedAttack();
 	if(!IsValid(RequestedNode))
 	{
+		//tokens can be granted without setting an attack, if the receiver of the token still has a
+		//better score than the other options
+		//In this case we have to select an attack here (which can be done randomly since every
+		//attack has an overall value ov >= 0, so every choice is good)		
 		RequestedNode = OwningCharacter->GetRandomValidAttackInRange();
 	}
 	if(!IsValid(RequestedNode))
 	{
+		//having been granted a token but still not being able to attack, the attacker retains it's tokens
+		//until it can attack (not optimal but reduces movement noise)
 #if WITH_EDITORONLY_DATA
 		if(OwningCharacter->GetIsDebugging())
 			GLog->Log(OwningCharacter->GetActorNameOrLabel() + " cannot attack since there are no valid attacks.");
@@ -81,6 +91,8 @@ void UBTTask_ExecuteAttackTask::OnAttackFinished(bool IsLimitDurationOver)
 
 void UBTTask_ExecuteAttackTask::OnReactionFinished(bool IsLimitDurationOver)
 {
+	//at this point, the character might have been killed
+	if(!IsValid(OwningCharacter)) return;
 #if WITH_EDITORONLY_DATA
 	if(OwningCharacter->GetIsDebugging())
 	{

@@ -22,4 +22,7 @@ public:
 protected:
 	UPROPERTY(EditAnywhere)
 	ECombatParticipantStatus StatusToGenerateLocationFor;
+
+	UPROPERTY(EditAnywhere)
+	FBlackboardKeySelector LastCombatStatus;
 };

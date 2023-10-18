@@ -3,6 +3,7 @@
 
 #include "Characters/Fighters/Opponents/AI/OpponentController.h"
 
+#include "NavigationSystem.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Utility/CombatManager.h"
@@ -70,6 +71,8 @@ AOpponentController::AOpponentController(const FObjectInitializer& ObjectInitial
 
 	CrowdFollowingComponent =
 		Cast<UCrowdFollowingComponent>(GetComponentByClass(UCrowdFollowingComponent::StaticClass()));
+	CrowdFollowingComponent->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Good);
+	CrowdFollowingComponent->SetCrowdObstacleAvoidance(true);	
 
 	//Register OnPerceptionUpdated delegate
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AOpponentController::OnTargetPerceptionUpdated);
@@ -148,6 +151,23 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 	case ECombatParticipantStatus::Active:
 		{
 			PlayerDistanceConstraint = ControlledOpponent->GetActivePlayerDistanceConstraint();
+			bool IsPossible = true;
+			if(PlayerDistanceConstraint.bUseNavPath)
+			{
+				UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetNavigationSystem(GetWorld());
+				const ANavigationData* NavData =
+					NavigationSystem->GetNavDataForProps(ControlledOpponent->GetNavAgentPropertiesRef(),
+						ControlledOpponent->GetNavAgentLocation());
+				
+				if (IsValid(NavData))
+				{
+					IsPossible = NavigationSystem->TestPathSync(
+						FPathFindingQuery(this, *NavData,ControlledOpponent->GetNavAgentLocation(),
+						PlayerDistanceConstraint.AnchorController->GetCharacter()->GetNavAgentLocation()));
+				}
+				else IsPossible = false;
+			}
+			if(!IsPossible) return false;
 			const float MinRequestedRadius = RequiredSpace.RequiredSpaceSphere->GetScaledSphereRadius();
 			TArray<AOpponentCharacter*> ActiveParticipants = CombatManager->GetAllActiveParticipants();
 			ActiveParticipants.RemoveSwap(ControlledOpponent);
@@ -156,7 +176,7 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 				const FVector& TargetLocation = ActiveParticipant->GetUsedBlackboardComponent()->
 					GetValueAsVector(TargetLocationKeyName);
 				if(TargetLocation.ContainsNaN()) continue;
-				
+			
 				ReservedSpaceConstraints.Add(FReservedSpaceConstraint(ActiveParticipant->GetRequiredSpace(),
 					TargetLocation,ActiveParticipant->GetCombatTarget()->GetActorLocation(),
 					MinRequestedRadius));
@@ -241,7 +261,7 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 	const float SampleRange = 500.f + OpponentToTarget.Length();
 	RelevantConstraints.Add(&PlayerZoneConstraint);
 	
-	const bool FoundLocation = UConstraintsFunctionLibrary::SampleGetClosestValid(ResultingLocation,
+	bool FoundLocation = UConstraintsFunctionLibrary::SampleGetClosestValid(ResultingLocation,
 		CurrentLocation,ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
 		SampleRange, RelevantConstraints, GetWorld(),abs(OpponentToTarget.Z) + 100.f,
 		UConstraintsFunctionLibrary::RequireAllValid,false
@@ -392,6 +412,7 @@ void AOpponentController::EndCombat()
 {
 	check(CombatManager->GetParticipationStatus(ControlledOpponent) != ECombatParticipantStatus::NotRegistered);
 	Blackboard->SetValueAsBool(IsInCombatKeyName, false);
+	Blackboard->SetValueAsEnum(LastCombatStatusKeyName, static_cast<uint8>(ECombatParticipantStatus::NotRegistered));
 	Blackboard->SetValueAsBool(IsActiveCombatKeyName, false);
 	Blackboard->SetValueAsBool(HasJustExecutedAttackKeyName, false);
 	Blackboard->SetValueAsBool(RestartPatrolPathKeyName, true);

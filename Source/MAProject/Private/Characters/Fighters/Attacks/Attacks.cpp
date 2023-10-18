@@ -30,6 +30,7 @@ const UAttackTreeNode* FAttacks::GetCurrentNode(UWorld* WorldContext) const
 const UGenericGraphNode* FAttacks::GetRootNode() const
 {
 	//We assume there is only one root since this simplifies the process a lot
+	check(AttackTree->RootNodes.Num() == 1);
 	return AttackTree->RootNodes[0];
 }
 

@@ -101,12 +101,13 @@ FCircularDistanceConstraint::FCircularDistanceConstraint(AController* Anchor, bo
 
 uint8 FCircularDistanceConstraint::GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const
 {
-	const FVector& TargetLocation = AnchorController->GetPawn()->GetActorLocation();
-	double Distance = FVector::Distance(Position, TargetLocation);
+	double Distance = FVector::Distance(Position, AnchorController->GetPawn()->GetActorLocation());
 	if(bUseNavPath && IsValid(NavigationSystem))
 	{
 		double PathLength;
-		NavigationSystem->GetPathLength(AnchorController->GetWorld(), Position,TargetLocation, PathLength);
+		if(NavigationSystem->GetPathLength(AnchorController->GetWorld(), Position,
+			AnchorController->GetPawn()->GetNavAgentLocation(), PathLength)
+			!= ENavigationQueryResult::Success) return 0;
 
 		//only use path length (which seems to be an approximation
 		//(as discussed here: https://forums.unrealengine.com/t/get-path-length-inconsistent-results/285948/7))
@@ -126,8 +127,8 @@ void FCircularDistanceConstraint::DrawConstraintDebug(UWorld* World, FLinearColo
 	DrawOldConstraintDebug(World, AnchorController->GetPawn()->GetActorLocation(), DebugColor, ShowTime);
 }
 
-void FCircularDistanceConstraint::DrawOldConstraintDebug(UWorld* World, const FVector& Position, FLinearColor DebugColor,
-                                                       float ShowTime) const
+void FCircularDistanceConstraint::DrawOldConstraintDebug(const UWorld* World, const FVector& Position, FLinearColor DebugColor,
+                                                         float ShowTime) const
 {
 	UKismetSystemLibrary::DrawDebugSphere(World, Position, OptimalMinRadius, 50, DebugColor,ShowTime);
 	UKismetSystemLibrary::DrawDebugSphere(World, Position, OptimalMaxRadius, 50, DebugColor, ShowTime);
