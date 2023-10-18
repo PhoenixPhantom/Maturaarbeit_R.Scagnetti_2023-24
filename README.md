@@ -32,6 +32,7 @@ To provide the most essential functionalities, this work will make use of the cu
 * Starter Content – Epic Games Inc: One of the in-engine project setup options 
 * Quadruped Fantasy Creatures - PROTOFACTOR INC: https://www.unrealengine.com/marketplace/en-US/product/7f7775996f7442b187f6fa510ec9d289
 * GenericGraph - jinyuliao: https://github.com/jinyuliao/GenericGraph/tree/master (accessed: 5.10.2023)
+* PCG random generator - imneme: https://github.com/imneme/pcg-cpp (accessed: 18.10.2023)
 
 ### Combat
 * Evolving Combat in 'God of War' for a New Perspective - GDC (by Santa Monica Studio's Mihir Sheth): https://www.youtube.com/watch?v=hE5tWF-Ou2k
