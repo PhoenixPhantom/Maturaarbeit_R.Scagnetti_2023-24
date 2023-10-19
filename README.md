@@ -47,6 +47,7 @@ To provide the most essential functionalities, this work will make use of the cu
 #### Visual FX
 * Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA with Inspiration from Olivier Deplanque (https://www.artstation.com/artwork/b5XEod)
 * Unreal Engine Impact Effect in Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=8UThnwfEwng
+* How to Add Camera Shake in Unreal Engine 5 - GorkaGames: https://www.youtube.com/watch?v=rTVb7nEhKv8 (accessed: 18.10.2023)
 #### Sound FX
 * Unreal Engine 5 | MetaSound Footsteps - The Sound FX Guy: https://www.youtube.com/watch?v=SXBEbs69sZ8
 * Unreal Engine 5 | Dynamic Footsteps with MetaSounds - The Sound FX Guy: https://www.youtube.com/watch?v=pYxocPdtHBw
