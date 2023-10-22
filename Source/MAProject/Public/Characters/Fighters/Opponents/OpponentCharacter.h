@@ -150,7 +150,8 @@ public:
 	 * @brief Generate a score representing the importance of the opponent to the given player. Screen centered-ness,
 	 * distance from player and opponent preferences as well as opponent importance are taken into account
 	 * @param PlayerCharacter The player in regards to which the score is generated
-	 * @return the score is always >= 0.f if the opponent is allowed to become aggressive (normally <= 6.f)*/
+	 * @return the score is always >= 0.f if the opponent is allowed to become aggressive (normally: <= 4.5f;
+	 * if character is the player's target: <= 8.5f)*/
 	 float GenerateAggressionScore(APlayerCharacter* PlayerCharacter) const;
 
 protected:

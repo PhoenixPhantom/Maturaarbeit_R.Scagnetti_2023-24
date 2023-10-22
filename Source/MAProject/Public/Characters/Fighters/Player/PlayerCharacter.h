@@ -57,7 +57,8 @@ public:
 	virtual FGenericTeamId GetGenericTeamId() const override { return InternalTeamId; };
 
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
-	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource, FGenericTeamId NewTeamId,
+	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
+		const TDelegate<void(const FVector2D&)>& RequestedActionOnPlayerMovedCamera, FGenericTeamId NewTeamId,
 		FPreSpawnSetupKey Key);
 
 
@@ -73,6 +74,9 @@ public:
 	///@return FollowCamera sub-object
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+	
+	UTargetInformationComponent* GetCurrentTargetInformation() const { return CurrentTarget; }
+	AActor* GetCurrentTarget() const;
 
 protected:
 	bool bIsRunning;
@@ -84,6 +88,7 @@ protected:
 	TTuple<double, FVector> InputDirection;
 	FPlayerUserSettings* PlayerUserSettings;
 	FStoredInput LastInput;
+	TDelegate<void(const FVector2D&)> OnPlayerMovedCamera;
 
 	
 
@@ -101,6 +106,9 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	UCapsuleComponent* HorizontalCapsule;
+
+	UPROPERTY(EditAnywhere, Category = UserExperience)
+	TSubclassOf<UCameraShakeBase> InduceStaggerCameraShake;
 
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UHealthMonitorBaseWidget> HealthWidgetClass;
@@ -148,6 +156,8 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits) override;
+	virtual void GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit) override;
+	virtual void OnHitTimeDilation(bool WasStaggered) override{} // the player should not get staggered on enemy attacks
 
 	virtual void CharacterLanded();
 	virtual void CharacterInAir();

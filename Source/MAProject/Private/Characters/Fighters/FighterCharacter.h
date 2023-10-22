@@ -122,6 +122,7 @@ protected:
 	void CheckMeshOverlaps();
 	void ProcessTimeDilation(float DeltaSeconds);
 
+	virtual void GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit);
 	virtual void OnDeathTriggered();
 	virtual void PlayHitSound(const FVector& HitLocation);
 	virtual void SpawnHitFX(const FVector& Location, float ScaleFactor);
@@ -129,6 +130,8 @@ protected:
 
 	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits);
 
+	virtual void OnHitTimeDilation(bool WasStaggered);
+	
 	UFUNCTION()
 	void RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget);
 

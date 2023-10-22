@@ -158,9 +158,10 @@ bool ACombatManager::MakePassiveParticipant(int32 Index)
 float ACombatManager::GetAttackValue(UAttackTreeNode* AttackNode, AOpponentCharacter* Attacker)
 {
 	if(!IsValid(AttackNode) || !IsValid(Attacker)) return -1.f;
-	//getOverallValue is normally around 12.5 and the character's attack stat is around 100
-	//Since we want the attack score to weigh about half as much as the aggression score, we multiply with  6/12500
-	return 0.00048f * static_cast<float>(Attacker->GetCharacterStats()->Attack.GetResulting()) *
+	//getOverallValue is normally under 12.5 and the character's attack stat is around 100
+	//Since we want the attack score to weigh about half as much as the aggression score, we multiply with  ~6/12500
+	//(6 for the expected highest amount for the optimal target)
+	return 0.0004f * static_cast<float>(Attacker->GetCharacterStats()->Attack.GetResulting()) *
 		AttackNode->GetAttackProperties().GetOverallValue();
 }
 

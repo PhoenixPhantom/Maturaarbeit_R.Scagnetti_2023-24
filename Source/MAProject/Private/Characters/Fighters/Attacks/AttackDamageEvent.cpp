@@ -9,12 +9,13 @@ FAttackDamageEvent::FAttackDamageEvent(): StaggerChance(0), StaggerImpulse(10.f)
 FAttackDamageEvent::FAttackDamageEvent(const FAttackDamageEvent& AttackDamageEvent): Super(AttackDamageEvent),
 	StaggerChance(AttackDamageEvent.StaggerChance), StaggerImpulse(AttackDamageEvent.StaggerImpulse),
 	HitFXScaleFactor(AttackDamageEvent.HitFXScaleFactor), HitDirection(AttackDamageEvent.HitDirection),
-	HitLocation(AttackDamageEvent.HitLocation)
+	HitLocation(AttackDamageEvent.HitLocation), OnHitRegistered(AttackDamageEvent.OnHitRegistered)
 {}
 
 bool FAttackDamageEvent::operator==(const FAttackDamageEvent& AttackDamageEvent) const
 {
 	return Super::operator==(AttackDamageEvent) && StaggerChance == AttackDamageEvent.StaggerChance &&
 		StaggerImpulse == AttackDamageEvent.StaggerImpulse && HitFXScaleFactor == AttackDamageEvent.HitFXScaleFactor &&
-		HitDirection == AttackDamageEvent.HitDirection && HitLocation == AttackDamageEvent.HitLocation;
+		HitDirection == AttackDamageEvent.HitDirection && HitLocation == AttackDamageEvent.HitLocation &&
+		OnHitRegistered.GetHandle() == AttackDamageEvent.OnHitRegistered.GetHandle();
 }

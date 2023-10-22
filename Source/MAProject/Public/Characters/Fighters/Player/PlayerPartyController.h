@@ -41,12 +41,23 @@ public:
 	bool bPreferClosestTarget;
 };
 
+struct FCameraInterventionData
+{
+	FCameraInterventionData() : Timestamp(0.0){}
+	double Timestamp;
+};
+
+//custom player controller class
+//built to enable switching characters
 UCLASS()
 class MAPROJECT_API APlayerPartyController : public APlayerController, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 public:
 	APlayerPartyController();
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void OnUnPossess() override;
 	void SetPawnStartTransform(FTransform Transform, FSetPawnStartTransformKey Key){ PawnStartTransform = Transform; }
 	const FPlayerUserSettings& GetPlayerUserSettings() const { return PlayerUserSettings; }
 	void SetPlayerUserSettings(const FPlayerUserSettings& NewPlayerUserSettings, FSetPlayerUserSettingsKey Key){ PlayerUserSettings = NewPlayerUserSettings; };
@@ -56,9 +67,23 @@ public:
 protected:
 	FTransform PawnStartTransform;
 	FCharacterStats PartyMemberStats;
+	TDelegate<void(const FVector2D&)> OnPlayerCameraMovedPreconfigured;
+	FCameraInterventionData CameraInterventionData;
+	double CurrentYawRotSpeed;
+	double CurrentPitchRotSpeed;
+
+	UPROPERTY()
+	APlayerCharacter* CurrentCharacter;
+	UPROPERTY()
+	AActor* ActorRequestedInView;
 	
 	UPROPERTY()
 	ACombatManager* CombatManager;
+
+	UPROPERTY(EditAnywhere, Category=Controls, meta=(ForceUnits="°"))
+	double MaxYawAccel;
+	UPROPERTY(EditAnywhere, Category=Controls, meta=(ForceUnits="°"))
+	double MaxPitchAccel;
 	
 	UPROPERTY(EditAnywhere, SaveGame)
 	TSubclassOf<APlayerCharacter> PartyMemberClass;
@@ -68,6 +93,15 @@ protected:
 	FPlayerUserSettings PlayerUserSettings;
 
 	virtual void BeginPlay() override;
+
+	FORCEINLINE void SetCurrentRotSpeed(double Yaw, double Pitch);
+	void AutoControlCameraRotation(float DeltaSeconds);
+	void LockOnTarget(FRotator& DesiredRotation);
+	void OrientTowardsMovement(FRotator& DesiredRotation) const;
+	bool TrySetRequestedInView(AActor* RequestedInView);
+	
+	UFUNCTION()
+	void OnPlayerCameraMoved(const FVector2D& LookInputAxis);
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = Debugging)

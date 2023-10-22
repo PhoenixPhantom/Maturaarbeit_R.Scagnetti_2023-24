@@ -5,11 +5,41 @@
 
 #include "Utility/CombatManager.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
-APlayerPartyController::APlayerPartyController() : PawnStartTransform(FVector(NAN)), CombatManager(nullptr)
+APlayerPartyController::APlayerPartyController() : PawnStartTransform(FVector(NAN)), CurrentYawRotSpeed(0.0),
+	CurrentPitchRotSpeed(0.0), ActorRequestedInView(nullptr), CombatManager(nullptr), MaxYawAccel(100.0),
+	MaxPitchAccel(75.0)
 {
+	OnPlayerCameraMovedPreconfigured.BindUObject(this, &APlayerPartyController::OnPlayerCameraMoved);
+}
+
+void APlayerPartyController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	//only do automated camera management, if the player are not controlling the camera themselves
+	if(GetWorld()->RealTimeSeconds - CameraInterventionData.Timestamp > 1.0)
+	{
+		AutoControlCameraRotation(DeltaSeconds);
+	}
+	else SetCurrentRotSpeed(0.0, 0.0);
+	
+}
+
+void APlayerPartyController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	APlayerCharacter* TargetCharacter = Cast<APlayerCharacter>(InPawn);
+	if(IsValid(TargetCharacter)) CurrentCharacter = TargetCharacter;
+}
+
+void APlayerPartyController::OnUnPossess()
+{
+	Super::OnUnPossess();
+	CurrentCharacter = nullptr;
 }
 
 void APlayerPartyController::BeginPlay()
@@ -51,8 +81,9 @@ void APlayerPartyController::BeginPlay()
 	APlayerCharacter* NewCharacter = GetWorld()->SpawnActorDeferred<APlayerCharacter>(PartyMemberClass.Get(),
 		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 	CombatManager->RegisterCombatParticipant(NewCharacter, FManageCombatParticipantsKey());
-
-	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, GetGenericTeamId(), FPreSpawnSetupKey());
+	
+	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, OnPlayerCameraMovedPreconfigured,
+		GetGenericTeamId(), FPreSpawnSetupKey());
 #if WITH_EDITORONLY_DATA
 	NewCharacter->SetIsDebugging(bIsDebugging);
 #endif
@@ -60,6 +91,116 @@ void APlayerPartyController::BeginPlay()
 	
 	Possess(NewCharacter);
 	GetPawn()->EnableInput(this); //Input seems to be disabled by default	
+}
+
+void APlayerPartyController::SetCurrentRotSpeed(double Yaw, double Pitch)
+{
+	CurrentYawRotSpeed = Yaw;
+	CurrentPitchRotSpeed = Pitch;
+}
+
+void APlayerPartyController::AutoControlCameraRotation(float DeltaSeconds)
+{
+	FRotator TargetRotator(NAN);
+	if(IsValid(CurrentCharacter))
+	{
+		LockOnTarget(TargetRotator);
+		OrientTowardsMovement(TargetRotator);
+	}
+
+	if(TargetRotator.ContainsNaN())
+	{
+		SetCurrentRotSpeed(0.0, 0.0);
+		return;
+	}
+	const FRotator OriginalRotator = GetControlRotation();
+	double DesiredDeltaYaw = TargetRotator.Yaw - OriginalRotator.Yaw;
+	double DesiredDeltaPitch = TargetRotator.Pitch - OriginalRotator.Pitch;
+	//use shortest path
+	if(DesiredDeltaYaw >= 180.0) DesiredDeltaYaw = 360.0 - DesiredDeltaYaw;
+	if(DesiredDeltaYaw <= -180.0) DesiredDeltaYaw = 360.0 + DesiredDeltaYaw;
+	if(DesiredDeltaPitch >= 180.0) DesiredDeltaPitch = 360.0 - DesiredDeltaPitch;
+	if(DesiredDeltaPitch <= -180.0) DesiredDeltaPitch = 360.0 + DesiredDeltaPitch;
+
+	//prevent almost 180 turns
+	if(DesiredDeltaYaw >= 100.0) DesiredDeltaYaw = 180.0 - DesiredDeltaYaw;
+
+	//pitch must always stay between -90 and 90 (since the controller doesn't allow for more
+	if(DesiredDeltaPitch >= 90.0) DesiredDeltaPitch = 180.0 - DesiredDeltaPitch;
+	if(DesiredDeltaPitch <= -90.0) DesiredDeltaPitch = -180.0 - DesiredDeltaPitch;
+
+	//asymptotic interpolation behavior
+	DesiredDeltaYaw *= FMath::Min(DeltaSeconds * 1.5, 1.0); 
+	DesiredDeltaPitch *= DeltaSeconds;
+
+	//Cap max acceleration to prevent stuttery 1 to 100 accelerations
+	const double AllowedDeltaYaw = FMath::Min(DesiredDeltaYaw,
+		(MaxYawAccel * DeltaSeconds + CurrentYawRotSpeed) * DeltaSeconds);
+	const double AllowedDeltaPitch = FMath::Min(DesiredDeltaPitch,
+		(MaxPitchAccel * DeltaSeconds + CurrentPitchRotSpeed) * DeltaSeconds);
+
+	SetControlRotation({OriginalRotator.Pitch + AllowedDeltaPitch, OriginalRotator.Yaw +  AllowedDeltaYaw,
+		OriginalRotator.Roll});
+	SetCurrentRotSpeed(AllowedDeltaYaw / DeltaSeconds, AllowedDeltaPitch / DeltaSeconds);
+}
+
+void APlayerPartyController::LockOnTarget(FRotator& DesiredRotation)
+{
+	//if we have a valid target, we lock on to it by default
+	if(ActorRequestedInView != CurrentCharacter->GetCurrentTarget() && IsValid(CurrentCharacter->GetCurrentTarget()))
+	{
+		//to reduce noise on target change we register a target change the same way as we would register camera movement
+		//by the player
+		CameraInterventionData.Timestamp = GetWorld()->RealTimeSeconds;
+	
+		if(!TrySetRequestedInView(CurrentCharacter->GetCurrentTarget())) return;
+	}
+	if(!IsValid(ActorRequestedInView)) return;
+	//the camera is bound to the control rotation, so this is the easiest way to change that
+	DesiredRotation = UKismetMathLibrary::FindLookAtRotation(CurrentCharacter->GetActorLocation(),
+		ActorRequestedInView->GetActorLocation());
+}
+
+void APlayerPartyController::OrientTowardsMovement(FRotator& DesiredRotation) const
+{
+	//this cannot override or change any other inputs
+	//and only takes effect when "smoothly turning" and not immediate jumps, preventing forward orientation when not wanted
+	if(DesiredRotation.ContainsNaN())
+	{
+		const FVector& PendingMovementInput = CurrentCharacter->GetMovementComponent()->GetPendingInputVector();
+		//squared length is slightly faster and we compare it to the constant speed 10cm/s anyways
+		//(so now we compare with 100cm/s)
+		if(PendingMovementInput.SquaredLength() >= 100.0 &&
+			PendingMovementInput.Rotation().Equals(GetControlRotation(), 89.0))
+				DesiredRotation = CurrentCharacter->GetVelocity().Rotation();
+	}
+}
+
+bool APlayerPartyController::TrySetRequestedInView(AActor* RequestedInView)
+{
+	if(IsValid(RequestedInView))
+	{
+		FVector CameraLocation;
+		FRotator CameraRotation;
+		CurrentCharacter->GetActorEyesViewPoint(CameraLocation, CameraRotation);
+	
+		if (UKismetMathLibrary::DegAcos(FVector::DotProduct(CameraRotation.Vector(),
+			UKismetMathLibrary::GetDirectionUnitVector(CameraLocation,RequestedInView->GetActorLocation())))
+			<= CurrentCharacter->GetFieldOfView() / 2.f)
+		{
+			ActorRequestedInView = RequestedInView;
+			return true;
+		}
+	}
+	ActorRequestedInView = nullptr;
+	return false;
+}
+
+void APlayerPartyController::OnPlayerCameraMoved(const FVector2D& LookInputAxis)
+{
+	//Determine what the most likely intention of the player was 
+	TrySetRequestedInView(CurrentCharacter->GetCurrentTarget());
+	CameraInterventionData.Timestamp = GetWorld()->RealTimeSeconds;
 }
 
 #if WITH_EDITORONLY_DATA

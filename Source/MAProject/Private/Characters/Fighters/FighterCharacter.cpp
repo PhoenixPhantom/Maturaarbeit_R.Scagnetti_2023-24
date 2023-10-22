@@ -45,13 +45,6 @@ float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 		{
 			const FAttackDamageEvent* AttackDamageEvent = static_cast<const FAttackDamageEvent*>(Event);
 			RemainingHealth = CharacterStats->ReceiveDamage(DamageAmount, AttackDamageEvent);
-
-			//TODO: this is just a hack to test out hit stop
-			if(EventInstigator == GetWorld()->GetFirstPlayerController())
-			{
-				BlendTimeDilation(0.15f, 0.3f, 0.15f);
-				CastChecked<AFighterCharacter>(DamageCauser)->BlendTimeDilation(0.15f, 0.3f, 0.15f);
-			}
 			
 			UAISense_Damage::ReportDamageEvent(GetWorld(), this, EventInstigator->GetPawn(), DamageAmount,
 				EventInstigator->GetPawn()->GetActorLocation(), AttackDamageEvent->HitLocation);
@@ -145,13 +138,14 @@ void AFighterCharacter::EndInvincibility()
 	bIsInvincible = false;
 }
 
+
 void AFighterCharacter::CheckMeshOverlaps()
 {
 	TArray<AActor*> OverlappingActors;
 	GetMesh()->GetOverlappingActors(OverlappingActors);
 	
 	//loop through all bones that can damage targets, to find some that actually hit a target
-	FHitResult TraceResult;
+	FHitResult HitTraceResult;
 	for(const FName BodyName : MeleeEnabledBones)
 	{
 		FVector VelocityDirection = GetMesh()->GetBoneLinearVelocity(BodyName).GetSafeNormal();
@@ -159,17 +153,17 @@ void AFighterCharacter::CheckMeshOverlaps()
 		//we need hit results for attack management
 		UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetMesh()->GetBoneLocation(BodyName),
 		GetMesh()->GetBoneLocation(BodyName) + VelocityDirection * 100.f, UEngineTypes::ConvertToTraceType(ECC_Destructible),
-		true, {this, Owner}, EDrawDebugTrace::None, TraceResult, true);
+		true, {this, Owner}, EDrawDebugTrace::None, HitTraceResult, true);
 
-		if(TraceResult.bBlockingHit)
+		if(HitTraceResult.bBlockingHit)
 		{
 			for(AActor* Target : OverlappingActors)
 			{
 				if(Target == this || !IsValid(Target)  || RecentlyDamagedActors.Contains(Target) ||
-					TraceResult.GetActor() != Target) continue;
+					HitTraceResult.GetActor() != Target) continue;
 				RecentlyDamagedActors.Add(Target);
 				FAttackDamageEvent AttackDamageEvent;
-				CharacterStats->GenerateDamageEvent(AttackDamageEvent, TraceResult);
+				GenerateDamageEvent(AttackDamageEvent, HitTraceResult);
 				Target->TakeDamage(CharacterStats->GetDamageOutput(),
 					AttackDamageEvent, GetInstigatorController(), this);
 				break;
@@ -218,6 +212,12 @@ void AFighterCharacter::ProcessTimeDilation(float DeltaSeconds)
 	{
 		CustomTimeDilation = TargetTimeDilation; 
 	}
+}
+
+void AFighterCharacter::GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent,
+	const FHitResult& CausingHit)
+{
+	CharacterStats->GenerateDamageEvent(AttackDamageEvent, CausingHit);
 }
 
 void AFighterCharacter::OnDeathTriggered()
@@ -287,6 +287,12 @@ void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimi
 	AcceptedInputs.OnInputLimitsReset.Add(FollowUpWithLimit);
 }
 
+void AFighterCharacter::OnHitTimeDilation(bool WasStaggered)
+{
+	if(WasStaggered) BlendTimeDilation(0.175f, 0.35f, 0.f);
+	else BlendTimeDilation(0.15f, 0.3f, 0.15f);
+}
+
 void AFighterCharacter::RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget)
 {
 	check(IsValid(Widget));
@@ -350,10 +356,15 @@ void AFighterCharacter::OnGetDamaged(const FCustomDamageEvent* DamageEvent)
 		SpawnHitFX(AttackDamageEvent->HitLocation, AttackDamageEvent->HitFXScaleFactor);
 		
 		const uint32 CasePerThousand = FMath::RandRange(0, 1000);
-		if(CasePerThousand <= AttackDamageEvent->StaggerChance)
+		const bool AttackStaggers = CasePerThousand <= AttackDamageEvent->StaggerChance;
+		if(AttackStaggers)
 		{
 			GetStaggered(AttackDamageEvent);
 		}
+		
+		// ReSharper disable once CppExpressionWithoutSideEffects
+		AttackDamageEvent->OnHitRegistered.ExecuteIfBound(AttackStaggers);
+		OnHitTimeDilation(AttackStaggers);
 	}
 	//Damaged by something else
 	else

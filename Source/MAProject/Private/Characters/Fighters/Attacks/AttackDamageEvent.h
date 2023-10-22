@@ -26,6 +26,8 @@ public:
 	
 	FVector HitDirection;
 	FVector HitLocation;
+
+	TDelegate<void(bool)> OnHitRegistered;
 	
 	static const int32 ClassID = 11;
 

@@ -111,8 +111,9 @@ void APlayerCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
 }
 
 void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
-	FGenericTeamId NewTeamId, FPreSpawnSetupKey Key)
+	const TDelegate<void(const FVector2D&)>& RequestedActionOnPlayerMovedCamera, FGenericTeamId NewTeamId, FPreSpawnSetupKey Key)
 {
+	OnPlayerMovedCamera = RequestedActionOnPlayerMovedCamera;
 	InternalTeamId = NewTeamId;
 	CharacterStats = PropertiesSource;
 	PlayerUserSettings = PlayerUserSettingsSource;
@@ -137,6 +138,11 @@ float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget) co
 	ActionRank += 1.f + OffsetFromForward; //there should be no negative action ranks
 
 	return ActionRank;
+}
+
+AActor* APlayerCharacter::GetCurrentTarget() const
+{
+	return IsValid(CurrentTarget) ? CurrentTarget->GetOwner() : nullptr;
 }
 
 
@@ -199,6 +205,20 @@ void APlayerCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimit
 		// ReSharper disable once CppExpressionWithoutSideEffects
 		LastInput.RequestedAction.ExecuteIfBound();
 	}
+}
+
+void APlayerCharacter::GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit)
+{
+	Super::GenerateDamageEvent(AttackDamageEvent, CausingHit);
+	//only the player should get time dilation when an attack hits, as only the player can trigger time dilation
+	//and the effect always has to apply on both contestants
+	AttackDamageEvent.OnHitRegistered.BindWeakLambda(this, [this, AttackDamageEvent,
+		SpringArmLength = SpringArm->TargetArmLength](bool HasStaggered)
+	{
+		if(HasStaggered) UGameplayStatics::PlayWorldCameraShake(GetWorld(), InduceStaggerCameraShake,
+			AttackDamageEvent.HitLocation,0.f, 500.f + SpringArmLength);
+		AFighterCharacter::OnHitTimeDilation(HasStaggered);
+	});
 }
 
 void APlayerCharacter::CharacterLanded()
@@ -408,7 +428,9 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 			return;
 		}
 		LastInput.Invalidate();
-		const FVector2D LookAxisVector = Value.Get<FVector2D>();
+		const FVector2D& LookAxisVector = Value.Get<FVector2D>();
+		// ReSharper disable once CppExpressionWithoutSideEffects
+		OnPlayerMovedCamera.ExecuteIfBound(LookAxisVector);
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
