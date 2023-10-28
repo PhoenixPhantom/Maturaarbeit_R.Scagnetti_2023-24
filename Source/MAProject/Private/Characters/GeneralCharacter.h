@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <tiffio.h>
+
 #include "CoreMinimal.h"
 #include "InputManagement.h"
 #include "GameFramework/Character.h"
@@ -33,6 +35,8 @@ public:
 
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
+	virtual void Tick(float DeltaSeconds) override;
+
 #if WITH_EDITORONLY_DATA
 	void SetIsDebugging(bool IsDebugging);
 	bool GetIsDebugging() const { return bIsDebugging; }
@@ -40,6 +44,15 @@ public:
 
 protected:
 	FAcceptedInputs AcceptedInputs;
+	UPROPERTY()
+	TArray<USkeletalMeshComponent*> RelevantMeshes;
+
+	UPROPERTY(EditAnywhere, Category = Rendering)
+	float MinimumFadeDistance;
+	UPROPERTY(EditAnywhere, Category = Rendering)
+	float MaximumFadeDistance;
+	UPROPERTY(EditAnywhere, Category = Rendering)
+	float InputFadeStrength;
 	
 	//The prefix (if existent) every bone on the characters skeleton has
 	UPROPERTY(EditAnywhere, Category = Animation)
@@ -48,12 +61,25 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Animation)
 	USuckToTargetComponent* SuckToTargetComponent;
 
+	void FadeMeshWithCameraDistance();
+	void SetMeshesOpacity(float DesiredOpacity);
+
+	UFUNCTION(BlueprintCallable)
+	void RegisterRelevantMeshes(const TArray<USkeletalMeshComponent*>& NewMeshes, bool AddToBaseMesh = false,
+		bool ForceUpdate = false);
+
 	bool AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
 	                        TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const;
+
+	virtual void BeginPlay() override;
 
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = Debugging)
 	bool bIsDebugging = false;
 #endif
+
+private:
+	UPROPERTY()
+	APlayerController* CameraPlayerController;
 };

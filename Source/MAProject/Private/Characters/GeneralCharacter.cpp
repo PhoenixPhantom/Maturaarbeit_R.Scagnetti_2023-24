@@ -2,16 +2,18 @@
 
 
 #include "Characters/GeneralCharacter.h"
+
 #include "Kismet/KismetSystemLibrary.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 
 
 
 
-AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
+	MinimumFadeDistance(100.f), MaximumFadeDistance(150.f), InputFadeStrength(2.f)
 {
 	SuckToTargetComponent = CreateDefaultSubobject<USuckToTargetComponent>(TEXT("SuckToTargetComp"));
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionProfileName("CharacterMesh", true);
@@ -29,6 +31,12 @@ void AGeneralCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& Ou
 	OutRotation = GetMesh()->GetSocketRotation(HeadSocket);
 }
 
+void AGeneralCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	FadeMeshWithCameraDistance();
+}
+
 #if WITH_EDITORONLY_DATA
 void AGeneralCharacter::SetIsDebugging(bool IsDebugging)
 {
@@ -36,6 +44,56 @@ void AGeneralCharacter::SetIsDebugging(bool IsDebugging)
 	SuckToTargetComponent->bIsDebugging = bIsDebugging;
 }
 #endif
+
+void AGeneralCharacter::FadeMeshWithCameraDistance()
+{
+	if(!IsValid(CameraPlayerController))
+	{
+		CameraPlayerController = GetWorld()->GetFirstPlayerController();
+		if(!IsValid(CameraPlayerController)) return;
+	}
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	CameraPlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	const float OldOpacity = GetMesh()->GetCustomPrimitiveData().Data.IsEmpty() ? 0.f : GetMesh()->GetCustomPrimitiveData().Data[0];
+	const float Distance = FVector::Distance(CameraLocation, GetActorLocation());
+	if(Distance > MaximumFadeDistance)
+	{
+		if(OldOpacity != 0) SetMeshesOpacity(0.f);		
+	}
+	else if(Distance < MinimumFadeDistance)
+	{
+		if(OldOpacity != 1.f) SetMeshesOpacity(1.f);	
+	}
+	else
+	{
+		const float DesiredOpacity = 1.f -
+			pow((Distance - MinimumFadeDistance) / (MaximumFadeDistance - MinimumFadeDistance),InputFadeStrength);
+		if(abs(DesiredOpacity - OldOpacity) >  0.001) SetMeshesOpacity(DesiredOpacity);
+	}
+}
+
+void AGeneralCharacter::SetMeshesOpacity(float DesiredOpacity)
+{
+	GetMesh()->SetCustomPrimitiveDataFloat(0, DesiredOpacity);
+	for(USkeletalMeshComponent* MeshComponent : RelevantMeshes)
+	{
+		MeshComponent->SetCustomPrimitiveDataFloat(0, DesiredOpacity);
+	}
+}
+
+void AGeneralCharacter::RegisterRelevantMeshes(const TArray<USkeletalMeshComponent*>& NewMeshes, bool AddToBaseMesh,
+                                               bool ForceUpdate)
+{
+	RelevantMeshes.Append(NewMeshes);
+	if(AddToBaseMesh)
+	{
+		for(USkeletalMeshComponent* NewMesh : NewMeshes)
+		{
+			NewMesh->SetLeaderPoseComponent(GetMesh(), ForceUpdate);
+		}
+	}
+}
 
 bool AGeneralCharacter::AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
                                            TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const
@@ -49,5 +107,11 @@ bool AGeneralCharacter::AreMultipleVisible(AActor* Target, ETraceTypeQuery Trace
 	if(!VisibilityTrace.bBlockingHit || VisibilityTrace.GetActor() == Target) RequiredPositiveTests--;
 	RemainingEnds.RemoveAt(0);
 	return AreMultipleVisible(Target, TraceType, TraceStart, RemainingEnds, RequiredPositiveTests);
+}
+
+void AGeneralCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	CameraPlayerController = GetWorld()->GetFirstPlayerController();
 }
 

@@ -21,16 +21,36 @@ UFXSystemComponent* UAnimNotifyState_TimedNiagaraEffectParameters::SpawnEffect(U
                                                                                UAnimSequenceBase* Animation) const
 {
 	// Only spawn if we've got valid params
-	if (!ValidateParameters(MeshComp)) return nullptr;
+	if (!SocketName.IsNone() && !ValidateParameters(MeshComp)) return nullptr;
 
-	UNiagaraComponent* NiagaraSystem =  UNiagaraFunctionLibrary::SpawnSystemAttached(Template, MeshComp,
-		SocketName, LocationOffset, RotationOffset, EAttachLocation::KeepRelativeOffset, !bDestroyAtEnd);
+	UNiagaraComponent* NiagaraSystem;
+	if(!SocketName.IsNone())
+	{
+		 NiagaraSystem =  UNiagaraFunctionLibrary::SpawnSystemAttached(Template, MeshComp,
+			SocketName, LocationOffset, RotationOffset, EAttachLocation::KeepRelativeOffset, bDestroyAtEnd);
+	}
+	else
+	{
+		const FVector Offset =
+			MeshComp->GetComponentRotation().RotateVector(LocationOffset)*MeshComp->GetComponentScale().X;
+		NiagaraSystem = UNiagaraFunctionLibrary::SpawnSystemAtLocation(MeshComp->GetWorld(), Template,
+			 Offset + MeshComp->GetComponentLocation(), MeshComp->GetComponentRotation() + RotationOffset,
+			 FVector(1.0), bDestroyAtEnd);
+	}
 
 	if(!PlayLengthName.IsNone()) NiagaraSystem->SetVariableFloat(PlayLengthName, NotifyTime);
 
 	for(const FFloatParameter& Parameter : FloatParameters)
 	{
-		NiagaraSystem->SetVariableFloat(Parameter.VariableName, Parameter.Value);	
+		if(Parameter.bUseMeshScaling)
+		{
+			NiagaraSystem->SetVariableFloat(Parameter.VariableName,
+				Parameter.Value * MeshComp->GetComponentScale().X);
+		}
+		else
+		{
+			NiagaraSystem->SetVariableFloat(Parameter.VariableName, Parameter.Value);
+		}
 	}
 	
 	for(const FMaterialParameter& Parameter : MaterialParameters)

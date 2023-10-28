@@ -24,13 +24,16 @@ USTRUCT()
 struct FFloatParameter
 {
 	GENERATED_BODY()
-	FFloatParameter(): Value(0.f){}
+	FFloatParameter(): Value(0.f), bUseMeshScaling(false){}
 
 	UPROPERTY(EditAnywhere)
 	FName VariableName;
 
 	UPROPERTY(EditAnywhere)
 	float Value;
+
+	UPROPERTY(EditAnywhere)
+	bool bUseMeshScaling;
 };
 
 /**
