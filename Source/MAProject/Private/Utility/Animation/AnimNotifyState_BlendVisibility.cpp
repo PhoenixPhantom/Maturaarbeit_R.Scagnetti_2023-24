@@ -4,40 +4,34 @@
 #include "Utility/Animation/AnimNotifyState_BlendVisibility.h"
 
 #include "AnimationEditorPreviewActor.h"
+#include "Characters/GeneralCharacter.h"
 
-FMeshInterpolationUnit::FMeshInterpolationUnit(): DynamicMaterialInstance(nullptr), StartingVisibility(0.f), IncreaseRate(0.f)
-{}
-
-FMeshInterpolationUnit::FMeshInterpolationUnit(UMaterialInstanceDynamic* NewInstance, float NewStartingVisibility,
-                                             float NewIncreaseRate): DynamicMaterialInstance(NewInstance),
-                                                                     StartingVisibility(NewStartingVisibility),IncreaseRate(NewIncreaseRate)
-{}
-
-UAnimNotifyState_BlendVisibility::UAnimNotifyState_BlendVisibility() : PassedTime(0.f), FinalVisibility(0.5f)
+UAnimNotifyState_BlendVisibility::UAnimNotifyState_BlendVisibility() : PassedTime(0.f), StartingVisibility(0.f),
+	IncreaseRate(0.f), OwningCharacter(nullptr), bBlockOtherVisibilityChanges(true),
+	bEndBlocking(false), FinalVisibility(0.5f)
 {
 	bShouldFireInEditor = true;
 	NotifyColor = FColor(255, 0, 255);
 }
 
 void UAnimNotifyState_BlendVisibility::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-                                              float TotalDuration, const FAnimNotifyEventReference& EventReference)
+                                                   float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	PassedTime = 0.f;
-	InterpolationUnits.Empty();
-	for(int32 i = 0; i < MeshComp->GetNumMaterials(); i++)
+	
+	OwningCharacter = Cast<AGeneralCharacter>(MeshComp->GetOwner());
+	if(IsValid(OwningCharacter))
 	{
-		UMaterialInstanceDynamic* DynamicInstance = MeshComp->CreateDynamicMaterialInstance(i);
-		if(!IsValid(DynamicInstance) ||
-			InterpolationUnits.FindByPredicate([DynamicInstance](const FMeshInterpolationUnit& InterpolationUnit)
-			{
-				return InterpolationUnit.DynamicMaterialInstance == DynamicInstance;
-			}) != nullptr) continue;
-		float CurrentVisibility;
-		DynamicInstance->GetScalarParameterValue(VisibilitySettingName, CurrentVisibility);
-		InterpolationUnits.Add(FMeshInterpolationUnit(DynamicInstance, CurrentVisibility
-			, (FinalVisibility - CurrentVisibility) / TotalDuration));
+		StartingVisibility = OwningCharacter->GetMeshesOpacity();
+		OwningCharacter->SetAllowAutomaticOpacityChanges(bBlockOtherVisibilityChanges, FSetCharacterOpacity());
 	}
+	else
+	{
+		StartingVisibility = MeshComp->GetCustomPrimitiveData().Data.IsEmpty() ? 0.f :
+			MeshComp->GetCustomPrimitiveData().Data[0];
+	}
+	IncreaseRate = (FinalVisibility - StartingVisibility) / TotalDuration;
 }
 
 void UAnimNotifyState_BlendVisibility::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -45,15 +39,55 @@ void UAnimNotifyState_BlendVisibility::NotifyTick(USkeletalMeshComponent* MeshCo
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
 	PassedTime += FrameDeltaTime;
-	for(const FMeshInterpolationUnit& MeshInterpolationUnit : InterpolationUnits)
+	const float TheoreticalValue = StartingVisibility + PassedTime * IncreaseRate;
+	const float NewVisibility = IncreaseRate >= 0.f ? FMath::Clamp(TheoreticalValue, 0.f, FinalVisibility) :
+		FMath::Clamp(TheoreticalValue, FinalVisibility, 1.f);
+	if(IsValid(OwningCharacter))
 	{
-		const float Value = MeshInterpolationUnit.StartingVisibility + PassedTime * MeshInterpolationUnit.IncreaseRate;
-		MeshInterpolationUnit.DynamicMaterialInstance->SetScalarParameterValue(VisibilitySettingName,
-			MeshInterpolationUnit.IncreaseRate >= 0.f ?
-			FMath::Clamp(Value, 0.f, FinalVisibility) : FMath::Clamp(Value, FinalVisibility, 1.f));
+		OwningCharacter->SetMeshesOpacity(NewVisibility, FSetCharacterOpacity());
+	}
+	else
+	{
+		MeshComp->SetCustomPrimitiveDataFloat(0, NewVisibility);
 	}
 }
 
+void UAnimNotifyState_BlendVisibility::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+	const FAnimNotifyEventReference& EventReference)
+{
+	Super::NotifyEnd(MeshComp, Animation, EventReference);
+	if(bEndBlocking && IsValid(OwningCharacter))
+	{
+		OwningCharacter->SetAllowAutomaticOpacityChanges(true, FSetCharacterOpacity());
+	}
+}
+
+
+UAnimNotifyState_ForceConstantVisibility::UAnimNotifyState_ForceConstantVisibility() : OwningCharacter(nullptr),
+	FinalVisibility(0.f)
+{
+}
+
+void UAnimNotifyState_ForceConstantVisibility::NotifyBegin(USkeletalMeshComponent* MeshComp,
+                                                           UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
+{
+	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
+	OwningCharacter = Cast<AGeneralCharacter>(MeshComp->GetOwner());
+	if(IsValid(OwningCharacter))
+	{
+		OwningCharacter->SetAllowAutomaticOpacityChanges(true, FSetCharacterOpacity());
+	}
+}
+
+void UAnimNotifyState_ForceConstantVisibility::NotifyTick(USkeletalMeshComponent* MeshComp,
+	UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
+{
+	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
+	if(IsValid(OwningCharacter))
+	{
+		OwningCharacter->SetMeshesOpacity(FinalVisibility, FSetCharacterOpacity());
+	}
+}
 
 UAnimNotify_InEditorResetVisibility::UAnimNotify_InEditorResetVisibility()
 {
@@ -62,16 +96,19 @@ UAnimNotify_InEditorResetVisibility::UAnimNotify_InEditorResetVisibility()
 }
 
 void UAnimNotify_InEditorResetVisibility::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-                              const FAnimNotifyEventReference& EventReference)
+                                                 const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 	if(!bShouldFireInEditor ||
 		!MeshComp->GetOuter()->GetClass()->IsChildOf(AAnimationEditorPreviewActor::StaticClass())) return;
 	
-	for(int32 i = 0; i < MeshComp->GetNumMaterials(); i++)
+	AGeneralCharacter* OwningCharacter = Cast<AGeneralCharacter>(MeshComp->GetOwner());
+	if(IsValid(OwningCharacter))
 	{
-		UMaterialInstanceDynamic* DynamicInstance = MeshComp->CreateDynamicMaterialInstance(i);
-		if(!IsValid(DynamicInstance)) return;
-		DynamicInstance->SetScalarParameterValue(VisibilitySettingName, 1.f);
+		OwningCharacter->SetMeshesOpacity(0.f, FSetCharacterOpacity());
+	}
+	else
+	{
+		MeshComp->SetCustomPrimitiveDataFloat(0, 0.f);
 	}
 }

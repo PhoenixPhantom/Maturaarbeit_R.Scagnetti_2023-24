@@ -5,18 +5,31 @@
 
 #include "Kismet/KismetSystemLibrary.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
-
-
+#include "Utility/Stats/StatusEffect.h"
 
 
 AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
-	MinimumFadeDistance(100.f), MaximumFadeDistance(150.f), InputFadeStrength(2.f)
+                                                                                    MinimumFadeDistance(100.f), MaximumFadeDistance(150.f), InputFadeStrength(2.f)
 {
 	SuckToTargetComponent = CreateDefaultSubobject<USuckToTargetComponent>(TEXT("SuckToTargetComp"));
 	PrimaryActorTick.bCanEverTick = true;
 	
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionProfileName("CharacterMesh", true);
+}
+
+float AGeneralCharacter::GetMeshesOpacity() const
+{
+	return GetMesh()->GetCustomPrimitiveData().Data.IsEmpty() ? 0.f : GetMesh()->GetCustomPrimitiveData().Data[0];
+}
+
+void AGeneralCharacter::SetMeshesOpacity(float DesiredOpacity, FSetCharacterOpacity)
+{
+	GetMesh()->SetCustomPrimitiveDataFloat(0, DesiredOpacity);
+	for(USkeletalMeshComponent* MeshComponent : RelevantMeshes)
+	{
+		MeshComponent->SetCustomPrimitiveDataFloat(0, DesiredOpacity);
+	}
 }
 
 void AGeneralCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
@@ -47,6 +60,7 @@ void AGeneralCharacter::SetIsDebugging(bool IsDebugging)
 
 void AGeneralCharacter::FadeMeshWithCameraDistance()
 {
+	if(!bAllowAutomaticOpacityChanges) return;
 	if(!IsValid(CameraPlayerController))
 	{
 		CameraPlayerController = GetWorld()->GetFirstPlayerController();
@@ -55,31 +69,41 @@ void AGeneralCharacter::FadeMeshWithCameraDistance()
 	FVector CameraLocation;
 	FRotator CameraRotation;
 	CameraPlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
-	const float OldOpacity = GetMesh()->GetCustomPrimitiveData().Data.IsEmpty() ? 0.f : GetMesh()->GetCustomPrimitiveData().Data[0];
+	const float OldOpacity = GetMeshesOpacity();
 	const float Distance = FVector::Distance(CameraLocation, GetActorLocation());
 	if(Distance > MaximumFadeDistance)
 	{
-		if(OldOpacity != 0) SetMeshesOpacity(0.f);		
+		if(OldOpacity != 0)
+		{
+			SetMeshesOpacity(0.f, FSetCharacterOpacity());
+		}
 	}
 	else if(Distance < MinimumFadeDistance)
 	{
-		if(OldOpacity != 1.f) SetMeshesOpacity(1.f);	
+		if(OldOpacity != 1.f) SetMeshesOpacity(1.f, FSetCharacterOpacity());	
 	}
 	else
 	{
 		const float DesiredOpacity = 1.f -
 			pow((Distance - MinimumFadeDistance) / (MaximumFadeDistance - MinimumFadeDistance),InputFadeStrength);
-		if(abs(DesiredOpacity - OldOpacity) >  0.001) SetMeshesOpacity(DesiredOpacity);
+		if(abs(DesiredOpacity - OldOpacity) >  0.001) SetMeshesOpacity(DesiredOpacity, FSetCharacterOpacity());
 	}
 }
 
-void AGeneralCharacter::SetMeshesOpacity(float DesiredOpacity)
+void AGeneralCharacter::ReceiveStatusEffect(const TSubclassOf<UStatusEffect>& NewEffectType)
 {
-	GetMesh()->SetCustomPrimitiveDataFloat(0, DesiredOpacity);
-	for(USkeletalMeshComponent* MeshComponent : RelevantMeshes)
-	{
-		MeshComponent->SetCustomPrimitiveDataFloat(0, DesiredOpacity);
-	}
+	UStatusEffect* NewEffect = DuplicateObject<UStatusEffect>(NewEffectType->GetDefaultObject<UStatusEffect>(), this);
+	NewEffect->RegisterComponent();
+	NewEffect->ApplyStatusEffect(this);
+}
+
+void AGeneralCharacter::RemoveStatusEffect(const TSubclassOf<UStatusEffect>& EffectType)
+{
+	TArray<UActorComponent*> MatchingStatusEffects;
+	GetComponents(EffectType, MatchingStatusEffects);
+	if(MatchingStatusEffects.IsEmpty()) return;
+	CastChecked<UStatusEffect>(MatchingStatusEffects[0])->RemoveStatusEffect(this);
+	MatchingStatusEffects[0]->DestroyComponent();
 }
 
 void AGeneralCharacter::RegisterRelevantMeshes(const TArray<USkeletalMeshComponent*>& NewMeshes, bool AddToBaseMesh,

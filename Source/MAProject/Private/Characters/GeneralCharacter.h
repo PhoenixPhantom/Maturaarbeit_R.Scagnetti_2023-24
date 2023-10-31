@@ -2,17 +2,24 @@
 
 #pragma once
 
-#include <tiffio.h>
-
 #include "CoreMinimal.h"
 #include "InputManagement.h"
 #include "GameFramework/Character.h"
 #include "GeneralCharacter.generated.h"
 
+class UStatusEffect;
 class USuckToTargetComponent;
 class UMotionWarpingComponent;
 
-
+struct FSetCharacterOpacity final
+{
+	friend class AGeneralCharacter;
+	friend class UAnimNotifyState_BlendVisibility;
+	friend class UAnimNotify_InEditorResetVisibility;
+	friend class UAnimNotifyState_ForceConstantVisibility;
+private:
+	FSetCharacterOpacity(){};
+};
 
 UCLASS(meta=(PrioritizeCategories = "Debugging Combat OpponentCharacter"))
 class AGeneralCharacter : public ACharacter
@@ -33,6 +40,11 @@ public:
 	bool CanOverrideCurrentInput(EInputType Type) const { return AcceptedInputs.CanOverrideCurrentInput(Type); }
 	const FAcceptedInputs& GetAcceptedInputs() const { return AcceptedInputs; }
 
+	float GetMeshesOpacity() const;
+	void SetMeshesOpacity(float DesiredOpacity, FSetCharacterOpacity);
+	void SetAllowAutomaticOpacityChanges(bool ShouldAllow, FSetCharacterOpacity){ bAllowAutomaticOpacityChanges = ShouldAllow; };
+	bool GetAllowAutomaticOpacityChanges() const { return bAllowAutomaticOpacityChanges; }
+	
 	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
 	virtual void Tick(float DeltaSeconds) override;
@@ -44,6 +56,8 @@ public:
 
 protected:
 	FAcceptedInputs AcceptedInputs;
+	bool bAllowAutomaticOpacityChanges;
+	
 	UPROPERTY()
 	TArray<USkeletalMeshComponent*> RelevantMeshes;
 
@@ -62,7 +76,9 @@ protected:
 	USuckToTargetComponent* SuckToTargetComponent;
 
 	void FadeMeshWithCameraDistance();
-	void SetMeshesOpacity(float DesiredOpacity);
+	
+	void ReceiveStatusEffect(const TSubclassOf<UStatusEffect>& NewEffectType);
+	void RemoveStatusEffect(const TSubclassOf<UStatusEffect>& EffectType);
 
 	UFUNCTION(BlueprintCallable)
 	void RegisterRelevantMeshes(const TArray<USkeletalMeshComponent*>& NewMeshes, bool AddToBaseMesh = false,
