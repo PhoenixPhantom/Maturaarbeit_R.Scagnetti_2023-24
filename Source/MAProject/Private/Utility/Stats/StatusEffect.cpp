@@ -3,16 +3,17 @@
 
 #include "Utility/Stats/StatusEffect.h"
 
-UStatusEffect::UStatusEffect()
+UStatusEffect::UStatusEffect(): EffectTarget(nullptr)
 {
 }
 
-void UStatusEffect::ApplyStatusEffect(AGeneralCharacter* Target) const
+void UStatusEffect::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	
+	Super::EndPlay(EndPlayReason);
+	EffectTarget = nullptr;
 }
 
-void UStatusEffect::RemoveStatusEffect(AGeneralCharacter* Target) const
+void UStatusEffect::OnEffectApplied_Implementation(AGeneralCharacter* Target)
 {
-	
+	EffectTarget = Target;
 }

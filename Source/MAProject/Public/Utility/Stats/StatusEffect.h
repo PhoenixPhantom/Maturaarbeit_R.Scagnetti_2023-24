@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/Object.h"
+#include "Components/ActorComponent.h"
 #include "StatusEffect.generated.h"
 
 class AGeneralCharacter;
@@ -18,11 +18,10 @@ class MAPROJECT_API UStatusEffect : public UActorComponent
 public:
 	UStatusEffect();
 
-	UFUNCTION()
-	virtual void ApplyStatusEffect(AGeneralCharacter* Target) const;
-	
-	UFUNCTION()
-	virtual void RemoveStatusEffect(AGeneralCharacter* Target) const;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	UFUNCTION(BlueprintNativeEvent)
+	void OnEffectApplied(AGeneralCharacter* Target);
 
 protected:
 	UPROPERTY(BlueprintReadWrite)

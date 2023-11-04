@@ -9,7 +9,7 @@
 
 
 AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
-                                                                                    MinimumFadeDistance(100.f), MaximumFadeDistance(150.f), InputFadeStrength(2.f)
+	bAllowAutomaticOpacityChanges(true), MinimumFadeDistance(100.f), MaximumFadeDistance(150.f), InputFadeStrength(2.f)
 {
 	SuckToTargetComponent = CreateDefaultSubobject<USuckToTargetComponent>(TEXT("SuckToTargetComp"));
 	PrimaryActorTick.bCanEverTick = true;
@@ -94,7 +94,7 @@ void AGeneralCharacter::ReceiveStatusEffect(const TSubclassOf<UStatusEffect>& Ne
 {
 	UStatusEffect* NewEffect = DuplicateObject<UStatusEffect>(NewEffectType->GetDefaultObject<UStatusEffect>(), this);
 	NewEffect->RegisterComponent();
-	NewEffect->ApplyStatusEffect(this);
+	NewEffect->OnEffectApplied(this);
 }
 
 void AGeneralCharacter::RemoveStatusEffect(const TSubclassOf<UStatusEffect>& EffectType)
@@ -102,7 +102,6 @@ void AGeneralCharacter::RemoveStatusEffect(const TSubclassOf<UStatusEffect>& Eff
 	TArray<UActorComponent*> MatchingStatusEffects;
 	GetComponents(EffectType, MatchingStatusEffects);
 	if(MatchingStatusEffects.IsEmpty()) return;
-	CastChecked<UStatusEffect>(MatchingStatusEffects[0])->RemoveStatusEffect(this);
 	MatchingStatusEffects[0]->DestroyComponent();
 }
 
