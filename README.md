@@ -48,9 +48,11 @@ To provide the most essential functionalities, this work will make use of the cu
 * Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA with Inspiration from Olivier Deplanque (https://www.artstation.com/artwork/b5XEod)
 * Unreal Engine Impact Effect in Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=8UThnwfEwng
 * How to Add Camera Shake in Unreal Engine 5 - GorkaGames: https://www.youtube.com/watch?v=rTVb7nEhKv8 (accessed: 18.10.2023)
+* Unreal Enngine Tutorial [UE5]: Aura Effect From Scratch - PART 1-3 [NIAGARA] - Rimaye [ Assets and Tutorials - NIAGARA ]: https://www.youtube.com/watch?v=S_pA2uLhZWc&list=PLvYJUGYt8abFzLte-jehECt2LHWGLfM1X&pp=iAQB (accessed: 13.11.2023)
 #### Sound FX
 * Unreal Engine 5 | MetaSound Footsteps - The Sound FX Guy: https://www.youtube.com/watch?v=SXBEbs69sZ8
 * Unreal Engine 5 | Dynamic Footsteps with MetaSounds - The Sound FX Guy: https://www.youtube.com/watch?v=pYxocPdtHBw
+* Wolf's Howl Gives You Goosebumps (the good kind) - Wolf Conservation Center: https://www.youtube.com/watch?v=JQUHDWHa7WQ (accessed: 16.11.2023)
 
 ### Various Topics
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
