@@ -16,11 +16,11 @@ public:
 	FAttackDamageEvent();
 	FAttackDamageEvent(const FAttackDamageEvent& AttackDamageEvent);;
 
+	UPROPERTY(EditDefaultsOnly, meta=(UIMin="0", ClampMin="0"))
+	int32 ToughnessBreak;
 	///The chance of a stagger occuring (in per mille)
 	UPROPERTY(EditDefaultsOnly, meta=(UIMax="1000", UIMin="0", ClampMax="1000", ClampMin="0"))
 	uint32 StaggerChance;
-	UPROPERTY(EditDefaultsOnly, meta=(Units="m/s", EditCondition="StaggerChance!=0", EditConditionHides))
-	float StaggerImpulse;
 	UPROPERTY(EditDefaultsOnly, meta=(ForceUnits="x"))
 	float HitFXScaleFactor;
 	

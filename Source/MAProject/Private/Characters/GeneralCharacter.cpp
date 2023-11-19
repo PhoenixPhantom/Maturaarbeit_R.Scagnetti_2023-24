@@ -3,7 +3,9 @@
 
 #include "Characters/GeneralCharacter.h"
 
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Utility/Animation/CustomAnimInstance.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/Stats/StatusEffect.h"
 
@@ -16,6 +18,42 @@ AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer
 	
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionProfileName("CharacterMesh", true);
+}
+
+void AGeneralCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if(IsValid(CustomAnimInstance))
+	{
+		CustomAnimInstance->SetMovement(GetCharacterMovement()->Velocity);
+	}
+	
+	FadeMeshWithCameraDistance();
+}
+
+void AGeneralCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+	if(GetCharacterMovement()->MovementMode == MOVE_Falling || GetCharacterMovement()->MovementMode == MOVE_Flying)
+		CharacterInAir();
+	if ((PrevMovementMode == MOVE_Falling || PrevMovementMode == MOVE_Flying) &&
+		GetCharacterMovement()->MovementMode == MOVE_Walking ||
+		GetCharacterMovement()->MovementMode == MOVE_NavWalking ||
+		GetCharacterMovement()->MovementMode == MOVE_Swimming)
+			CharacterLanded();
+}
+
+void AGeneralCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
+{
+	if(!IsValid(GetMesh()))
+	{
+		Super::GetActorEyesViewPoint(OutLocation, OutRotation);
+		return;
+	}
+	const FName HeadSocket = *(BonePrefix + "-HeadSocket");
+	OutLocation = GetMesh()->GetSocketLocation(HeadSocket);
+	OutRotation = GetMesh()->GetSocketRotation(HeadSocket);
 }
 
 float AGeneralCharacter::GetMeshesOpacity() const
@@ -32,23 +70,7 @@ void AGeneralCharacter::SetMeshesOpacity(float DesiredOpacity, FSetCharacterOpac
 	}
 }
 
-void AGeneralCharacter::GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const
-{
-	if(!IsValid(GetMesh()))
-	{
-		Super::GetActorEyesViewPoint(OutLocation, OutRotation);
-		return;
-	}
-	const FName HeadSocket = *(BonePrefix + "-HeadSocket");
-	OutLocation = GetMesh()->GetSocketLocation(HeadSocket);
-	OutRotation = GetMesh()->GetSocketRotation(HeadSocket);
-}
 
-void AGeneralCharacter::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-	FadeMeshWithCameraDistance();
-}
 
 #if WITH_EDITORONLY_DATA
 void AGeneralCharacter::SetIsDebugging(bool IsDebugging)
@@ -57,6 +79,16 @@ void AGeneralCharacter::SetIsDebugging(bool IsDebugging)
 	SuckToTargetComponent->bIsDebugging = bIsDebugging;
 }
 #endif
+
+
+
+
+void AGeneralCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	CameraPlayerController = GetWorld()->GetFirstPlayerController();
+	CustomAnimInstance = CastChecked<UCustomAnimInstance>(GetMesh()->GetAnimInstance());
+}
 
 void AGeneralCharacter::FadeMeshWithCameraDistance()
 {
@@ -90,20 +122,69 @@ void AGeneralCharacter::FadeMeshWithCameraDistance()
 	}
 }
 
-void AGeneralCharacter::ReceiveStatusEffect(const TSubclassOf<UStatusEffect>& NewEffectType)
+void AGeneralCharacter::CharacterLanded()
 {
-	UStatusEffect* NewEffect = DuplicateObject<UStatusEffect>(NewEffectType->GetDefaultObject<UStatusEffect>(), this);
+	if(IsValid(CustomAnimInstance))
+	{
+		CustomAnimInstance->SetIsInAir(false);
+	}
+}
+
+void AGeneralCharacter::CharacterInAir()
+{
+	if(IsValid(CustomAnimInstance))
+	{
+		CustomAnimInstance->SetIsInAir(true);
+	}
+}
+
+
+bool AGeneralCharacter::TriggerDeath()
+{
+	if(!IsValid(CustomAnimInstance) || !AcceptedInputs.IsAllowedInput(EInputType::Death) ||
+		GetMesh()->GetCollisionEnabled() == ECollisionEnabled::NoCollision) return false;
+	CustomAnimInstance->TriggerDeath();
+	
+	AcceptedInputs.LimitAvailableInputs({EInputType::Death, CustomAnimInstance->GetDeathAnimTime()}, GetWorld());
+	TDelegate<void(bool)> OnDeathDelegate;
+	OnDeathDelegate.BindWeakLambda(this, [this](bool IsLimitDurationOver)
+	{
+		Destroy();
+	});
+	AcceptedInputs.OnInputLimitsReset.Add(OnDeathDelegate);
+	return true;
+}
+
+bool AGeneralCharacter::AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
+										   TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const
+{
+	if(RequiredPositiveTests <= 0) return true;
+	if(RemainingEnds.IsEmpty()) return false;
+	FHitResult VisibilityTrace;
+	UKismetSystemLibrary::LineTraceSingle(GetWorld(), TraceStart, RemainingEnds[0], TraceType, true,
+	{const_cast<AGeneralCharacter*>(this), Owner}, EDrawDebugTrace::None,
+	VisibilityTrace, true);
+	if(!VisibilityTrace.bBlockingHit || VisibilityTrace.GetActor() == Target) RequiredPositiveTests--;
+	RemainingEnds.RemoveAt(0);
+	return AreMultipleVisible(Target, TraceType, TraceStart, RemainingEnds, RequiredPositiveTests);
+}
+
+void AGeneralCharacter::ReceiveStatusEffect(TSubclassOf<UStatusEffect> NewEffectType)
+{
+	UStatusEffect* NewEffect = NewObject<UStatusEffect>(this, NewEffectType);
 	NewEffect->RegisterComponent();
 	NewEffect->OnEffectApplied(this);
 }
 
-void AGeneralCharacter::RemoveStatusEffect(const TSubclassOf<UStatusEffect>& EffectType)
+void AGeneralCharacter::RemoveStatusEffect(TSubclassOf<UStatusEffect> EffectType)
 {
 	TArray<UActorComponent*> MatchingStatusEffects;
 	GetComponents(EffectType, MatchingStatusEffects);
 	if(MatchingStatusEffects.IsEmpty()) return;
+	CastChecked<UStatusEffect>(MatchingStatusEffects[0])->OnEffectRemoved(this);
 	MatchingStatusEffects[0]->DestroyComponent();
 }
+
 
 void AGeneralCharacter::RegisterRelevantMeshes(const TArray<USkeletalMeshComponent*>& NewMeshes, bool AddToBaseMesh,
                                                bool ForceUpdate)
@@ -117,24 +198,3 @@ void AGeneralCharacter::RegisterRelevantMeshes(const TArray<USkeletalMeshCompone
 		}
 	}
 }
-
-bool AGeneralCharacter::AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
-                                           TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const
-{
-	if(RequiredPositiveTests <= 0) return true;
-	if(RemainingEnds.IsEmpty()) return false;
-	FHitResult VisibilityTrace;
-	UKismetSystemLibrary::LineTraceSingle(GetWorld(), TraceStart, RemainingEnds[0], TraceType, true,
-	{const_cast<AGeneralCharacter*>(this), Owner}, EDrawDebugTrace::None,
-	VisibilityTrace, true);
-	if(!VisibilityTrace.bBlockingHit || VisibilityTrace.GetActor() == Target) RequiredPositiveTests--;
-	RemainingEnds.RemoveAt(0);
-	return AreMultipleVisible(Target, TraceType, TraceStart, RemainingEnds, RequiredPositiveTests);
-}
-
-void AGeneralCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-	CameraPlayerController = GetWorld()->GetFirstPlayerController();
-}
-

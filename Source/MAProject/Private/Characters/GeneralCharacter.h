@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "GeneralCharacter.generated.h"
 
+class UCustomAnimInstance;
 class UStatusEffect;
 class USuckToTargetComponent;
 class UMotionWarpingComponent;
@@ -21,6 +22,13 @@ private:
 	FSetCharacterOpacity(){};
 };
 
+struct FGiveCharacterStatusEffectKey final
+{
+	friend class UAnimNotify_EnterStatusEffect;
+private:
+	FGiveCharacterStatusEffectKey(){}
+};
+
 UCLASS(meta=(PrioritizeCategories = "Debugging Combat OpponentCharacter"))
 class AGeneralCharacter : public ACharacter
 {
@@ -30,6 +38,11 @@ public:
 	// Sets default values for this character's properties
 	AGeneralCharacter(const FObjectInitializer& ObjectInitializer);
 
+	
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
+	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
+	
 	virtual float GetFieldOfView() const { unimplemented(); return 0.f; }
 	
 	/**
@@ -37,17 +50,15 @@ public:
 	 * @param Type the input to check
 	 * @return Weather the current input can be overridden by Type
 	 */
-	bool CanOverrideCurrentInput(EInputType Type) const { return AcceptedInputs.CanOverrideCurrentInput(Type); }
+	bool CanOverrideCurrentInput(EInputType Type) const { return AcceptedInputs.IsAllowedInput(Type); }
 	const FAcceptedInputs& GetAcceptedInputs() const { return AcceptedInputs; }
 
 	float GetMeshesOpacity() const;
 	void SetMeshesOpacity(float DesiredOpacity, FSetCharacterOpacity);
 	void SetAllowAutomaticOpacityChanges(bool ShouldAllow, FSetCharacterOpacity){ bAllowAutomaticOpacityChanges = ShouldAllow; };
 	bool GetAllowAutomaticOpacityChanges() const { return bAllowAutomaticOpacityChanges; }
-	
-	virtual void GetActorEyesViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
-	virtual void Tick(float DeltaSeconds) override;
+	void ReceiveStatusEffectExternal(TSubclassOf<UStatusEffect> NewEffectType, FGiveCharacterStatusEffectKey){ ReceiveStatusEffect(NewEffectType); };
 
 #if WITH_EDITORONLY_DATA
 	void SetIsDebugging(bool IsDebugging);
@@ -71,23 +82,33 @@ protected:
 	//The prefix (if existent) every bone on the characters skeleton has
 	UPROPERTY(EditAnywhere, Category = Animation)
 	FString BonePrefix;
+	
+	UPROPERTY(BlueprintReadWrite, Category = Animation)
+	UCustomAnimInstance* CustomAnimInstance;
 
 	UPROPERTY(EditAnywhere, Category = Animation)
 	USuckToTargetComponent* SuckToTargetComponent;
 
-	void FadeMeshWithCameraDistance();
-	
-	void ReceiveStatusEffect(const TSubclassOf<UStatusEffect>& NewEffectType);
-	void RemoveStatusEffect(const TSubclassOf<UStatusEffect>& EffectType);
 
+	virtual void BeginPlay() override;
+	
+	virtual void FadeMeshWithCameraDistance();
+	virtual void CharacterLanded();
+	virtual void CharacterInAir();
+	
+	virtual bool TriggerDeath();
+	
+	bool AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
+							TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const;
+
+	UFUNCTION(BlueprintCallable, meta=(NewEffectType="/Script/MAProject.StatusEffect"))
+	void ReceiveStatusEffect(TSubclassOf<UStatusEffect> NewEffectType);
+	UFUNCTION(BlueprintCallable, meta=(NewEffectType="/Script/MAProject.StatusEffect"))
+	void RemoveStatusEffect(TSubclassOf<UStatusEffect> EffectType);
 	UFUNCTION(BlueprintCallable)
 	void RegisterRelevantMeshes(const TArray<USkeletalMeshComponent*>& NewMeshes, bool AddToBaseMesh = false,
 		bool ForceUpdate = false);
 
-	bool AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
-	                        TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const;
-
-	virtual void BeginPlay() override;
 
 
 #if WITH_EDITORONLY_DATA

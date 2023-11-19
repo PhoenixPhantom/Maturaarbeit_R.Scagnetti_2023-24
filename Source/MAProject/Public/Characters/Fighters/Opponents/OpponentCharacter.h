@@ -138,13 +138,13 @@ public:
 	UBlackboardComponent* GetUsedBlackboardComponent() const { return UsedBlackboardComponent; }
 	void SetUsedBlackboardComponent(UBlackboardComponent* NewBlackboard, FSetUsedBlackboardKey);
 
-	FORCEINLINE bool ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey) const;
+	FORCEINLINE bool ExecuteAttackFromNode(UAttackNode* NodeToExecute, FExecuteAttackKey) const;
 	
-	void SetRequestedAttack(UAttackTreeNode* NewRequestedAttack, FRequestAttackKey){ RequestedAttack = NewRequestedAttack; }
+	void SetRequestedAttack(UAttackNode* NewRequestedAttack, FRequestAttackKey){ RequestedAttack = NewRequestedAttack; }
 	void ClearRequestedAttack(FClearRequestedAttackKey){ RequestedAttack = nullptr; }
-	UAttackTreeNode* GetRequestedAttack() const;
-	UAttackTreeNode* GetRandomValidAttack() const;
-	UAttackTreeNode* GetRandomValidAttackInRange() const;
+	UAttackNode* GetRequestedAttack() const;
+	UAttackNode* GetRandomValidAttack() const;
+	UAttackNode* GetRandomValidAttackInRange() const;
 
 	/**
 	 * @brief Generate a score representing the importance of the opponent to the given player. Screen centered-ness,
@@ -165,7 +165,7 @@ protected:
 	TDelegate<void()> OnAggressionTokensRemoved;
 
 	UPROPERTY()
-	UAttackTreeNode* RequestedAttack;
+	UAttackNode* RequestedAttack;
 	
 	UPROPERTY()
 	AController* TargetPlayer;
@@ -200,6 +200,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Combat)
 	FCircularDistanceConstraint DistanceFromTargetPassive;
 	
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ToughnessBrokenAnimation;
+	
 	UPROPERTY(EditAnywhere, Category=AI)
 	uint32 RequestedAggressionTokens;
 	
@@ -210,7 +213,11 @@ protected:
 	float AggressionRange;
 
 	virtual void BeginPlay() override;
-	virtual void OnDeathTriggered() override;;
+	virtual bool TriggerDeath() override;
+	virtual void GetStaggered(bool HeavyStagger) override;
+	virtual bool TriggerToughnessBroken() override;
+	virtual void RestoreToughness() override;
+	virtual void OnGetAttacked(const FAttackDamageEvent* DamageEvent) override;
 
 	bool CanAttack() const{ return CanAttackInSeconds() <= 0.f; };
 	float CanAttackInSeconds() const;
@@ -218,6 +225,9 @@ protected:
 	
 	void SetUseActiveCombatSpace() const;
 	void SetUsePassiveSpace() const;
+
+	UFUNCTION()
+	void OnAttackTreeRootChanged(){ RequestedAttack = nullptr; };
 	
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);	

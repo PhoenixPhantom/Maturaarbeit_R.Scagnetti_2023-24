@@ -8,14 +8,14 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Perception/AISense_Damage.h"
-#include "UserInterface/HealthMonitorBaseWidget.h"
+#include "UserInterface/StatsMonitorBaseWidget.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Sound/SoundResponseConfigs.h"
 
 
 AFighterCharacter::AFighterCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
-                                                                                    bIsInvincible(false),  TargetTimeDilation(-1.f), TimeDilationBlendTime(-1.f), TimeDilationTotalTime(-1.f),
-                                                                                    TimeDilationEffectTimeRemaining(-1.f), HitFXRadius(50.f)
+	bIsInvincible(false),  TargetTimeDilation(-1.f), TimeDilationBlendTime(-1.f), TimeDilationTotalTime(-1.f),
+	TimeDilationEffectTimeRemaining(-1.f), ToughnessBrokenTime(1.f), HitFXRadius(50.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -35,7 +35,7 @@ void AFighterCharacter::Tick(float DeltaSeconds)
 float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
                                     AActor* DamageCauser)
 {
-	uint32 RemainingHealth = CharacterStats->Health;
+	int32 RemainingHealth = CharacterStats->Health.Current;
 	if(
 		FGenericTeamId::GetAttitude(this, DamageCauser) != ETeamAttitude::Friendly && !bIsInvincible &&
 		DamageEvent.IsOfType(FCustomDamageEvent::ClassID))
@@ -98,15 +98,20 @@ void AFighterCharacter::BlendTimeDilation(float BlendTime, float TotalTime, floa
 void AFighterCharacter::ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty,
                                            bool AllowHitRecentVictims, FMeleeControlsKey Key)
 {
+	if(!CharacterStats->Attacks.HasPendingAttackProperties()) return;
 	if(StartEmpty) MeleeEnabledBones.Empty();
 	if(AllowHitRecentVictims) RecentlyDamagedActors.Empty();
 	MeleeEnabledBones.Append(BonesToEnable);
 }
 
-void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors,
+void AFighterCharacter::DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool IsLastAttackOfAnimation,
 	FMeleeControlsKey Key)
 {
-	if(RefreshHitActors) RecentlyDamagedActors.Empty();
+	if(IsLastAttackOfAnimation)
+	{
+		RecentlyDamagedActors.Empty();
+		CharacterStats->Attacks.ClearPendingAttackPropertiesInternal();
+	}
 	for(FName BoneToDisable : BonesToDisable) MeleeEnabledBones.RemoveSwap(BoneToDisable);
 }
 
@@ -220,9 +225,12 @@ void AFighterCharacter::GenerateDamageEvent(FAttackDamageEvent& AttackDamageEven
 	CharacterStats->GenerateDamageEvent(AttackDamageEvent, CausingHit);
 }
 
-void AFighterCharacter::OnDeathTriggered()
+bool AFighterCharacter::TriggerDeath()
 {
+	if(!Super::TriggerDeath()) return false;
+	MakeInvincible(0.f);
 	TargetInformationComponent->SetCanBeTargeted(false, FSetCanBeTargetedKey());
+	return true;
 }
 
 void AFighterCharacter::PlayHitSound(const FVector& HitLocation)
@@ -263,22 +271,67 @@ void AFighterCharacter::SpawnHitFX(const FVector& Location, float ScaleFactor)
 	NiagaraComponent->SetVariableLinearColor("BaseColor", FLinearColor(0.5f, 0.5f, 0.5f));
 }
 
-void AFighterCharacter::GetStaggered(const FAttackDamageEvent* DamageEvent)
+void AFighterCharacter::GetStaggered(bool HeavyStagger)
 {
 	check(IsValid(GetHitAnimation));
-	if(!IsValid(GetHitAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Stagger)) return;
-	
-	StopAnimMontage();
+	EInputType StaggerType = EInputType::Stagger;
+	if(HeavyStagger) StaggerType = EInputType::HeavyStagger;
+	if(!IsValid(GetHitAnimation) || !AcceptedInputs.IsAllowedInput(StaggerType)) return;
+
 	PlayAnimMontage(GetHitAnimation);
-	AcceptedInputs.LimitAvailableInputs({EInputType::Stagger, GetHitAnimation->GetPlayLength()*0.9f}, GetWorld());
+	AcceptedInputs.LimitAvailableInputs({StaggerType, GetHitAnimation->GetPlayLength() - 0.1f}, GetWorld());
 }
 
-void AFighterCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits)
+void AFighterCharacter::OnGetDamaged(const FCustomDamageEvent* DamageEvent)
+{
+	//Damaged by an attack
+	if(DamageEvent->IsOfType(FAttackDamageEvent::ClassID))
+	{
+		GLog->Log("the function got called and correctly");
+		OnGetAttacked(static_cast<const FAttackDamageEvent*>(DamageEvent));
+	}
+	//Damaged by something else
+	else
+	{
+		GLog->Log("the function got called but wrongly");
+	}	
+}
+
+bool AFighterCharacter::TriggerToughnessBroken()
+{
+	check(ToughnessBrokenTime > 0.f);
+	if(!AcceptedInputs.LimitAvailableInputs({EInputType::HeavyStagger, ToughnessBrokenTime}, GetWorld())) return false;
+	TDelegate<void(bool)> OnToughnessBrokenReset;
+	OnToughnessBrokenReset.BindWeakLambda(this, [this](bool IsLimitDurationOver)
+	{
+		if(IsLimitDurationOver) RestoreToughness();
+	});
+	AcceptedInputs.OnInputLimitsReset.Add(OnToughnessBrokenReset);
+	return true;
+}
+
+void AFighterCharacter::RestoreToughness()
+{
+	CharacterStats->RefillToughness();
+}
+
+void AFighterCharacter::OnGetAttacked(const FAttackDamageEvent* DamageEvent)
+{
+	PlayHitSound(DamageEvent->HitLocation);
+	SpawnHitFX(DamageEvent->HitLocation, DamageEvent->HitFXScaleFactor);
+		
+	// ReSharper disable once CppExpressionWithoutSideEffects
+	DamageEvent->OnHitRegistered.ExecuteIfBound(false);
+	OnHitTimeDilation(false);
+}
+
+void AFighterCharacter::QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits)
 {
 	if(InputLimits.IsEmpty()) return;
 	TDelegate<void(bool)> FollowUpWithLimit;
 	FollowUpWithLimit.BindWeakLambda(this,[this, InputLimits](bool IsLimitDurationOver)
 		{
+			if(!IsLimitDurationOver) return;
 			AcceptedInputs.LimitAvailableInputs(InputLimits[0], GetWorld());			
 			TArray NewLimits(InputLimits);
 			NewLimits.RemoveAt(0);
@@ -293,15 +346,22 @@ void AFighterCharacter::OnHitTimeDilation(bool WasStaggered)
 	else BlendTimeDilation(0.15f, 0.3f, 0.15f);
 }
 
-void AFighterCharacter::RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget)
+void AFighterCharacter::RegisterHealthInfoWidget(UStatsMonitorBaseWidget* Widget)
 {
 	check(IsValid(Widget));
 	HealthInfoWidget = Widget;
 
-	HealthInfoWidget->SetupInformation(CharacterStats->MaxHealth.GetResulting(),
-	CharacterStats->MaxHealth.GetResulting(), FSetupInformationKey());
+	HealthInfoWidget->SetupInformation(CharacterStats->Health, CharacterStats->Toughness, FSetupInformationKey());
 	
-	CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UHealthMonitorBaseWidget::UpdateHealth);
+	CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateHealth);
+	CharacterStats->OnMaxHealthChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateMaxHealth);
+	CharacterStats->OnToughnessChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateToughness);
+	CharacterStats->OnMaxToughnessChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateMaxToughness);
+}
+
+void AFighterCharacter::SetAttackTreeMode(FString ModeIdentifier)
+{
+	CharacterStats->Attacks.SetModeIdentifier(ModeIdentifier, FSetAttackTreeModeIdentifier());
 }
 
 void AFighterCharacter::SwitchMovementToWalk(FSetWalkOrRunKey) const
@@ -319,6 +379,9 @@ void AFighterCharacter::BeginPlay()
 	Super::BeginPlay();
 	check(GetMesh()->GetRelativeTransform().GetMaximumAxisScale() == GetMesh()->GetRelativeTransform().GetMinimumAxisScale());
 	SetAnimRootMotionTranslationScale(GetMesh()->GetRelativeTransform().GetMaximumAxisScale()/100.f);
+	CharacterStats->OnHealthChanged.AddDynamic(this, &AFighterCharacter::OnHealthChanged);
+	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
+	CharacterStats->OnNoToughnessReached.AddDynamic(this, &AFighterCharacter::OnToughnessBroken);
 	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
 	CharacterStats->Attacks.OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
 #if USE_UE5_DELEGATE
@@ -328,65 +391,53 @@ void AFighterCharacter::BeginPlay()
 	CharacterStats->OnGetDamaged.BindWeakLambda(this, [this](const FCustomDamageEvent* DamageEvent)
 		{ OnGetDamaged(DamageEvent); });
 #endif
-	CharacterStats->OnNoHealthReached.AddDynamic(this, &AFighterCharacter::OnDeath);
 	SwitchMovementToWalk(FSetWalkOrRunKey());
+}
+
+void AFighterCharacter::ApplyBuffTimed(const FCharacterStatsBuffs& Buffs, float Duration)
+{
+	if(Duration <= 0.f)
+	{
+		checkNoEntry();
+		return;
+	}
+	
+	CharacterStats->Buff(Buffs);
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [Buffs, Local = this]()
+	{
+		if(IsValid(Local)) Local->CharacterStats->Debuff(Buffs);
+	}, Duration, false);	
+}
+
+void AFighterCharacter::ApplyBuff(const FCharacterStatsBuffs& Buffs)
+{
+	CharacterStats->Buff(Buffs);
+}
+
+void AFighterCharacter::ForceSetCd(FString NodeName, float RemainingCd)
+{
+	CharacterStats->Attacks.ForceSetCd(NodeName, RemainingCd);
+}
+
+void AFighterCharacter::ForceChangeCdBy(FString NodeName, float CdChange)
+{
+	CharacterStats->Attacks.ForceChangeCdBy(NodeName, CdChange);
+}
+
+void AFighterCharacter::OnHealthChanged_Implementation(int32 NewHealth, int32 OldHealth)
+{
+	
 }
 
 bool AFighterCharacter::OnCheckCanExecuteAttack(const FAttackProperties& Properties)
 {
-	return AcceptedInputs.CanOverrideCurrentInput(Properties.InputLimits[0].LimiterType) && !GetCharacterMovement()->IsFalling();
+	return AcceptedInputs.IsAllowedInput(Properties.InputLimits[0].LimiterType) && !GetCharacterMovement()->IsFalling();
 }
 
 void AFighterCharacter::OnExecuteAttack(const FAttackProperties& Properties)
 {
-	StopAnimMontage();
 	PlayAnimMontage(Properties.AtkAnimation);
 	AcceptedInputs.LimitAvailableInputs(Properties.InputLimits[0], GetWorld());
 	QueueFollowUpLimit(Properties.InputLimits);
-}
-
-void AFighterCharacter::OnGetDamaged(const FCustomDamageEvent* DamageEvent)
-{
-	//Damaged by an attack
-	if(DamageEvent->IsOfType(FAttackDamageEvent::ClassID))
-	{
-		GLog->Log("the function got called and correctly");
-		const FAttackDamageEvent* AttackDamageEvent = static_cast<const FAttackDamageEvent*>(DamageEvent);
-		PlayHitSound(AttackDamageEvent->HitLocation);
-		SpawnHitFX(AttackDamageEvent->HitLocation, AttackDamageEvent->HitFXScaleFactor);
-		
-		const uint32 CasePerThousand = FMath::RandRange(0, 1000);
-		const bool AttackStaggers = CasePerThousand <= AttackDamageEvent->StaggerChance;
-		if(AttackStaggers)
-		{
-			GetStaggered(AttackDamageEvent);
-		}
-		
-		// ReSharper disable once CppExpressionWithoutSideEffects
-		AttackDamageEvent->OnHitRegistered.ExecuteIfBound(AttackStaggers);
-		OnHitTimeDilation(AttackStaggers);
-	}
-	//Damaged by something else
-	else
-	{
-		GLog->Log("the function got called but wrongly");
-	}	
-}
-
-void AFighterCharacter::OnDeath(const FCustomDamageEvent& DamageEvent)
-{
-	if(!IsValid(DeathAnimation) || !AcceptedInputs.CanOverrideCurrentInput(EInputType::Death) ||
-		GetMesh()->GetCollisionEnabled() == ECollisionEnabled::NoCollision) return;
-	OnDeathTriggered();
-	StopAnimMontage();
-	PlayAnimMontage(DeathAnimation);
-	MakeInvincible(0.f);
-	
-	AcceptedInputs.LimitAvailableInputs({EInputType::Death, DeathAnimation->GetPlayLength()*0.9f}, GetWorld());
-	TDelegate<void(bool)> OnDeathDelegate;
-	OnDeathDelegate.BindWeakLambda(this, [this](bool IsLimitDurationOver)
-	{
-		Destroy();
-	});
-	AcceptedInputs.OnInputLimitsReset.Add(OnDeathDelegate);
 }

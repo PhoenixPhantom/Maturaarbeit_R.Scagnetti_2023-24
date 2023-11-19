@@ -12,7 +12,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "UserInterface/HealthMonitorBaseWidget.h"
+#include "UserInterface/StatsMonitorBaseWidget.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 
@@ -24,6 +24,24 @@ FStoredInput::FStoredInput() : Timestamp(-1.0), ActionType(EInputType::Undefined
 FStoredInput::FStoredInput(double CurrentTime, EInputType AttemptedActionType, const TDelegate<void()>& AttemptedAction) :
 	Timestamp(CurrentTime), ActionType(AttemptedActionType), RequestedAction(AttemptedAction)
 {
+}
+
+void FStoredInput::TryUpdateStoredInput(double CurrentTime, double MaxInputWindow,
+                                        EInputType AttemptedActionType, const TFunction<void()>& AttemptedAction)
+{
+	if(CurrentTime - Timestamp <= MaxInputWindow && IsValid())
+	{
+		//walk and camera cannot override the more important inputs
+		switch(AttemptedActionType)
+		{
+			case EInputType::Walk: return;
+			case EInputType::Camera: return;
+			default: break;
+		}
+	}
+	Timestamp = CurrentTime;
+	ActionType = AttemptedActionType;
+	RequestedAction.BindLambda(AttemptedAction);
 }
 
 void FStoredInput::Invalidate()
@@ -40,7 +58,7 @@ bool FStoredInput::operator==(const FStoredInput& SavedInput) const
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
 	bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f), RememberInputDirectionTime(0.5),
-	MaximalInputWindowTime(0.3)
+	MaximalInputWindowTime(0.5)
 {
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -149,10 +167,12 @@ AActor* APlayerCharacter::GetCurrentTarget() const
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	OnAttackInterrupted.BindUObject(this, &APlayerCharacter::AttackInterrupted);
 	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &APlayerCharacter::OnSelectMotionWarpingTarget);
+	if(IsValid(GetHitAnimation)) ToughnessBrokenTime = GetHitAnimation->GetPlayLength();
 	
 	check(IsValid(HealthWidgetClass.Get()));
-	UHealthMonitorBaseWidget* HealthMonitor = CreateWidget<UHealthMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
+	UStatsMonitorBaseWidget* HealthMonitor = CreateWidget<UStatsMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
 	HealthMonitor->AddToViewport();
 	RegisterHealthInfoWidget(HealthMonitor);
 }
@@ -196,11 +216,19 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	                                   &APlayerCharacter::OpenPauseMenu);
 }
 
-void APlayerCharacter::QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits)
+bool APlayerCharacter::TriggerToughnessBroken()
+{
+	if(!Super::TriggerToughnessBroken()) return false;
+	PlayAnimMontage(GetHitAnimation);
+	CharacterStats->ReceiveTrueDamage(10.f);
+	return true;
+}
+
+void APlayerCharacter::QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits)
 {
 	Super::QueueFollowUpLimit(InputLimits);
 	if (LastInput.IsValid() && GetWorld()->GetRealTimeSeconds() - LastInput.Timestamp <= MaximalInputWindowTime
-		&& AcceptedInputs.CanOverrideCurrentInput(LastInput.ActionType))
+		&& AcceptedInputs.IsAllowedInput(LastInput.ActionType))
 	{
 		// ReSharper disable once CppExpressionWithoutSideEffects
 		LastInput.RequestedAction.ExecuteIfBound();
@@ -223,27 +251,29 @@ void APlayerCharacter::GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent
 
 void APlayerCharacter::CharacterLanded()
 {
+	Super::CharacterLanded();
 	//Resets any input limits imposed by a previous state (Flying, Jumping)
 	AcceptedInputs.LimitAvailableInputs(EInputType::Reset, GetWorld());
 }
 
 void APlayerCharacter::CharacterInAir()
 {
-	AcceptedInputs.LimitAvailableInputs(FInputLimits(EInputType::Jump, 0.f), GetWorld());
+	Super::CharacterInAir();
+	AcceptedInputs.LimitAvailableInputs({EInputType::Jump, 0.f}, GetWorld());
 }
 
 void APlayerCharacter::TryJump()
 {
-	if (!AcceptedInputs.MovementProperties.bCanJump)
+	if (!AcceptedInputs.IsAllowedInput(EInputType::Jump))
 	{
-		LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-		LastInput.ActionType = EInputType::Jump;
-		LastInput.RequestedAction.BindLambda([this]{ TryJump(); });
+		LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+		                               EInputType::Jump, [this]{ TryJump(); });
 		return;
 	}
 
 	LastInput.Invalidate();
-	if (AcceptedInputs.CanOverrideCurrentInput(EInputType::Jump)) Jump();
+	AcceptedInputs.ResetLimits(GetWorld()); //force interrupt
+	Jump();
 }
 
 void APlayerCharacter::EndJump()
@@ -253,70 +283,70 @@ void APlayerCharacter::EndJump()
 
 void APlayerCharacter::LightAttack()
 {
-	if (!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.IsAllowedInput(EInputType::Attack))
 	{
-		LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-		LastInput.ActionType = EInputType::Attack;
-		LastInput.RequestedAction.BindLambda([this]{ LightAttack(); });
+		LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+		                               EInputType::Attack, [this]{ LightAttack(); });
 		return;
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Light, GetWorld());
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Light, this, GetWorld());
+	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
 }
 
 void APlayerCharacter::HeavyAttack()
 {
-	if (!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.IsAllowedInput(EInputType::Attack))
 	{
-		LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-		LastInput.ActionType = EInputType::Attack;
-		LastInput.RequestedAction.BindLambda([this]{ HeavyAttack(); });
+		LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+		                               EInputType::Attack, [this]{ HeavyAttack(); });
 		return;
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Heavy, GetWorld());
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Heavy, this, GetWorld());
+	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
 }
 
 void APlayerCharacter::SkillAttack()
 {
-	if (!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.IsAllowedInput(EInputType::Attack))
 	{
-		LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-		LastInput.ActionType = EInputType::Attack;
-		LastInput.RequestedAction.BindLambda([this]{ SkillAttack(); });
+		LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+		                               EInputType::Attack, [this]{ SkillAttack(); });
 		return;
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Skill, GetWorld());
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Skill, this, GetWorld());
+	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
 }
 
 void APlayerCharacter::UltimateAttack()
 {
-	if (!AcceptedInputs.bCanAttack)
+	if (!AcceptedInputs.IsAllowedInput(EInputType::Attack))
 	{
-		LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-		LastInput.ActionType = EInputType::Attack;
-		LastInput.RequestedAction.BindLambda([this]{ UltimateAttack(); });
+		LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+		                               EInputType::Attack, [this]{ UltimateAttack(); });
 		return;
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Ultimate, GetWorld());
+	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Ultimate, this, GetWorld());
+	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
 }
 
 void APlayerCharacter::DashStartRunning()
 {
-	if (!AcceptedInputs.bCanRun)
+	if (!AcceptedInputs.IsAllowedInput(EInputType::Sprint))
 	{
-		LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-		LastInput.ActionType = EInputType::Sprint;
-		LastInput.RequestedAction.BindLambda([this]{ DashStartRunning(); });
+		LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+		                               EInputType::Sprint, [this]{ DashStartRunning(); });
 		return;
 	}
 	LastInput.Invalidate();
+	AcceptedInputs.ResetLimits(GetWorld()); //force interrupt
 
 	//the first seconds of run are a dash
 	if (!bIsRunning)
@@ -359,7 +389,7 @@ void APlayerCharacter::DashStartRunning()
 		MakeInvincible(1.f);
 
 		//Since the player has already been displaced after a dash, we can always allow it to walk afterwards
-		AcceptedInputs.MovementProperties.bCanWalk = true;
+		AcceptedInputs.AddAllowedInputType(EInputType::Walk);
 		bIsRunning = true;
 
 		SwitchMovementToRun(FSetWalkOrRunKey());
@@ -400,18 +430,19 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 		InputDirection.Key = GetWorld()->RealTimeSeconds;
 		InputDirection.Value = ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X;
 		InputDirection.Value.Normalize();
-		if (!bIsRunning && AcceptedInputs.MovementProperties.bCanWalk || bIsRunning && AcceptedInputs.bCanRun)
+		if ((!bIsRunning && AcceptedInputs.IsAllowedInput(EInputType::Walk)) ||
+			(bIsRunning && AcceptedInputs.IsAllowedInput(EInputType::Sprint)))
 		{
 			// add movement
 			LastInput.Invalidate();
+			AcceptedInputs.ResetLimits(GetWorld()); //force interrupt
 			AddMovementInput(ForwardDirection, MovementVector.Y);
 			AddMovementInput(RightDirection, MovementVector.X);
 		}
 		else
 		{
-			LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-			LastInput.ActionType = EInputType::Walk;
-			LastInput.RequestedAction.BindLambda([this, Value]{ Move(Value); });
+			LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+			                               EInputType::Walk, [this, Value]{ Move(Value); });
 		}
 	}
 }
@@ -420,11 +451,10 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 {
 	if (IsValid(Controller))
 	{
-		if (!AcceptedInputs.bFreeCameraAdjustment)
+		if (!AcceptedInputs.IsAllowedInput(EInputType::Camera))
 		{
-			LastInput.Timestamp = GetWorld()->GetRealTimeSeconds();
-			LastInput.ActionType = EInputType::Camera;
-			LastInput.RequestedAction.BindLambda([this, Value]{ Look(Value); });
+			LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
+			                               EInputType::Camera, [this, Value]{ Look(Value); });
 			return;
 		}
 		LastInput.Invalidate();
@@ -440,13 +470,13 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 void APlayerCharacter::CameraZoom(const FInputActionValue& Value)
 {
 	const float Movement = Value.Get<float>();
-	if (AcceptedInputs.bFreeCameraAdjustment)
+	if (AcceptedInputs.IsAllowedInput(EInputType::Camera))
 		SpringArm->TargetArmLength += Movement * PlayerUserSettings->CameraZoomSpeed;
 }
 
 void APlayerCharacter::Aim(const FInputActionValue& Value)
 {
-	if (AcceptedInputs.bFreeCameraAdjustment) unimplemented();
+	if (AcceptedInputs.IsAllowedInput(EInputType::Camera)) unimplemented();
 }
 
 void APlayerCharacter::OpenPauseMenu()
@@ -585,6 +615,13 @@ bool APlayerCharacter::IsOccluded(ETraceTypeQuery TraceType, const FVector& Obse
 		return !AreMultipleVisible(TargetActor, TraceType, ObserverLocation, Locations, 3);
 	}
 	return false;
+}
+
+void APlayerCharacter::AttackInterrupted(bool IsLimitDurationOver)
+{
+	if(IsLimitDurationOver) return;
+	StopAnimMontage();
+	SuckToTargetComponent->InterruptWarping(FInterruptMotionWarpingKey());
 }
 
 void APlayerCharacter::OnSelectMotionWarpingTarget(const FAttackProperties& Properties)

@@ -3,12 +3,12 @@
 
 #include "Characters/Fighters/Attacks/AttackTree/AttackTree.h"
 
+#include "Characters/Fighters/Attacks/AttackTree/AttackTreeBaseNode.h"
 #include "Characters/Fighters/Attacks/AttackTree/AttackTreeEdge.h"
-#include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
 
 UAttackTree::UAttackTree() : bShowAsPlayerTree(false)
 {
-	NodeType = UAttackTreeNode::StaticClass();
+	NodeType = UAttackTreeBaseNode::StaticClass();
 	EdgeType = UAttackTreeEdge::StaticClass();
 
 	Name = "Attack Tree";

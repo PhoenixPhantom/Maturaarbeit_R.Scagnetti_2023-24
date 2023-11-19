@@ -4,39 +4,48 @@
 #include "Attacks.h"
 
 #include "Characters/Fighters/Attacks/AttackTree/AttackTree.h"
-#include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
+#include "Characters/Fighters/Attacks/AttackTree/AttackNode.h"
+#include "Characters/Fighters/Attacks/AttackTree/AttackTreeRootNode.h"
 
-FAttacks::FAttacks(UAttackTree* AttackTree, UObject* Outer) : NodeAccessTime(-1.f)
+FAttacks::FAttacks(UAttackTree const* AttackTree, UObject* Outer) : ComboExpirationTime(-1.0), PendingAttackProperties(nullptr)
 {
 	this->AttackTree = DuplicateObject(AttackTree, Outer);
-	CurrentNode = CastChecked<UAttackTreeNode>(this->AttackTree->RootNodes[0]);
+	for(UGenericGraphNode* GraphNode : this->AttackTree->RootNodes)
+	{
+		PreCastedRootNodes.Add(CastChecked<UAttackTreeRootNode>(GraphNode));
+	}
+	for(UGenericGraphNode* GraphNode : this->AttackTree->AllNodes)
+	{
+		UAttackNode* AttackNode = Cast<UAttackNode>(GraphNode);
+		if(IsValid(AttackNode))
+		{
+			PreCastedAttackNodes.Add(AttackNode);
+		}
+	}
+	CurrentNode = GetRootNodeInternal();
 }
 
-const FAttackProperties& FAttacks::GetLatestAttackProperties() const
-{
-	check(IsValid(CurrentNode));
-	return CurrentNode->GetAttackProperties();
-}
-
-const UAttackTreeNode* FAttacks::GetCurrentNode(UWorld* WorldContext) const
+const UGenericGraphNode* FAttacks::GetCurrentNode(UWorld* WorldContext) const
 {
 	if(HasExceededComboTime(WorldContext))
 	{
-		return CastChecked<UAttackTreeNode>(GetRootNode());
+		return GetRootNode();
 	}
 	return CurrentNode;
 }
 
-const UGenericGraphNode* FAttacks::GetRootNode() const
+void FAttacks::SetModeIdentifier(const FString& ModeIdentifier, FSetAttackTreeModeIdentifier)
 {
-	//We assume there is only one root since this simplifies the process a lot
-	check(AttackTree->RootNodes.Num() == 1);
-	return AttackTree->RootNodes[0];
+	RootNodeIdentifier = ModeIdentifier;
+	CurrentNode = GetRootNodeInternal();
+	ComboExpirationTime = -1.0;
+	// ReSharper disable once CppExpressionWithoutSideEffects
+	OnModeChanged.ExecuteIfBound();
 }
 
-bool FAttacks::ExecuteAttack(AttackIndex Index, UWorld* WorldContext)
+bool FAttacks::ExecuteAttack(AttackIndex Index, const AActor* PlayingInstance, UWorld* WorldContext)
 {
-	UAttackTreeNode* ResultingAttackNode = nullptr;
+	UAttackNode* ResultingAttackNode = nullptr;
 	if(!HasExceededComboTime(WorldContext))
 	{
 		for(UGenericGraphNode* ChildNode : CurrentNode->ChildrenNodes)
@@ -44,13 +53,13 @@ bool FAttacks::ExecuteAttack(AttackIndex Index, UWorld* WorldContext)
 			const UAttackTreeEdge* AttackTreeEdge = CastChecked<UAttackTreeEdge>(CurrentNode->GetEdge(ChildNode));
 			if(AttackTreeEdge->IndexCondition == Index)
 			{
-				ResultingAttackNode = CastChecked<UAttackTreeNode>(ChildNode);
+				ResultingAttackNode = CastChecked<UAttackNode>(ChildNode);
 				break;
 			}
 		}
 	}
 
-	//we allow "jumping back" to the root node for two reasons:
+	//we allow "jumping back" to the root node for one of two reasons:
 	//    1. the combo time for the current attack string has been exceeded
 	//    2. the received input is not part of the current attack string
 	if(ResultingAttackNode == nullptr)
@@ -61,29 +70,26 @@ bool FAttacks::ExecuteAttack(AttackIndex Index, UWorld* WorldContext)
 			const UAttackTreeEdge* AttackTreeEdge = CastChecked<UAttackTreeEdge>(RootNode->GetEdge(ChildNode));
 			if(AttackTreeEdge->IndexCondition == Index)
 			{
-				ResultingAttackNode = CastChecked<UAttackTreeNode>(ChildNode);
+				ResultingAttackNode = CastChecked<UAttackNode>(ChildNode);
 				break;
 			}
 		}
 		if(ResultingAttackNode == nullptr) return false;
 	}
 	
-	const FAttackProperties& AttackProperties = ResultingAttackNode->GetAttackProperties();
+	const FAttackProperties& AttackProperties = ResultingAttackNode->GetAttackProperties(PlayingInstance);
 
-	if(AttackProperties.GetIsOnCd()) return false;
+	if(ResultingAttackNode->GetIsOnCd()) return false;
 	if(OnCheckCanExecuteAttack.IsBound() && !OnCheckCanExecuteAttack.Execute(AttackProperties)) return false;
 
-	CurrentNode = ResultingAttackNode;
-	NodeAccessTime = WorldContext->RealTimeSeconds;
-	CurrentNode->ExecuteAttack(WorldContext);
-	OnExecuteAttack.Broadcast(AttackProperties);
+	ExecuteAttackInternal(ResultingAttackNode, AttackProperties, WorldContext);
 	return true;
 }
 
-bool FAttacks::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, UWorld* WorldContext)
+bool FAttacks::ExecuteAttackFromNode(UAttackNode* NodeToExecute, const AActor* PlayingInstance, UWorld* WorldContext)
 {
 	
-	const FAttackProperties& AttackProperties = NodeToExecute->GetAttackProperties();
+	const FAttackProperties& AttackProperties = NodeToExecute->GetAttackProperties(PlayingInstance);
 
 	if(!GetRootNode()->ChildrenNodes.Contains(NodeToExecute) &&
 		(!HasExceededComboTime(WorldContext) && !CurrentNode->ChildrenNodes.Contains(NodeToExecute)))
@@ -91,25 +97,67 @@ bool FAttacks::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, UWorld* Wor
 		checkNoEntry();
 		return false;
 	}
-	if(AttackProperties.GetIsOnCd() || (OnCheckCanExecuteAttack.IsBound() && !OnCheckCanExecuteAttack.Execute(AttackProperties)))
+	if(NodeToExecute->GetIsOnCd() || (OnCheckCanExecuteAttack.IsBound() && !OnCheckCanExecuteAttack.Execute(AttackProperties)))
 	{
 		checkNoEntry();
 		return false;
 	}
-
-	CurrentNode = NodeToExecute;
-	NodeAccessTime = WorldContext->RealTimeSeconds;
-	CurrentNode->ExecuteAttack(WorldContext);
-	OnExecuteAttack.Broadcast(AttackProperties);
+	
+	ExecuteAttackInternal(NodeToExecute, AttackProperties, WorldContext);
 	return true;
+}
+
+void FAttacks::ForceSetCd(const FString& NodeIdentifier, float RemainingCd)
+{
+	UAttackNode** FoundNode = PreCastedAttackNodes.FindByPredicate([NodeIdentifier](UAttackNode* AttackNode)
+	{
+		return AttackNode->CanBeCalled(NodeIdentifier);
+	});
+
+	if(FoundNode == nullptr) return;
+	(*FoundNode)->ForceSetCd(RemainingCd);
+}
+
+void FAttacks::ForceChangeCdBy(const FString& NodeIdentifier, float CdChange)
+{
+	UAttackNode** FoundNode = PreCastedAttackNodes.FindByPredicate([NodeIdentifier](UAttackNode* AttackNode)
+	{
+		return AttackNode->CanBeCalled(NodeIdentifier);
+	});
+
+	if(FoundNode == nullptr) return;
+	(*FoundNode)->ForceSetCd((*FoundNode)->CdTimeRemaining() + CdChange);
 }
 
 bool FAttacks::operator==(const FAttacks& Attacks) const
 {
-	return NodeAccessTime == Attacks.NodeAccessTime && AttackTree == Attacks.AttackTree && CurrentNode == Attacks.CurrentNode;
+	return ComboExpirationTime == Attacks.ComboExpirationTime && AttackTree == Attacks.AttackTree &&
+		CurrentNode == Attacks.CurrentNode;
+}
+
+UGenericGraphNode* FAttacks::GetRootNodeInternal() const
+{
+	for(UAttackTreeRootNode* RootNode : PreCastedRootNodes)
+	{
+		if(RootNode->GetIsMainRootNode(RootNodeIdentifier))
+		{
+			return RootNode;
+		}
+	}
+	checkNoEntry();
+	return nullptr;
+}
+
+void FAttacks::ExecuteAttackInternal(UAttackNode* Node, const FAttackProperties& Properties, UWorld* WorldContext)
+{
+	CurrentNode = Node;
+	ComboExpirationTime = WorldContext->RealTimeSeconds + Properties.MaxComboTime;
+	PendingAttackProperties = &Properties;
+	OnExecuteAttack.Broadcast(Properties);
+	Node->Execute();
 }
 
 bool FAttacks::HasExceededComboTime(UWorld* WorldContext) const
 {
-	return WorldContext->RealTimeSeconds - NodeAccessTime > GetLatestAttackProperties().MaxComboTime;
+	return WorldContext->RealTimeSeconds > ComboExpirationTime;
 }

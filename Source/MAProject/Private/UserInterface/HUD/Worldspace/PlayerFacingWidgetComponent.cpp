@@ -4,7 +4,7 @@
 #include "UserInterface/HUD/Worldspace/PlayerFacingWidgetComponent.h"
 
 #include "Kismet/KismetMathLibrary.h"
-#include "UserInterface/HealthMonitorBaseWidget.h"
+#include "UserInterface/StatsMonitorBaseWidget.h"
 
 
 // Sets default values for this component's properties
@@ -18,7 +18,7 @@ UPlayerFacingWidgetComponent::UPlayerFacingWidgetComponent()
 void UPlayerFacingWidgetComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	UHealthMonitorBaseWidget* HealthMonitorWidget = CastChecked<UHealthMonitorBaseWidget>(GetWidget());
+	UStatsMonitorBaseWidget* HealthMonitorWidget = CastChecked<UStatsMonitorBaseWidget>(GetWidget());
 	OnHealthMonitorWidgetInitialized.Broadcast(HealthMonitorWidget);
 }
 

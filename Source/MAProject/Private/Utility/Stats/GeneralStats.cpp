@@ -11,25 +11,43 @@ bool FGeneralBaseStats::operator==(const FGeneralBaseStats& GeneralBaseStats) co
 		BaseDefense == GeneralBaseStats.BaseDefense;
 }
 
-FGeneralObjectStats::FGeneralObjectStats(): OnGetDamaged(), Health(0),
-	MaxHealth(0, 0, 0.f), Attack(0, 0, 0.f),
+FGeneralObjectStats::FGeneralObjectStats(): Attack(0, 0, 0.f),
 	Defense(0, 0, 0.f)
 {
 }
 
 bool FGeneralObjectStats::operator==(const FGeneralObjectStats& GeneralObjectStats) const
 {
-	return Health == GeneralObjectStats.Health && MaxHealth == GeneralObjectStats.MaxHealth &&
-		Attack == GeneralObjectStats.Attack && Defense == GeneralObjectStats.Defense;
+	return Health == GeneralObjectStats.Health && Attack == GeneralObjectStats.Attack &&
+		Defense == GeneralObjectStats.Defense;
 }
 
 void FGeneralObjectStats::FromBase(const FGeneralBaseStats& Stats, const FSavableModifiersBase& Modifiers)
 {
 	//TODO: Include real level scaling
-	MaxHealth.Base = Stats.BaseHealth * Modifiers.Level;
-	Health = MaxHealth.GetResulting();
+	Health.SetBaseMax(Stats.BaseHealth * Modifiers.Level);
 	Attack.Base = Stats.BaseAttack * Modifiers.Level;
 	Defense.Base = Stats.BaseDefense * Modifiers.Level;
+}
+
+void FGeneralObjectStats::Buff(const FGeneralObjectStatsBuffs& Buffs)
+{
+	Health.AddBonuses(Buffs.FlatHealth, Buffs.HealthBuff);
+	OnMaxHealthChanged.Broadcast(Health.Current, Health.Maximum.GetResulting());
+	Attack.FlatBonus += FMath::Floor(Buffs.FlatAttack);
+	Defense.FlatBonus += FMath::Floor(Buffs.FlatDefense);
+	Attack.PercentageBonus += Buffs.AttackBuff;
+	Defense.PercentageBonus += Buffs.DefenseBuff;
+}
+
+void FGeneralObjectStats::Debuff(const FGeneralObjectStatsBuffs& Buffs)
+{
+	Health.AddBonuses(-Buffs.FlatHealth, -Buffs.HealthBuff);
+	OnMaxHealthChanged.Broadcast(Health.Current, Health.Maximum.GetResulting());
+	Attack.FlatBonus -= FMath::Floor(Buffs.FlatAttack);
+	Defense.FlatBonus -= FMath::Floor(Buffs.FlatDefense);
+	Attack.PercentageBonus -= Buffs.AttackBuff;
+	Defense.PercentageBonus -= Buffs.DefenseBuff;
 }
 
 float FGeneralObjectStats::GetDamageOutput() const
@@ -37,13 +55,8 @@ float FGeneralObjectStats::GetDamageOutput() const
 	return Attack.GetResulting();
 }
 
-uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent* DamageInfo)
-{
-	const uint32 DeltaHealth = Damage/static_cast<float>(Defense.GetResulting());
-	
-	OnHealthChanged.Broadcast(Health <= DeltaHealth ? 0 : Health - DeltaHealth, Health);
-
-	
+int32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent* DamageInfo)
+{	
 	if(Damage > 0.f)
 	{
 #if USE_UE5_DELEGATE
@@ -53,14 +66,21 @@ uint32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent
 		OnGetDamaged.ExecuteIfBound(DamageInfo);
 #endif
 	}
+	return ReceiveDamage(Damage);
+}
+
+int32 FGeneralObjectStats::ReceiveTrueDamage(int32 Damage)
+{
+	OnHealthChanged.Broadcast(Health.Current <= Damage ? 0 : Health.Current - Damage,
+		Health.Current);
 	
-	if(Health <= DeltaHealth)
+	if(Health.Current <= Damage)
 	{
-		Health = 0;
-		if(OnNoHealthReached.IsBound()) OnNoHealthReached.Broadcast(*DamageInfo);
+		Health.Current = 0;
+		if(OnNoHealthReached.IsBound()) OnNoHealthReached.Broadcast();
 		return 0;
 	}
 	
-	Health -= DeltaHealth;
-	return Health;
+	Health.Current -= Damage;
+	return Health.Current;
 }

@@ -3,14 +3,12 @@
 
 #include "Utility/Stats/StatusEffect.h"
 
-UStatusEffect::UStatusEffect(): EffectTarget(nullptr)
+UStatusEffect::UStatusEffect() : EffectTarget(nullptr)
 {
 }
 
-void UStatusEffect::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UStatusEffect::OnEffectRemoved_Implementation(AGeneralCharacter* Target)
 {
-	Super::EndPlay(EndPlayReason);
-	EffectTarget = nullptr;
 }
 
 void UStatusEffect::OnEffectApplied_Implementation(AGeneralCharacter* Target)

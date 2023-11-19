@@ -10,7 +10,7 @@
 #include "FighterCharacter.generated.h"
 
 class UAttackTree;
-class UHealthMonitorBaseWidget;
+class UStatsMonitorBaseWidget;
 class UBoneSoundResponseConfig;
 class UTargetInformationComponent;
 class UNiagaraSystem;
@@ -65,7 +65,7 @@ public:
 	
 	void ActivateMeleeBones(const TArray<FName>& BonesToEnable, bool StartEmpty, bool AllowHitRecentVictims,
 		FMeleeControlsKey Key);
-	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool RefreshHitActors, FMeleeControlsKey Key);
+	void DeactivateMeleeBones(const TArray<FName>& BonesToDisable, bool IsLastAttackOfAnimation, FMeleeControlsKey Key);
 	void AddOnInputLimitsResetDelegate(const TDelegate<void(bool)>& FunctionToAdd, FModifyInputLimitsKey);
 	void RemoveOnInputLimitsResetDelegate(const TDelegate<void(bool)>& FunctionToAdd, FModifyInputLimitsKey);
 
@@ -81,10 +81,12 @@ protected:
 	float TimeDilationBlendTime;
 	float TimeDilationTotalTime;
 	float TimeDilationEffectTimeRemaining;
+
 	
 	TArray<FName> MeleeEnabledBones;
 	FCharacterStats* CharacterStats;
 	FTimerHandle InvincibilityHandle;
+	float ToughnessBrokenTime;
 	
 	TTuple<double, TArray<AttackIndex>> AttackInputString;
 
@@ -92,7 +94,7 @@ protected:
 	TArray<AActor*> RecentlyDamagedActors;
 
 	UPROPERTY()
-	UHealthMonitorBaseWidget* HealthInfoWidget;
+	UStatsMonitorBaseWidget* HealthInfoWidget;
 	
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UTargetInformationComponent* TargetInformationComponent;
@@ -102,9 +104,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* GetHitAnimation;
-
-	UPROPERTY(EditAnywhere, Category = Combat)
-	UAnimMontage* DeathAnimation;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	TSubclassOf<UBoneSoundResponseConfig> BoneSoundResponseConfig;
@@ -124,25 +123,46 @@ protected:
 	void ProcessTimeDilation(float DeltaSeconds);
 
 	virtual void GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit);
-	virtual void OnDeathTriggered();
+	virtual bool TriggerDeath() override;
 	virtual void PlayHitSound(const FVector& HitLocation);
 	virtual void SpawnHitFX(const FVector& Location, float ScaleFactor);
-	virtual void GetStaggered(const FAttackDamageEvent* DamageEvent);
+	virtual void GetStaggered(bool HeavyStagger);
+	virtual void OnGetDamaged(const FCustomDamageEvent* DamageEvent);
+	virtual bool TriggerToughnessBroken();
+	virtual void RestoreToughness();
+	virtual void OnGetAttacked(const FAttackDamageEvent* DamageEvent);
 
-	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits);
+	virtual void QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits);
 
 	virtual void OnHitTimeDilation(bool WasStaggered);
 	
 	UFUNCTION()
-	void RegisterHealthInfoWidget(UHealthMonitorBaseWidget* Widget);
+	void RegisterHealthInfoWidget(UStatsMonitorBaseWidget* Widget);
 
+	UFUNCTION(BlueprintCallable)
+	void SetAttackTreeMode(FString ModeIdentifier);
+	
+	UFUNCTION(BlueprintPure)
+	float GetMaxHealthBlueprint() const { return CharacterStats->Health.Maximum.GetResulting(); }
+
+	UFUNCTION(BlueprintCallable)
+	void ApplyBuffTimed(const FCharacterStatsBuffs& Buffs, float Duration = 1.f);
+	UFUNCTION(BlueprintCallable)
+	void ApplyBuff(const FCharacterStatsBuffs& Buffs);
+	UFUNCTION(BlueprintCallable)
+	void ForceSetCd(FString NodeName, float RemainingCd);
+	UFUNCTION(BlueprintCallable)
+	void ForceChangeCdBy(FString NodeName, float CdChange);
+	UFUNCTION(BlueprintNativeEvent)
+	void OnHealthChanged(int32 NewHealth, int32 OldHealth);
 	UFUNCTION()
 	bool OnCheckCanExecuteAttack(const FAttackProperties& Properties);
 	UFUNCTION()
 	void OnExecuteAttack(const FAttackProperties& Properties);
 	UFUNCTION()
-	void OnGetDamagedUE(const FCustomDamageEvent& DamageEvent){ OnGetDamaged(&DamageEvent);};
-	void OnGetDamaged(const FCustomDamageEvent* DamageEvent);
+	void OnGetDamagedUE(const FCustomDamageEvent& DamageEvent){ OnGetDamaged(&DamageEvent);}
 	UFUNCTION()
-	void OnDeath(const FCustomDamageEvent& DamageEvent);
+	void OnToughnessBroken(){ TriggerToughnessBroken(); };
+	UFUNCTION()
+	void OnDeath(){ TriggerDeath(); };
 };

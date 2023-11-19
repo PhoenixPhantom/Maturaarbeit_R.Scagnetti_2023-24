@@ -20,20 +20,24 @@ public:
 	
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration,
 							 const FAnimNotifyEventReference& EventReference) override;
-	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
+
 protected:
+	FTimerHandle EndTimerHandle;
 	UPROPERTY()
 	AFighterCharacter* MeshOwner;
 	
 	UPROPERTY(EditAnywhere)
 	TArray<FName> BonesToEnable;
 
-	UPROPERTY(EditAnywhere, meta=(ToolTip="Wether we should delete all prior enabled bones (to ensure there aren't to many enabled). It is reccomended to set the first MeleeAttackNotifyState in each animation to true."))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, meta=(ToolTip="Wether we should delete all prior enabled bones (to ensure there aren't to many enabled). It is reccomended to set the first MeleeAttackNotifyState in each animation to true."))
 	bool bStartEmpty;
 
-	UPROPERTY(EditAnywhere, meta=(ToolTip="Wether this attack can damage targets even if they were already damaged from the last attack of the string"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, meta=(ToolTip="Wether this attack can damage targets even if they were already damaged from the last attack of the string"))
 	bool bAllowHitRecentVictims;
 
-	UPROPERTY(EditAnywhere, AdvancedDisplay, meta=(ToolTip="Wether this attack string has ended and once hit actors can be damaged again"))
-	bool bRefreshHitActors;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, meta=(ToolTip="Wether this was the last attack in this animation"))
+	bool bIsLastAttack;
+
+	UFUNCTION()
+	void EndAttack();
 };

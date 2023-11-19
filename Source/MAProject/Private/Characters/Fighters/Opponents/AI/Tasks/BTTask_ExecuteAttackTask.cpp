@@ -5,7 +5,7 @@
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
+#include "Characters/Fighters/Attacks/AttackTree/AttackNode.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 
 UBTTask_ExecuteAttackTask::UBTTask_ExecuteAttackTask() : OwningCharacter(nullptr)
@@ -19,17 +19,6 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 {
 	BehaviorTreeComponent = &OwnerComp;
 	OwningCharacter = CastChecked<AOpponentCharacter>(OwnerComp.GetAIOwner()->GetPawn());
-	check(IsValid(OwningCharacter));
-	if (!OwningCharacter->GetAcceptedInputs().bCanAttack)
-	{
-		//this suggests that the character was staggered (or killed) --> the result should be the same "token retention"
-		//that occurs when the opponent is staggered while executing the attack
-		TDelegate<void(bool)> OnInterruptionEnded;
-		OnInterruptionEnded.BindUObject(this, &UBTTask_ExecuteAttackTask::OnReactionFinished);
-		OwningCharacter->AddOnInputLimitsResetDelegate(OnInterruptionEnded, FModifyInputLimitsKey());
-		return EBTNodeResult::InProgress;
-	}
-
 	const ACharacter* TargetCharacter = OwningCharacter->GetCombatTarget();
 	if (!IsValid(TargetCharacter))
 	{
@@ -38,8 +27,17 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 		OwningCharacter->ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey());
 		return EBTNodeResult::Failed;
 	}
+	
+	check(IsValid(OwningCharacter));
+	if (!OwningCharacter->GetAcceptedInputs().IsAllowedInput(EInputType::Attack))
+	{
+		//this suggests that the character was staggered (or killed) --> the result should be the same "token retention"
+		//that occurs when the opponent is staggered while executing the attack
+		OnAttackFinished(false);
+		return EBTNodeResult::InProgress;
+	}
 
-	UAttackTreeNode* RequestedNode = OwningCharacter->GetRequestedAttack();
+	UAttackNode* RequestedNode = OwningCharacter->GetRequestedAttack();
 	if(!IsValid(RequestedNode))
 	{
 		//tokens can be granted without setting an attack, if the receiver of the token still has a

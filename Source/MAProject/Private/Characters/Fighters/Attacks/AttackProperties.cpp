@@ -5,8 +5,8 @@
 
 
 FAttackProperties::FAttackProperties() : DamagePercent(100.f), CdTime(0.f), MaximalMovementDistance(200.f),
-	DefaultMovementDistance(100.f), MaxComboTime(0), Priority(1.f), bIsMeleeAttack(true), AtkAnimation(nullptr),
-	World(nullptr), bIsOnCd(false)
+	DefaultMovementDistance(100.f), MaxComboTime(0), Priority(1.f), bIsMeleeAttack(true), AtkAnimation(nullptr)/*,
+	World(nullptr), bIsOnCd(false)*/
 {
 	InputLimits.SetNum(0, true);
 	InputLimits.Add({EInputType::Attack, 1.f});
@@ -17,7 +17,7 @@ FAttackProperties::FAttackProperties(const FAttackProperties& Properties) : Dama
 	MaximalMovementDistance(Properties.MaximalMovementDistance),
 	DefaultMovementDistance(Properties.DefaultMovementDistance), MaxComboTime(Properties.DefaultMovementDistance),
 	Priority(Properties.Priority), bIsMeleeAttack(Properties.bIsMeleeAttack), AtkAnimation(Properties.AtkAnimation),
-	InputLimits(Properties.InputLimits), World(Properties.World), bIsOnCd(Properties.bIsOnCd)
+	InputLimits(Properties.InputLimits)/*, World(Properties.World), bIsOnCd(Properties.bIsOnCd)*/
 {
 }
 
@@ -42,7 +42,7 @@ float FAttackProperties::GetOverallValue() const
 	return DamagePercent / 100.f * (static_cast<float>(DamageEvent.StaggerChance)*0.005f + Priority*2.5f) /
 		FMath::Sqrt(AtkAnimation->GetPlayLength());
 }
-
+/*
 void FAttackProperties::Execute(UWorld* WorldContext)
 {
 	check(IsValid(WorldContext));
@@ -64,7 +64,7 @@ float FAttackProperties::CdTimeRemaining() const
 {
 	if(!bIsOnCd || !IsValid(World)) return -1.f;
 	return World->GetTimerManager().GetTimerRemaining(CdHandle);
-}
+}*/
 
 float FAttackProperties::GetTotalCdTime() const
 {

@@ -7,7 +7,7 @@
 #include "CombatManager.generated.h"
 
 
-class UAttackTreeNode;
+class UAttackNode;
 class AFighterCharacter;
 class AOpponentCharacter;
 class APlayerCharacter;
@@ -38,13 +38,13 @@ struct FAggressorInfo
 	FAggressorInfo() : Aggressor(nullptr),
 	                   RequestedAttack(nullptr), RequestedTokens(0)
 	{}
-	FAggressorInfo(AOpponentCharacter* NewHolder, UAttackTreeNode* AttackTreeNode, uint32 NewTokens) : Aggressor(NewHolder),
+	FAggressorInfo(AOpponentCharacter* NewHolder, UAttackNode* AttackTreeNode, uint32 NewTokens) : Aggressor(NewHolder),
 		RequestedAttack(AttackTreeNode), RequestedTokens(NewTokens)
 	{
 	}
 	
 	AOpponentCharacter* Aggressor;
-	UAttackTreeNode* RequestedAttack;
+	UAttackNode* RequestedAttack;
 	uint32 RequestedTokens;
 
 	bool operator==(const FAggressorInfo& AggressionData) const;
@@ -53,7 +53,7 @@ struct FAggressorInfo
 struct FScoredAggressorInfo : public FAggressorInfo
 {
 	FScoredAggressorInfo() : Score(std::numeric_limits<float>::lowest()){}
-	FScoredAggressorInfo(AOpponentCharacter* NewHolder, UAttackTreeNode* AttackTreeNode, float NewScore, uint32 NewTokens);
+	FScoredAggressorInfo(AOpponentCharacter* NewHolder, UAttackNode* AttackTreeNode, float NewScore, uint32 NewTokens);
 	float Score;
 };
 
@@ -106,9 +106,6 @@ protected:
 	UPROPERTY(EditAnywhere)
 	uint32 MaxAggressionTokens;	
 	uint32 AvailableAggressionTokens;
-	
-	UPROPERTY(EditAnywhere)
-	float PreferBestScorePower;
 
 	
 	virtual void BeginPlay() override;
@@ -120,7 +117,7 @@ protected:
 
 	bool MakeActiveParticipant(int32 Index);
 	bool MakePassiveParticipant(int32 Index);
-	static float GetAttackValue(UAttackTreeNode* AttackNode, AOpponentCharacter* Attacker);
+	static float GetAttackValue(UAttackNode* AttackNode, AOpponentCharacter* Attacker);
 
 	//Try to distribute the AvailableAggressionTokens so the highest scoring objects will be inserted
 	void AttemptDistributeFreeTokens();

@@ -43,7 +43,7 @@ struct MAPROJECT_API FAttackProperties
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;
 	UPROPERTY(EditAnywhere, Category = Animation, meta=(ToolTip="The limits that will be applied one after another in order of indices on attack execution."))
-	TArray<FInputLimits> InputLimits;
+	TArray<FNewInputLimits> InputLimits;
 
 
 	bool operator==(const FAttackProperties& AttackProperties) const;
@@ -51,16 +51,16 @@ struct MAPROJECT_API FAttackProperties
 	[[deprecated("Access Priority directly")]]
 	float GetPriority(float DistanceFromTarget) const;
 	float GetOverallValue() const;
-	bool GetIsOnCd() const { return bIsOnCd; }
+	float GetTotalCdTime() const;
+	/*bool GetIsOnCd() const { return bIsOnCd; }
 	void Execute(UWorld* WorldContext);
 	float CdTimeElapsed() const;
 	float CdTimeRemaining() const;
-	float GetTotalCdTime() const;
 
 	UPROPERTY()
 	UWorld* World;
 	
 protected:
 	bool bIsOnCd;
-	FTimerHandle CdHandle;
+	FTimerHandle CdHandle;*/
 };

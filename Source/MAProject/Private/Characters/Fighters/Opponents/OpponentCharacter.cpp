@@ -5,7 +5,7 @@
 
 #include <Characters/AdvancedCharacterMovementComponent.h>
 
-#include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
+#include "Characters/Fighters/Attacks/AttackTree/AttackNode.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
@@ -114,11 +114,12 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 	const UGenericGraphNode* SourceNode = CharacterStats->Attacks.GetCurrentNode(GetWorld());
 	for(const UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
-		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
+		const UAttackNode* AttackNode = CastChecked<UAttackNode>(ChildNode);
+		const FAttackProperties& AttackProperties = AttackNode->GetAttackProperties();
 		if(!FoundExecutableAttack)
 		{
 			//the first actually executable attack resets the values because it is stronger than all non-executable ones
-			if(!AttackProperties.GetIsOnCd())
+			if(!AttackNode->GetIsOnCd())
 			{
 				FoundExecutableAttack = true;
 				TotalDistance = 0.f;
@@ -126,7 +127,7 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 				NumValidAttacks = 0.f;
 			}
 		}
-		else if(AttackProperties.GetIsOnCd()) continue;
+		else if(AttackNode->GetIsOnCd()) continue;
 		
 		NumValidAttacks += 1.f;
 		if(MaxDistance < AttackProperties.MaximalMovementDistance)
@@ -179,19 +180,19 @@ void AOpponentCharacter::SetUsedBlackboardComponent(UBlackboardComponent* NewBla
 	UsedBlackboardComponent = NewBlackboard;
 }
 
-bool AOpponentCharacter::ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, FExecuteAttackKey) const
+bool AOpponentCharacter::ExecuteAttackFromNode(UAttackNode* NodeToExecute, FExecuteAttackKey) const
 {
-	return CharacterStats->Attacks.ExecuteAttackFromNode(NodeToExecute, GetWorld());
+	return CharacterStats->Attacks.ExecuteAttackFromNode(NodeToExecute, this, GetWorld());
 }
 
-UAttackTreeNode* AOpponentCharacter::GetRequestedAttack() const
+UAttackNode* AOpponentCharacter::GetRequestedAttack() const
 {
 	return RequestedAttack;
 }
 
-UAttackTreeNode* AOpponentCharacter::GetRandomValidAttack() const
+UAttackNode* AOpponentCharacter::GetRandomValidAttack() const
 {
-	if(!AcceptedInputs.CanOverrideCurrentInput(EInputType::Attack)) return nullptr;
+	if(!AcceptedInputs.IsAllowedInput(EInputType::Attack)) return nullptr;
 
 	const ACharacter* TargetCharacter = GetCombatTarget();
 	if (!IsValid(TargetCharacter))
@@ -199,16 +200,16 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttack() const
 		return nullptr;
 	}
 
-	const UAttackTreeNode* SourceNode = GetCharacterStats()->Attacks.GetCurrentNode(GetWorld());
+	const UGenericGraphNode* SourceNode = GetCharacterStats()->Attacks.GetCurrentNode(GetWorld());
 	
 	//Sort through all available attacks and remove those that cannot be executed
 	TArray<TTuple<UGenericGraphNode*, float>> ValidAttacks;
 	double TotalScore = 0.f;
 	for (UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
-		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
-		if (AttackProperties.GetIsOnCd()) continue;
-		const float Priority = AttackProperties.Priority;
+		const UAttackNode* AttackNode = CastChecked<UAttackNode>(ChildNode);
+		if (AttackNode->GetIsOnCd()) continue;
+		const float Priority = AttackNode->GetAttackProperties().Priority;
 		ValidAttacks.Add({ChildNode, Priority});
 		TotalScore += Priority;
 	}
@@ -216,7 +217,7 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttack() const
 	if(ValidAttacks.IsEmpty()) return nullptr;
 
 	//Randomly chose a valid attack
-	UAttackTreeNode* ChosenNode = nullptr;
+	UAttackNode* ChosenNode = nullptr;
 	std::uniform_real_distribution Distribution(0.0, TotalScore);
 	double RandomNumber = Distribution(RandomGenerator);
 	for (const TTuple<UGenericGraphNode*, float>& Attack : ValidAttacks)
@@ -224,16 +225,16 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttack() const
 		RandomNumber -= Attack.Value;
 		if (RandomNumber <= 0.f)
 		{
-			ChosenNode = CastChecked<UAttackTreeNode>(Attack.Key);
+			ChosenNode = CastChecked<UAttackNode>(Attack.Key);
 			break;
 		}
 	}
 	return ChosenNode;
 }
 
-UAttackTreeNode* AOpponentCharacter::GetRandomValidAttackInRange() const
+UAttackNode* AOpponentCharacter::GetRandomValidAttackInRange() const
 {
-	if(!GetAcceptedInputs().bCanAttack) return nullptr;
+	if(!GetAcceptedInputs().IsAllowedInput(EInputType::Attack)) return nullptr;
 
 	const ACharacter* TargetCharacter = GetCombatTarget();
 	if (!IsValid(TargetCharacter))
@@ -242,15 +243,16 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttackInRange() const
 	}
 
 	const float RequiredRange = FVector::Distance(GetTargetPlayer()->GetActorLocation(), GetActorLocation());
-	const UAttackTreeNode* SourceNode = GetCharacterStats()->Attacks.GetCurrentNode(GetWorld());
+	const UGenericGraphNode* SourceNode = GetCharacterStats()->Attacks.GetCurrentNode(GetWorld());
 	
 	//Sort through all available attacks and remove those that cannot be executed
 	TArray<TTuple<UGenericGraphNode*, float>> ValidAttacks;
 	double TotalScore = 0.0;
 	for (UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
-		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
-		if (AttackProperties.GetIsOnCd() ||
+		const UAttackNode* AttackNode = CastChecked<UAttackNode>(ChildNode);
+		const FAttackProperties& AttackProperties = AttackNode->GetAttackProperties();
+		if (AttackNode->GetIsOnCd() ||
 			AttackProperties.MaximalMovementDistance < RequiredRange) continue;
 		const float Priority = AttackProperties.Priority;
 		ValidAttacks.Add({ChildNode, Priority});
@@ -260,7 +262,7 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttackInRange() const
 	if(ValidAttacks.IsEmpty()) return nullptr;
 
 	//Randomly chose a valid attack
-	UAttackTreeNode* ChosenNode = nullptr;
+	UAttackNode* ChosenNode = nullptr;
 	std::uniform_real_distribution Distribution(0.0, TotalScore);
 	double RandomNumber = Distribution(RandomGenerator);
 	//float RandomNumber = FMath::FRandRange(0.0, TotalScore);
@@ -269,7 +271,7 @@ UAttackTreeNode* AOpponentCharacter::GetRandomValidAttackInRange() const
 		RandomNumber -= Attack.Value;
 		if (RandomNumber <= 0.f)
 		{
-			ChosenNode = CastChecked<UAttackTreeNode>(Attack.Key);
+			ChosenNode = CastChecked<UAttackNode>(Attack.Key);
 			break;
 		}
 	}
@@ -280,7 +282,7 @@ float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharac
 {
 	if(!bCanBecomeAggressive) return -1.f;
 	float Score = 0.f;
-	if(TargetInformationComponent->GetIsCurrentTarget()) Score += 4.f;
+	if(TargetInformationComponent->GetIsCurrentTarget()) Score += BIG_NUMBER; //we want the current target to be always aggressive when possible 
 	//Aggression priority
 	if(AggressionRange > 0.f) Score += AggressionPriority * (1.f - std::min(FVector::Distance(PlayerCharacter->GetActorLocation(),
 			GetActorLocation())/AggressionRange, 1.0));
@@ -297,21 +299,61 @@ void AOpponentCharacter::BeginPlay()
 	CharacterStats = new FCharacterStats();
 	CharacterStats->FromBase(BaseStats, StatsModifiers, this);
 	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &AOpponentCharacter::OnSelectMotionWarpingTarget);
+	CharacterStats->Attacks.OnModeChanged.BindUObject(this, &AOpponentCharacter::OnAttackTreeRootChanged);
+	if(IsValid(ToughnessBrokenAnimation)) ToughnessBrokenTime = ToughnessBrokenAnimation->GetPlayLength();
 
 	HealthWidgetComponent->OnHealthMonitorWidgetInitialized.AddDynamic(this, &AOpponentCharacter::RegisterHealthInfoWidget);
 	Super::BeginPlay();
 }
 
-void AOpponentCharacter::OnDeathTriggered()
+bool AOpponentCharacter::TriggerDeath()
 {
-	Super::OnDeathTriggered();
+	if(!Super::TriggerDeath()) return false;
 	bCanBecomeAggressive = false;
+	return true;
+}
+
+void AOpponentCharacter::GetStaggered(bool HeavyStagger)
+{
+	Super::GetStaggered(false);
+	CharacterStats->ReduceToughness(5);
+}
+
+bool AOpponentCharacter::TriggerToughnessBroken()
+{
+	if(!Super::TriggerToughnessBroken()) return false;
+	PlayAnimMontage(ToughnessBrokenAnimation);
+	CharacterStats->ReceiveTrueDamage(100.f);
+	return true;
+}
+
+void AOpponentCharacter::RestoreToughness()
+{
+	Super::RestoreToughness();
+}
+
+void AOpponentCharacter::OnGetAttacked(const FAttackDamageEvent* DamageEvent)
+{
+	PlayHitSound(DamageEvent->HitLocation);
+	SpawnHitFX(DamageEvent->HitLocation, DamageEvent->HitFXScaleFactor);
+
+	//opponents can get staggered by attacks (without toughness break)
+	const uint32 CasePerThousand = FMath::RandRange(0, 1000);
+	const bool AttackStaggers = CasePerThousand <= DamageEvent->StaggerChance;
+	if(AttackStaggers)
+	{
+		GetStaggered(false);
+	}
+		
+	// ReSharper disable once CppExpressionWithoutSideEffects
+	DamageEvent->OnHitRegistered.ExecuteIfBound(AttackStaggers);
+	OnHitTimeDilation(AttackStaggers);
 }
 
 float AOpponentCharacter::CanAttackInSeconds() const
 {
 	const float ShortestCd = EarliestAttackSeconds(CharacterStats->Attacks.GetCurrentNode(GetWorld()));
-	const float RemainingComboTime = CharacterStats->Attacks.GetLatestAttackProperties().MaxComboTime - GetWorld()->RealTimeSeconds;
+	const float RemainingComboTime = CharacterStats->Attacks.GetComboExpirationTime() - GetWorld()->RealTimeSeconds;
 
 	//if the shortest cd remaining is longer than the remaining combo time, the combo will reset and
 	//only attacks going from the root node can be accessed
@@ -326,8 +368,7 @@ float AOpponentCharacter::EarliestAttackSeconds(const UGenericGraphNode* SourceN
 	float ShortestCd = std::numeric_limits<float>::max();
 	for(const UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
-		const FAttackProperties& AttackProperties = CastChecked<UAttackTreeNode>(ChildNode)->GetAttackProperties();
-		float RemainingCdTime = AttackProperties.CdTimeRemaining();
+		const float RemainingCdTime = CastChecked<UAttackNode>(ChildNode)->CdTimeRemaining();
 		if(RemainingCdTime <= 0.f) return 0.f;
 		if(RemainingCdTime < ShortestCd)
 		{

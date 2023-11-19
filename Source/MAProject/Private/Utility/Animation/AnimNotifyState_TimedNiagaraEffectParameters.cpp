@@ -52,10 +52,26 @@ UFXSystemComponent* UAnimNotifyState_TimedNiagaraEffectParameters::SpawnEffect(U
 			NiagaraSystem->SetVariableFloat(Parameter.VariableName, Parameter.Value);
 		}
 	}
+	for(const FVectorParameter& Parameter : VectorParameters)
+	{
+		if(Parameter.bUseMeshScaling)
+		{
+			NiagaraSystem->SetVariableVec3(Parameter.VariableName,
+				Parameter.Value * MeshComp->GetComponentScale());
+		}
+		else
+		{
+			NiagaraSystem->SetVariableVec3(Parameter.VariableName, Parameter.Value);
+		}
+	}
 	
 	for(const FMaterialParameter& Parameter : MaterialParameters)
 	{
 		NiagaraSystem->SetVariableMaterial(Parameter.VariableName, Parameter.Material);
+	}
+	for(const FLinearColorParameter& Parameter : LinearColorParameters)
+	{
+		NiagaraSystem->SetVariableLinearColor(Parameter.VariableName, Parameter.Value);
 	}
 	
 	return NiagaraSystem;

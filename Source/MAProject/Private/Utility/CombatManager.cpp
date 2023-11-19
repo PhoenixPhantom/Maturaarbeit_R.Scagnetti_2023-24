@@ -3,7 +3,7 @@
 
 #include "Utility/CombatManager.h"
 
-#include "Characters/Fighters/Attacks/AttackTree/AttackTreeNode.h"
+#include "Characters/Fighters/Attacks/AttackTree/AttackNode.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,14 +15,14 @@ bool FAggressorInfo::operator==(const FAggressorInfo& AggressionData) const
 		RequestedTokens == AggressionData.RequestedTokens;
 }
 
-FScoredAggressorInfo::FScoredAggressorInfo(AOpponentCharacter* NewHolder, UAttackTreeNode* AttackTreeNode,
+FScoredAggressorInfo::FScoredAggressorInfo(AOpponentCharacter* NewHolder, UAttackNode* AttackTreeNode,
 	float NewScore, uint32 NewTokens) : FAggressorInfo(NewHolder, AttackTreeNode, NewTokens), Score(NewScore)
 {
 }
 
 // Sets default values
 ACombatManager::ACombatManager() : PlayerCharacter(nullptr), MaxAggressionTokens(2),
-	AvailableAggressionTokens(MaxAggressionTokens), PreferBestScorePower(4.f)
+	AvailableAggressionTokens(MaxAggressionTokens)
 {
 #if WITH_EDITORONLY_DATA
 	PrimaryActorTick.bCanEverTick = true;
@@ -155,14 +155,14 @@ bool ACombatManager::MakePassiveParticipant(int32 Index)
 	return true;
 }
 
-float ACombatManager::GetAttackValue(UAttackTreeNode* AttackNode, AOpponentCharacter* Attacker)
+float ACombatManager::GetAttackValue(UAttackNode* AttackNode, AOpponentCharacter* Attacker)
 {
 	if(!IsValid(AttackNode) || !IsValid(Attacker)) return -1.f;
 	//getOverallValue is normally under 12.5 and the character's attack stat is around 100
 	//Since we want the attack score to weigh about half as much as the aggression score, we multiply with  ~6/12500
 	//(6 for the expected highest amount for the optimal target)
 	return 0.0004f * static_cast<float>(Attacker->GetCharacterStats()->Attack.GetResulting()) *
-		AttackNode->GetAttackProperties().GetOverallValue();
+		AttackNode->GetAttackProperties().GetOverallValue(); //we just look at the "default attack", even if this might not always make sense
 }
 
 void ACombatManager::AttemptDistributeFreeTokens()
@@ -180,7 +180,7 @@ void ACombatManager::AttemptDistributeFreeTokens()
 		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
 		if(Score >= 0.f)
 		{
-			UAttackTreeNode* RequestedAttack = Participant->GetRandomValidAttack();
+			UAttackNode* RequestedAttack = Participant->GetRandomValidAttack();
 			Score += GetAttackValue(RequestedAttack, Participant);
 
 			//Add the information generated to the list in the correct place
@@ -234,7 +234,7 @@ void ACombatManager::RequestToken(AOpponentCharacter* Requestor)
 	float RequestorScore = Requestor->GenerateAggressionScore(PlayerCharacter);
 	if(RequestorScore < 0.f) return;
 	
-	UAttackTreeNode* DesiredAttack = Requestor->GetRandomValidAttack();
+	UAttackNode* DesiredAttack = Requestor->GetRandomValidAttack();
 	RequestorScore += GetAttackValue(DesiredAttack, Requestor);
 	
 	for(AOpponentCharacter* Participant : ActiveParticipants)
@@ -243,7 +243,7 @@ void ACombatManager::RequestToken(AOpponentCharacter* Requestor)
 		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
 		if(Score >= 0.f)
 		{
-			UAttackTreeNode* RequestedAttack = Participant->GetRequestedAttack();
+			UAttackNode* RequestedAttack = Participant->GetRequestedAttack();
 			Score += GetAttackValue(RequestedAttack, Participant);
 			//only lower priorities can be overridden by the new requestor
 			if(Score >= RequestorScore) OverridableTokens -= Participant->GetRequestedTokens();

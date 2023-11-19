@@ -7,7 +7,7 @@
 #include "PlayerFacingWidgetComponent.generated.h"
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthMonitorWidgetInitializedDelegate, UHealthMonitorBaseWidget*, Widget);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthMonitorWidgetInitializedDelegate, UStatsMonitorBaseWidget*, Widget);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class MAPROJECT_API UPlayerFacingWidgetComponent : public UWidgetComponent

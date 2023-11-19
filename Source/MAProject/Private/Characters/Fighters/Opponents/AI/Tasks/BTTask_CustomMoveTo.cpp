@@ -83,20 +83,20 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecutePreferCurrent(AFighterCharacter
 {
 	if(Character->IsRunning())
 	{
-		if(Character->GetAcceptedInputs().bCanRun)
+		if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Sprint))
 		{
 			return Super::ExecuteTask(OwnerComp, NodeMemory);
 		}
-		if(Character->GetAcceptedInputs().MovementProperties.bCanWalk)
+		if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Walk))
 			Character->SwitchMovementToWalk(FSetWalkOrRunKey());
 	}
 	if(Character->IsWalking())
 	{
-		if(Character->GetAcceptedInputs().MovementProperties.bCanWalk)
+		if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Walk))
 		{
 			return Super::ExecuteTask(OwnerComp, NodeMemory);
 		}
-		if(Character->GetAcceptedInputs().bCanRun) Character->SwitchMovementToRun(FSetWalkOrRunKey());
+		if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Sprint)) Character->SwitchMovementToRun(FSetWalkOrRunKey());
 	}
 	return EBTNodeResult::Failed;
 }
@@ -104,11 +104,11 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecutePreferCurrent(AFighterCharacter
 EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteForceKeepCurrent(AFighterCharacter* Character,
 	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	if(Character->IsRunning() && Character->GetAcceptedInputs().bCanRun)
+	if(Character->IsRunning() && Character->GetAcceptedInputs().IsAllowedInput(EInputType::Sprint))
 	{
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
 	}
-	if(Character->IsWalking() && Character->GetAcceptedInputs().MovementProperties.bCanWalk)
+	if(Character->IsWalking() && Character->GetAcceptedInputs().IsAllowedInput(EInputType::Walk))
 	{
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
 	}
@@ -119,12 +119,12 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteForceKeepCurrent(AFighterCharac
 EBTNodeResult::Type UBTTask_CustomMoveTo::ExecutePreferWalking(AFighterCharacter* Character,
 	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	if(Character->GetAcceptedInputs().MovementProperties.bCanWalk)
+	if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Walk))
 	{
 		Character->SwitchMovementToWalk(FSetWalkOrRunKey());
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
 	}
-	if(Character->GetAcceptedInputs().bCanRun)
+	if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Sprint))
 	{
 		Character->SwitchMovementToRun(FSetWalkOrRunKey());
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
@@ -136,12 +136,12 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecutePreferWalking(AFighterCharacter
 EBTNodeResult::Type UBTTask_CustomMoveTo::ExecutePreferRunning(AFighterCharacter* Character,
 	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	if(Character->GetAcceptedInputs().bCanRun)
+	if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Sprint))
 	{
 		Character->SwitchMovementToRun(FSetWalkOrRunKey());
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
 	}
-	if(Character->GetAcceptedInputs().MovementProperties.bCanWalk)
+	if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Walk))
 	{
 		Character->SwitchMovementToWalk(FSetWalkOrRunKey());
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
@@ -153,7 +153,7 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecutePreferRunning(AFighterCharacter
 EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteForceWalking(AFighterCharacter* Character,
                                                          UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	if(Character->GetAcceptedInputs().MovementProperties.bCanWalk)
+	if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Walk))
 	{
 		Character->SwitchMovementToWalk(FSetWalkOrRunKey());
 		return Super::ExecuteTask(OwnerComp, NodeMemory);
@@ -165,7 +165,7 @@ EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteForceWalking(AFighterCharacter*
 EBTNodeResult::Type UBTTask_CustomMoveTo::ExecuteForceRunning(AFighterCharacter* Character,
 	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	if(Character->GetAcceptedInputs().bCanRun)
+	if(Character->GetAcceptedInputs().IsAllowedInput(EInputType::Sprint))
 	{
 		Character->SwitchMovementToRun(FSetWalkOrRunKey());
 		return Super::ExecuteTask(OwnerComp, NodeMemory);

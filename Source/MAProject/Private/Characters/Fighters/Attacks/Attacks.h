@@ -5,10 +5,12 @@
 #include "CoreMinimal.h"
 #include "AttackProperties.h"
 #include "Characters/Fighters/Attacks/AttackTree/AttackTreeEdge.h"
+#include "Utility/Animation/CustomAnimInstance.h"
 #include "Attacks.generated.h"
 
 
-class UAttackTreeNode;
+class UAttackTreeRootNode;
+class UAttackNode;
 class UAttackTree;
 class UGenericGraphNode;
 
@@ -16,37 +18,64 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnExecuteAttackDelegate, const FAtt
 DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnCheckCanExecuteAttackDelegate, const FAttackProperties&, AttackProperties);
 
 //this useless class is required for Attacks.generated.h to be generated from the UHT,
-//which is required for a working definition of the two delegates
+//which is somehow required for a working definition of the two delegates
 USTRUCT()
-struct FCompilationDummy
+struct FCompilationDummy final
 {
 	GENERATED_BODY();
+};
+
+struct FSetAttackTreeModeIdentifier
+{
+	friend class AFighterCharacter;
+private:
+	FSetAttackTreeModeIdentifier(){}
 };
 
 
 struct FAttacks
 {
 public:
+	TDelegate<void()> OnModeChanged;
 	FOnExecuteAttackDelegate OnExecuteAttack;
 	FOnCheckCanExecuteAttackDelegate OnCheckCanExecuteAttack;
 	
-	FAttacks() : NodeAccessTime(-1.f), AttackTree(nullptr), CurrentNode(nullptr){}
-	FAttacks(UAttackTree* AttackTree, UObject* Outer);
+	FAttacks() : ComboExpirationTime(0.0), PendingAttackProperties(nullptr), AttackTree(nullptr), CurrentNode(nullptr){}
 
-	const FAttackProperties& GetLatestAttackProperties() const;
-	const UAttackTreeNode* GetCurrentNode(UWorld* WorldContext) const;
-	const UGenericGraphNode* GetRootNode() const;
+	FAttacks(UAttackTree const* AttackTree, UObject* Outer);
+
+	bool HasPendingAttackProperties() const { return PendingAttackProperties != nullptr; }
+	FAttackProperties const* GetPendingAttackProperties() const { return PendingAttackProperties; }
+	void ClearPendingAttackPropertiesInternal(){ PendingAttackProperties = nullptr; }
+	double GetComboExpirationTime() const { return ComboExpirationTime; }
+	
+	const UGenericGraphNode* GetCurrentNode(UWorld* WorldContext) const;
+	const UGenericGraphNode* GetRootNode() const{ return GetRootNodeInternal(); }
+
+	void SetModeIdentifier(const FString& ModeIdentifier, FSetAttackTreeModeIdentifier);
 
 	/// Execute the attack by either continuing the current combo string or by starting a new string from the root node
-	bool ExecuteAttack(AttackIndex Index, UWorld* WorldContext);
-	bool ExecuteAttackFromNode(UAttackTreeNode* NodeToExecute, UWorld* WorldContext);
+	bool ExecuteAttack(AttackIndex Index, const AActor* PlayingInstance, UWorld* WorldContext);
+	bool ExecuteAttackFromNode(UAttackNode* NodeToExecute, const AActor* PlayingInstance, UWorld* WorldContext);
+
+	void ForceSetCd(const FString& NodeIdentifier, float RemainingCd);
+	void ForceChangeCdBy(const FString& NodeIdentifier, float CdChange);
 
 	bool operator==(const FAttacks& Attacks) const;
+
 protected:
-	double NodeAccessTime;
-	
+	double ComboExpirationTime;
+	FAttackProperties const* PendingAttackProperties;
+
+	FString RootNodeIdentifier;
+	TArray<UAttackTreeRootNode*> PreCastedRootNodes;
+	TArray<UAttackNode*> PreCastedAttackNodes;
 	UAttackTree* AttackTree;
-	UAttackTreeNode* CurrentNode;
+	UGenericGraphNode* CurrentNode;
+
+	UGenericGraphNode* FAttacks::GetRootNodeInternal() const;
+
+	void ExecuteAttackInternal(UAttackNode* Node, const FAttackProperties& Properties, UWorld* WorldContext);
 
 	FORCEINLINE bool HasExceededComboTime(UWorld* WorldContext) const;
 };

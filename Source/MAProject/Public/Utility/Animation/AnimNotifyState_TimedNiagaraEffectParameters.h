@@ -36,6 +36,35 @@ struct FFloatParameter
 	bool bUseMeshScaling;
 };
 
+USTRUCT()
+struct FVectorParameter
+{
+	GENERATED_BODY()
+	FVectorParameter(): bUseMeshScaling(false){}
+
+	UPROPERTY(EditAnywhere)
+	FName VariableName;
+
+	UPROPERTY(EditAnywhere)
+	FVector Value;
+
+	UPROPERTY(EditAnywhere)
+	bool bUseMeshScaling;
+};
+
+USTRUCT()
+struct FLinearColorParameter
+{
+	GENERATED_BODY()
+	FLinearColorParameter(): Value(1.f, 1.f, 1.f, 1.f){}
+
+	UPROPERTY(EditAnywhere)
+	FName VariableName;
+
+	UPROPERTY(EditAnywhere)
+	FLinearColor Value;
+};
+
 /**
  * 
  */
@@ -57,6 +86,12 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	TArray<FMaterialParameter> MaterialParameters;
+
+	UPROPERTY(EditAnywhere)
+	TArray<FLinearColorParameter> LinearColorParameters;
+	
+	UPROPERTY(EditAnywhere)
+	TArray<FVectorParameter> VectorParameters;
 
 	UPROPERTY(EditAnywhere, meta=(ToolTip="Name of the Niagara variable that stores the desired playback length (leave empty if none exists)"))
 	FName PlayLengthName;

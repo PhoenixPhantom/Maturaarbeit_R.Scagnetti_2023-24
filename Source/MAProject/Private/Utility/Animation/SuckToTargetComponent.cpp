@@ -34,6 +34,11 @@ void USuckToTargetComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 }
 
+void USuckToTargetComponent::InterruptWarping(FInterruptMotionWarpingKey)
+{
+	PrimaryComponentTick.SetTickFunctionEnable(false);
+}
+
 void USuckToTargetComponent::SetOrUpdateWarpTarget(const FWarpInformation& WarpInformation)
 {
 	if(IsWarping()) PrimaryComponentTick.SetTickFunctionEnable(false);

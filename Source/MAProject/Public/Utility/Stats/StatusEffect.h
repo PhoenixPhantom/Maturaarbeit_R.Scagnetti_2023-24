@@ -18,12 +18,13 @@ class MAPROJECT_API UStatusEffect : public UActorComponent
 public:
 	UStatusEffect();
 
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
 	UFUNCTION(BlueprintNativeEvent)
 	void OnEffectApplied(AGeneralCharacter* Target);
 
+	UFUNCTION(BlueprintNativeEvent)
+	void OnEffectRemoved(AGeneralCharacter* Target);
+
 protected:
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY()
 	AGeneralCharacter* EffectTarget;
 };

@@ -13,6 +13,13 @@ private:
 		FStartMotionWarpingKey(){}
 };
 
+struct FInterruptMotionWarpingKey final
+{
+	friend class APlayerCharacter;
+private:
+		FInterruptMotionWarpingKey(){}
+};
+
 enum class EWarpType : uint8
 {
 	None,
@@ -72,7 +79,8 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
-	FORCEINLINE void StartWarping(float WarpTime, FStartMotionWarpingKey Key){ StartWarpingInternal(WarpTime); }
+	FORCEINLINE void StartWarping(float WarpTime, FStartMotionWarpingKey){ StartWarpingInternal(WarpTime); }
+	FORCEINLINE void InterruptWarping(FInterruptMotionWarpingKey);
 
 	FORCEINLINE bool IsWarping() const { return RemainingWarpTime > 0.f; }
 

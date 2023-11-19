@@ -40,6 +40,40 @@ public:
 	}
 };
 
+template<typename Value, typename Percentage>
+class TMaxedValue{
+public:
+	typedef TScalable<Value, Percentage> FMaxVal;
+	
+	FMaxVal Maximum;
+	Value Current;
+	
+	TMaxedValue() : Maximum(0, 0, 0), Current(0){};
+	TMaxedValue(const Value& NewBase, const Value& NewFlatBonus, const Percentage& NewPercentageBonus) :
+		Maximum(NewBase, NewFlatBonus, NewPercentageBonus){ Current = Maximum.GetResulting(); }
+	TMaxedValue(const FMaxVal& Scalable) : Maximum(Scalable){ Current = Maximum.GetResulting(); }
+	TMaxedValue(const TMaxedValue& MaxedValue) : Maximum(MaxedValue), Current(MaxedValue.Current){}
+
+	void SetBaseMax(const Value& NewBase)
+	{
+		Maximum.Base = NewBase;
+		Current = Maximum.GetResulting();
+	}
+	void AddBonuses(const Value& FlatBonus, const Percentage& PercentageBonus)
+	{
+		const double CurrentRatio = static_cast<double>(Current)/static_cast<double>(Maximum.GetResulting());
+		Maximum.FlatBonus += FlatBonus;
+		Maximum.FlatBonus += PercentageBonus;
+		const double NewCurrent = round(CurrentRatio * static_cast<double>(Maximum.GetResulting()));
+		Current = (Current != 0 && NewCurrent == 0.0 ? 1.0 : NewCurrent);
+	}
+	
+	bool operator==(const TMaxedValue& Scalable) const
+	{
+		return Maximum == Scalable.Maximum && Current == static_cast<Value>(Scalable.Current);
+	}
+};
+
 USTRUCT()
 struct MAPROJECT_API FSavableModifiersBase
 {
@@ -78,11 +112,35 @@ struct MAPROJECT_API FGeneralBaseStats
 	uint32 BaseDefense;	
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedDelegate, uint32, NewHelath, uint32, OldHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedDelegate, int32, New, int32, Old);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMaxHealthChangedDelegate, int32, NewCurrent, int32, NewMax);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetDamagedDelegate,  const FCustomDamageEvent&, DamageEvent);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNoHealthReachedDelegate, const FCustomDamageEvent&, DamageEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMinHealthReachedDelegate);
 
 #define USE_UE5_DELEGATE false
+
+USTRUCT(BlueprintType)
+struct FGeneralObjectStatsBuffs
+{
+	GENERATED_BODY()
+public:
+	FGeneralObjectStatsBuffs() : HealthBuff(0), AttackBuff(0), DefenseBuff(0), FlatHealth(0), FlatAttack(0),
+	                             FlatDefense(0){}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
+	float HealthBuff;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
+	float AttackBuff;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
+	float DefenseBuff;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ForceUnits="HP"))
+	float FlatHealth;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FlatAttack;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FlatDefense;
+};
+
 
 struct FGeneralObjectStats
 {
@@ -90,6 +148,7 @@ struct FGeneralObjectStats
 	virtual ~FGeneralObjectStats() = default;
 
 	FOnHealthChangedDelegate OnHealthChanged;
+	FOnMaxHealthChangedDelegate OnMaxHealthChanged;
 
 #if USE_UE5_DELEGATE
 	FOnGetDamagedDelegate OnGetDamaged;
@@ -97,11 +156,10 @@ struct FGeneralObjectStats
 	//TODO: This is a hack to make passing FCustomDamageEvent* through without loss or errors
 	TDelegate<void(const FCustomDamageEvent*)> OnGetDamaged;
 #endif
-	FOnNoHealthReachedDelegate OnNoHealthReached;
+	FOnMinHealthReachedDelegate OnNoHealthReached;
 
 	//Represents the current health of the object. Should not be changed directly but through ReceiveDamage
-	uint32 Health;
-	TScalable<uint32, float> MaxHealth;
+	TMaxedValue<int32, float> Health;
 
 	TScalable<int32, float> Attack;
 	TScalable<int32, float> Defense;
@@ -110,8 +168,12 @@ struct FGeneralObjectStats
 	bool operator==(const FGeneralObjectStats& GeneralObjectStats) const;
 
 	void FromBase(const FGeneralBaseStats& Stats, const FSavableModifiersBase& Modifiers);
+	void Buff(const FGeneralObjectStatsBuffs& Buffs);
+	void Debuff(const FGeneralObjectStatsBuffs& Buffs);
 
 	virtual float GetDamageOutput() const;
 	virtual void GenerateDamageEvent(FCustomDamageEvent& DamageEvent, const FHitResult& HitResult = FHitResult()) const = 0;
-	uint32 ReceiveDamage(float Damage, const FCustomDamageEvent* DamageInfo);
+	int32 ReceiveDamage(float Damage, const FCustomDamageEvent* DamageInfo);
+	int32 ReceiveDamage(float Damage){ return ReceiveTrueDamage(Damage/static_cast<float>(Defense.GetResulting())); }
+	int32 ReceiveTrueDamage(int32 Damage);
 };

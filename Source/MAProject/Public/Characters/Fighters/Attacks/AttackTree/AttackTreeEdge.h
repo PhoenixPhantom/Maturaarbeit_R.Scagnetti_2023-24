@@ -6,7 +6,7 @@
 #include "GenericGraphEdge.h"
 #include "AttackTreeEdge.generated.h"
 
-class UAttackTreeNode;
+class UAttackNode;
 
 
 typedef int32 AttackIndex;

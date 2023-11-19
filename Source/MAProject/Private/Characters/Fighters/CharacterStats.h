@@ -29,14 +29,14 @@ struct MAPROJECT_API FCharacterBaseStats : public FGeneralBaseStats
 {
 	GENERATED_BODY()
 	
-	FCharacterBaseStats() : BaseWalkSpeed(600), RunSpeedup(100), DashFactor(2.f), BaseInterruptionResistance(0),
-	                        AttackTree(nullptr)
+	FCharacterBaseStats() : BaseWalkSpeed(600), RunSpeedup(100), DashFactor(2.f), BaseToughness(30),
+		BaseInterruptionResistance(0), AttackTree(nullptr)
 	{
 	}
 
 	FCharacterBaseStats(const FCharacterBaseStats& Source) : BaseWalkSpeed(Source.BaseWalkSpeed),
-	        RunSpeedup(Source.RunSpeedup), DashFactor(Source.RunSpeedup),
-			BaseInterruptionResistance(Source.BaseInterruptionResistance), AttackTree(Source.AttackTree)
+		RunSpeedup(Source.RunSpeedup), DashFactor(Source.RunSpeedup), BaseToughness(Source.BaseToughness),
+		BaseInterruptionResistance(Source.BaseInterruptionResistance), AttackTree(Source.AttackTree)
 	{
 	};
 
@@ -51,28 +51,75 @@ struct MAPROJECT_API FCharacterBaseStats : public FGeneralBaseStats
 	UPROPERTY(EditDefaultsOnly, meta=(ForceUnits="x"))
 	float DashFactor;
 
+	UPROPERTY(EditDefaultsOnly)
+	int32 BaseToughness;
 	
 	UPROPERTY(EditDefaultsOnly)
-	uint32 BaseInterruptionResistance;
+	int32 BaseInterruptionResistance;
 
 	
 	UPROPERTY(EditDefaultsOnly)
 	UAttackTree* AttackTree;
 };
 
+USTRUCT(BlueprintType)
+struct FCharacterStatsBuffs : public FGeneralObjectStatsBuffs
+{
+	GENERATED_BODY()
+public:
+	FCharacterStatsBuffs() : WalkSpeedBuff(0), RunSpeedBuff(0), InterruptionResBuff(0), ToughnessBuff(0),
+	                         FlatWalkSpeed(0), FlatRunSpeed(0), FlatInterruptionRes(0), FlatToughness(0)
+	{
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
+	float WalkSpeedBuff;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
+	float RunSpeedBuff;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
+	float InterruptionResBuff;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
+	float ToughnessBuff;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="m/s"))
+	float FlatWalkSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="m/s"))
+	float FlatRunSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FlatInterruptionRes;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float FlatToughness;
+};
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnToughnessChangedDelegate, int32, New, int32, Old);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMaxToughnessChangedDelegate, int32, NewCurrent, int32, NewMax);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMinToughnessReachedDelegate);
+
 struct FCharacterStats : public FGeneralObjectStats
 {
+	typedef FGeneralObjectStats Super;
 	FCharacterStats();
+
+	FOnToughnessChangedDelegate OnToughnessChanged;
+	FOnMaxToughnessChangedDelegate OnMaxToughnessChanged;
+	FOnMinToughnessReachedDelegate OnNoToughnessReached;
 	
 	TScalable<float, float> WalkSpeed;
 	TScalable<float, float> RunSpeed;
+	float RunSpeedupFactor;
 	float DashFactor;
-	TScalable<uint32, float> InterruptionResistance;
+	TScalable<int32, float> InterruptionResistance;
+	TMaxedValue<int32, float> Toughness;
 
 	FAttacks Attacks;
 
 	void FromBase(const FCharacterBaseStats& Stats, const FSavableCharacterModifiers& Modifiers, UObject* Outer);
+	void RecalculateBaseRunSpeed();
 	float GetDashSpeed() const { return RunSpeed.GetResulting() * DashFactor; }
+	void Buff(const FCharacterStatsBuffs& Buffs);
+	void Debuff(const FCharacterStatsBuffs& Buffs);
+	void ReduceToughness(int32 ToughnessBreak);
+	void RefillToughness();
 
 	virtual float GetDamageOutput() const override;
 	virtual void GenerateDamageEvent(FCustomDamageEvent& DamageEvent, const FHitResult& HitResult = FHitResult()) const override;

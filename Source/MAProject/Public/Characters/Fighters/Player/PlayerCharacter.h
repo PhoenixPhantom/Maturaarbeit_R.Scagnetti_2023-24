@@ -14,7 +14,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
-class UHealthMonitorBaseWidget;
+class UStatsMonitorBaseWidget;
 
 DECLARE_DELEGATE(FOnInputRepeatedDelegate);
 
@@ -33,6 +33,7 @@ struct FStoredInput
 
 	FStoredInput();
 	FStoredInput(double CurrentTime, EInputType AttemptedActionType, const TDelegate<void()>& AttemptedAction);
+	void TryUpdateStoredInput(double CurrentTime, double MaxInputWindow, EInputType AttemptedActionType, const TFunction<void()>& AttemptedAction);
 	bool IsValid() const { return ActionType != EInputType::Undefined && RequestedAction.IsBound(); }
 	void Invalidate();
 
@@ -89,6 +90,7 @@ protected:
 	FPlayerUserSettings* PlayerUserSettings;
 	FStoredInput LastInput;
 	TDelegate<void(const FVector2D&)> OnPlayerMovedCamera;
+	TDelegate<void(bool)> OnAttackInterrupted;
 
 	
 
@@ -111,7 +113,7 @@ protected:
 	TSubclassOf<UCameraShakeBase> InduceStaggerCameraShake;
 
 	UPROPERTY(EditAnywhere, Category = UserInterface)
-	TSubclassOf<UHealthMonitorBaseWidget> HealthWidgetClass;
+	TSubclassOf<UStatsMonitorBaseWidget> HealthWidgetClass;
 	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;
@@ -154,13 +156,14 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual bool TriggerToughnessBroken() override;
 
-	virtual void QueueFollowUpLimit(const TArray<FInputLimits>& InputLimits) override;
+	virtual void QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits) override;
 	virtual void GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit) override;
 	virtual void OnHitTimeDilation(bool WasStaggered) override{} // the player should not get staggered on enemy attacks
 
-	virtual void CharacterLanded();
-	virtual void CharacterInAir();
+	virtual void CharacterLanded() override;
+	virtual void CharacterInAir() override;
 
 	
 	void TryJump();
@@ -183,7 +186,9 @@ protected:
 
 	void UpdateTargetSelection();
 	bool IsOccluded(ETraceTypeQuery TraceType, const FVector& ObserverLocation, const FVector& TargetCenter, const FVector& TargetExtent, AActor* TargetActor) const;
-	
+
+	UFUNCTION()
+	void AttackInterrupted(bool IsLimitDurationOver);
 	UFUNCTION()
 	void OnSelectMotionWarpingTarget(const FAttackProperties& Properties);
 };
