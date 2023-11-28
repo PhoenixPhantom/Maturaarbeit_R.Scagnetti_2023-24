@@ -8,6 +8,7 @@
 #include "PlayerPartyController.h"
 #include "PlayerCharacter.generated.h"
 
+class UPlayerStatsMonitorBaseWidget;
 class USphereComponent;
 class UTargetInformationComponent;
 class USpringArmComponent;
@@ -97,6 +98,9 @@ protected:
 	UPROPERTY()
 	UTargetInformationComponent* CurrentTarget;
 
+	UPROPERTY()
+	UPlayerStatsMonitorBaseWidget* PlayerStatsMonitor;
+
 	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay)
 	float AutotargetingRange;
 
@@ -113,7 +117,7 @@ protected:
 	TSubclassOf<UCameraShakeBase> InduceStaggerCameraShake;
 
 	UPROPERTY(EditAnywhere, Category = UserInterface)
-	TSubclassOf<UStatsMonitorBaseWidget> HealthWidgetClass;
+	TSubclassOf<UPlayerStatsMonitorBaseWidget> HealthWidgetClass;
 	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;
@@ -165,6 +169,11 @@ protected:
 	virtual void CharacterLanded() override;
 	virtual void CharacterInAir() override;
 
+	virtual void OnAttackTreeModeChanged(FString NewRoot) override;
+
+	virtual void OnNewStatusEffectReceived(UStatusEffect* StatusEffect) override;
+	virtual void OnStatusEffectRemoved() override;
+
 	
 	void TryJump();
 	void EndJump();
@@ -187,6 +196,8 @@ protected:
 	void UpdateTargetSelection();
 	bool IsOccluded(ETraceTypeQuery TraceType, const FVector& ObserverLocation, const FVector& TargetCenter, const FVector& TargetExtent, AActor* TargetActor) const;
 
+	UFUNCTION()
+	void OnCdSet(UAttackNode* IdentifiedNode, int32 Index);
 	UFUNCTION()
 	void AttackInterrupted(bool IsLimitDurationOver);
 	UFUNCTION()

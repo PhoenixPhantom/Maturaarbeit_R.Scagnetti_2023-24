@@ -48,19 +48,6 @@ struct MAPROJECT_API FAttackProperties
 
 	bool operator==(const FAttackProperties& AttackProperties) const;
 
-	[[deprecated("Access Priority directly")]]
-	float GetPriority(float DistanceFromTarget) const;
 	float GetOverallValue() const;
 	float GetTotalCdTime() const;
-	/*bool GetIsOnCd() const { return bIsOnCd; }
-	void Execute(UWorld* WorldContext);
-	float CdTimeElapsed() const;
-	float CdTimeRemaining() const;
-
-	UPROPERTY()
-	UWorld* World;
-	
-protected:
-	bool bIsOnCd;
-	FTimerHandle CdHandle;*/
 };

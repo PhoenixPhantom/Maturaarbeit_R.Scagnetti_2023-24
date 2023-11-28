@@ -56,6 +56,7 @@ public:
 	virtual const FAttackProperties& GetAttackProperties(const AActor* PlayingInstance = nullptr) const;
 	virtual bool CanBeCalled(const FString& NodeName) const;
 	bool GetIsOnCd() const { return bIsOnCd; }
+	FTimerHandle GetTimerHandle() const{ return CdHandle; }
 	void Execute();
 	void ForceSetCd(float DesiredCd);
 	float CdTimeElapsed() const;

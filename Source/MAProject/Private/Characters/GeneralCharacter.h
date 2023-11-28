@@ -22,11 +22,12 @@ private:
 	FSetCharacterOpacity(){};
 };
 
-struct FGiveCharacterStatusEffectKey final
+struct FModifyCharacterStatusEffectKey final
 {
 	friend class UAnimNotify_EnterStatusEffect;
+	friend class UStatusEffect;
 private:
-	FGiveCharacterStatusEffectKey(){}
+	FModifyCharacterStatusEffectKey(){}
 };
 
 UCLASS(meta=(PrioritizeCategories = "Debugging Combat OpponentCharacter"))
@@ -58,7 +59,8 @@ public:
 	void SetAllowAutomaticOpacityChanges(bool ShouldAllow, FSetCharacterOpacity){ bAllowAutomaticOpacityChanges = ShouldAllow; };
 	bool GetAllowAutomaticOpacityChanges() const { return bAllowAutomaticOpacityChanges; }
 
-	void ReceiveStatusEffectExternal(TSubclassOf<UStatusEffect> NewEffectType, FGiveCharacterStatusEffectKey){ ReceiveStatusEffect(NewEffectType); };
+	void ReceiveStatusEffectExternal(TSubclassOf<UStatusEffect> NewEffectType, FModifyCharacterStatusEffectKey){ ReceiveStatusEffect(NewEffectType); }
+	void RemoveStatusEffectExternal(UStatusEffect* StatusEffect, FModifyCharacterStatusEffectKey){ RemoveStatusEffectInternal(StatusEffect); }
 
 #if WITH_EDITORONLY_DATA
 	void SetIsDebugging(bool IsDebugging);
@@ -97,6 +99,10 @@ protected:
 	virtual void CharacterInAir();
 	
 	virtual bool TriggerDeath();
+
+	virtual void OnNewStatusEffectReceived(UStatusEffect* StatusEffect){}
+	virtual void OnStatusEffectRemoved(){}
+	void RemoveStatusEffectInternal(UStatusEffect* StatusEffect);
 	
 	bool AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
 							TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const;

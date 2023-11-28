@@ -96,5 +96,8 @@ protected:
 	UPROPERTY(EditAnywhere, meta=(ToolTip="Name of the Niagara variable that stores the desired playback length (leave empty if none exists)"))
 	FName PlayLengthName;
 
+	UPROPERTY(EditAnywhere)
+	FVector NonAttachedScale;
+
 	virtual UFXSystemComponent* SpawnEffect(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) const override;
 };

@@ -6,7 +6,8 @@
 #include "NiagaraFunctionLibrary.h"
 
 
-UAnimNotifyState_TimedNiagaraEffectParameters::UAnimNotifyState_TimedNiagaraEffectParameters() : NotifyTime(0.f)
+UAnimNotifyState_TimedNiagaraEffectParameters::UAnimNotifyState_TimedNiagaraEffectParameters() : NotifyTime(0.f),
+	NonAttachedScale(1.f)
 {
 }
 
@@ -35,7 +36,7 @@ UFXSystemComponent* UAnimNotifyState_TimedNiagaraEffectParameters::SpawnEffect(U
 			MeshComp->GetComponentRotation().RotateVector(LocationOffset)*MeshComp->GetComponentScale().X;
 		NiagaraSystem = UNiagaraFunctionLibrary::SpawnSystemAtLocation(MeshComp->GetWorld(), Template,
 			 Offset + MeshComp->GetComponentLocation(), MeshComp->GetComponentRotation() + RotationOffset,
-			 FVector(1.0), bDestroyAtEnd);
+			 NonAttachedScale, bDestroyAtEnd);
 	}
 
 	if(!PlayLengthName.IsNone()) NiagaraSystem->SetVariableFloat(PlayLengthName, NotifyTime);

@@ -155,8 +155,15 @@ bool AGeneralCharacter::TriggerDeath()
 	return true;
 }
 
+void AGeneralCharacter::RemoveStatusEffectInternal(UStatusEffect* StatusEffect)
+{
+	StatusEffect->OnEffectRemoved_Implementation(this);
+	StatusEffect->DestroyComponent();
+	OnStatusEffectRemoved();
+}
+
 bool AGeneralCharacter::AreMultipleVisible(AActor* Target, ETraceTypeQuery TraceType, const FVector& TraceStart,
-										   TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const
+                                           TArray<FVector>& RemainingEnds, int32 RequiredPositiveTests) const
 {
 	if(RequiredPositiveTests <= 0) return true;
 	if(RemainingEnds.IsEmpty()) return false;
@@ -171,9 +178,20 @@ bool AGeneralCharacter::AreMultipleVisible(AActor* Target, ETraceTypeQuery Trace
 
 void AGeneralCharacter::ReceiveStatusEffect(TSubclassOf<UStatusEffect> NewEffectType)
 {
-	UStatusEffect* NewEffect = NewObject<UStatusEffect>(this, NewEffectType);
-	NewEffect->RegisterComponent();
-	NewEffect->OnEffectApplied(this);
+	TArray<UActorComponent*> MatchingStatusEffects;
+	GetComponents(NewEffectType, MatchingStatusEffects);
+
+	//Re-adding a status effect refreshes only it's duration (but doesn't add the effect twice)
+	if(MatchingStatusEffects.IsEmpty())
+	{
+		UStatusEffect* TargetEffect = NewObject<UStatusEffect>(this, NewEffectType);
+		TargetEffect->RegisterComponent();
+		TargetEffect->OnEffectApplied_Implementation(this);
+		OnNewStatusEffectReceived(TargetEffect);
+		return;
+	}
+	
+	CastChecked<UStatusEffect>(MatchingStatusEffects[0])->ForceRestartTimer(FForceStatusEffectTimerRestartKey());
 }
 
 void AGeneralCharacter::RemoveStatusEffect(TSubclassOf<UStatusEffect> EffectType)
@@ -181,8 +199,7 @@ void AGeneralCharacter::RemoveStatusEffect(TSubclassOf<UStatusEffect> EffectType
 	TArray<UActorComponent*> MatchingStatusEffects;
 	GetComponents(EffectType, MatchingStatusEffects);
 	if(MatchingStatusEffects.IsEmpty()) return;
-	CastChecked<UStatusEffect>(MatchingStatusEffects[0])->OnEffectRemoved(this);
-	MatchingStatusEffects[0]->DestroyComponent();
+	RemoveStatusEffectInternal(CastChecked<UStatusEffect>(MatchingStatusEffects[0]));
 }
 
 

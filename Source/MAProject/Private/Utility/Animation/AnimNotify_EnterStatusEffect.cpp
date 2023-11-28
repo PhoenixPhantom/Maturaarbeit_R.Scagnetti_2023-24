@@ -15,5 +15,5 @@ void UAnimNotify_EnterStatusEffect::Notify(USkeletalMeshComponent* MeshComp, UAn
                                            const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
-	CastChecked<AGeneralCharacter>(MeshComp->GetOwner())->ReceiveStatusEffectExternal(StatusEffectType, FGiveCharacterStatusEffectKey());
+	CastChecked<AGeneralCharacter>(MeshComp->GetOwner())->ReceiveStatusEffectExternal(StatusEffectType, FModifyCharacterStatusEffectKey());
 }

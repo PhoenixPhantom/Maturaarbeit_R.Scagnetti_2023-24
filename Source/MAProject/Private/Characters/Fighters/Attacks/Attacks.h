@@ -36,6 +36,7 @@ private:
 struct FAttacks
 {
 public:
+	TDelegate<void(UAttackNode* IdentifiedNode, AttackIndex)> OnCdChanged;
 	TDelegate<void()> OnModeChanged;
 	FOnExecuteAttackDelegate OnExecuteAttack;
 	FOnCheckCanExecuteAttackDelegate OnCheckCanExecuteAttack;
@@ -54,12 +55,12 @@ public:
 
 	void SetModeIdentifier(const FString& ModeIdentifier, FSetAttackTreeModeIdentifier);
 
+	UAttackNode* GetNodeMatchingIndex(AttackIndex Index);
 	/// Execute the attack by either continuing the current combo string or by starting a new string from the root node
 	bool ExecuteAttack(AttackIndex Index, const AActor* PlayingInstance, UWorld* WorldContext);
 	bool ExecuteAttackFromNode(UAttackNode* NodeToExecute, const AActor* PlayingInstance, UWorld* WorldContext);
 
-	void ForceSetCd(const FString& NodeIdentifier, float RemainingCd);
-	void ForceChangeCdBy(const FString& NodeIdentifier, float CdChange);
+	void ForceSetCd(const FString& NodeIdentifier, float CdTime, bool ChangeBy);
 
 	bool operator==(const FAttacks& Attacks) const;
 

@@ -31,40 +31,11 @@ bool FAttackProperties::operator==(const FAttackProperties& AttackProperties) co
 		AtkAnimation == AttackProperties.AtkAnimation && InputLimits == AttackProperties.InputLimits;
 }
 
-float FAttackProperties::GetPriority(float DistanceFromTarget) const
-{
-	return DistanceFromTarget <= DefaultMovementDistance ? Priority : Priority *
-		(1.f + (DistanceFromTarget-DefaultMovementDistance) / (MaximalMovementDistance-DefaultMovementDistance));
-}
-
 float FAttackProperties::GetOverallValue() const
 {
 	return DamagePercent / 100.f * (static_cast<float>(DamageEvent.StaggerChance)*0.005f + Priority*2.5f) /
 		FMath::Sqrt(AtkAnimation->GetPlayLength());
 }
-/*
-void FAttackProperties::Execute(UWorld* WorldContext)
-{
-	check(IsValid(WorldContext));
-	World = WorldContext;
-	bIsOnCd = true;
-	const float ActualCdTime = GetTotalCdTime();
-	check(ActualCdTime > 0.f);
-	World->GetTimerManager().SetTimer(CdHandle,
-		[this](){ bIsOnCd = false; },ActualCdTime, false);
-}
-
-float FAttackProperties::CdTimeElapsed() const
-{
-	if(!bIsOnCd || !IsValid(World)) return -1.f;
-	return World->GetTimerManager().GetTimerElapsed(CdHandle);
-}
-
-float FAttackProperties::CdTimeRemaining() const
-{
-	if(!bIsOnCd || !IsValid(World)) return -1.f;
-	return World->GetTimerManager().GetTimerRemaining(CdHandle);
-}*/
 
 float FAttackProperties::GetTotalCdTime() const
 {

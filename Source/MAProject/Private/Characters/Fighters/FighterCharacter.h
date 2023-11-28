@@ -131,6 +131,7 @@ protected:
 	virtual bool TriggerToughnessBroken();
 	virtual void RestoreToughness();
 	virtual void OnGetAttacked(const FAttackDamageEvent* DamageEvent);
+	virtual void OnAttackTreeModeChanged(FString NewRoot){}
 
 	virtual void QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits);
 
@@ -150,9 +151,7 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ApplyBuff(const FCharacterStatsBuffs& Buffs);
 	UFUNCTION(BlueprintCallable)
-	void ForceSetCd(FString NodeName, float RemainingCd);
-	UFUNCTION(BlueprintCallable)
-	void ForceChangeCdBy(FString NodeName, float CdChange);
+	void ForceSetCd(FString NodeName, float CdTime, bool ChangeBy = false);
 	UFUNCTION(BlueprintNativeEvent)
 	void OnHealthChanged(int32 NewHealth, int32 OldHealth);
 	UFUNCTION()

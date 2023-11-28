@@ -33,9 +33,9 @@ public:
 	
 	/// @brief Update health bar
 	UFUNCTION()
-	virtual void UpdateHealth(int32 NewHealth, int32 OldHealth);
+	void UpdateHealth(int32 NewHealth, int32 OldHealth){ UpdateHealthInternal(NewHealth, OldHealth); }
 	UFUNCTION()
-	virtual void UpdateMaxHealth(int32 CurrentHealth, int32 NewMaxHealth);
+	void UpdateMaxHealth(int32 CurrentHealth, int32 NewMaxHealth){ UpdateMaxHealthInternal(CurrentHealth, NewMaxHealth); }
 	
 	/// @brief Update toughness bar
 	UFUNCTION()
@@ -53,4 +53,6 @@ protected:
 	UProgressBar* ToughnessBar;
 
 	void SetHealthVisibility(ESlateVisibility NewVisibility);
+	virtual void UpdateHealthInternal(int32 NewHealth, int32 OldHealth);
+	virtual void UpdateMaxHealthInternal(int32 CurrentHealth, int32 NewMaxHealth);
 };

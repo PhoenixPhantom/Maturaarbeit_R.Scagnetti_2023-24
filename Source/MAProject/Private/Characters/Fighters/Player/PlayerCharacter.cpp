@@ -7,14 +7,18 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
+#include "Characters/Fighters/Attacks/AttackTree/AttackNode.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/Image.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "UserInterface/StatsMonitorBaseWidget.h"
+#include "UserInterface/HUD/Playerscreen/PlayerStatsMonitorBaseWidget.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
+#include "Utility/Stats/StatusEffect.h"
 
 
 FStoredInput::FStoredInput() : Timestamp(-1.0), ActionType(EInputType::Undefined)
@@ -166,15 +170,16 @@ AActor* APlayerCharacter::GetCurrentTarget() const
 
 void APlayerCharacter::BeginPlay()
 {
+	check(IsValid(HealthWidgetClass.Get()));
+	PlayerStatsMonitor = CreateWidget<UPlayerStatsMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
+	PlayerStatsMonitor->AddToViewport();
+	RegisterHealthInfoWidget(PlayerStatsMonitor);
+	
 	Super::BeginPlay();
 	OnAttackInterrupted.BindUObject(this, &APlayerCharacter::AttackInterrupted);
 	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &APlayerCharacter::OnSelectMotionWarpingTarget);
+	CharacterStats->Attacks.OnCdChanged.BindUObject(this, &APlayerCharacter::OnCdSet);
 	if(IsValid(GetHitAnimation)) ToughnessBrokenTime = GetHitAnimation->GetPlayLength();
-	
-	check(IsValid(HealthWidgetClass.Get()));
-	UStatsMonitorBaseWidget* HealthMonitor = CreateWidget<UStatsMonitorBaseWidget>(GetWorld(), HealthWidgetClass);
-	HealthMonitor->AddToViewport();
-	RegisterHealthInfoWidget(HealthMonitor);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -262,6 +267,48 @@ void APlayerCharacter::CharacterInAir()
 	AcceptedInputs.LimitAvailableInputs({EInputType::Jump, 0.f}, GetWorld());
 }
 
+void APlayerCharacter::OnAttackTreeModeChanged(FString NewRoot)
+{
+	Super::OnAttackTreeModeChanged(NewRoot);
+	const UAttackNode* SkillNode = CharacterStats->Attacks.GetNodeMatchingIndex(EAttackType::AttackType_Skill);
+	PlayerStatsMonitor->SetSkillTimer(SkillNode->GetTimerHandle());
+	PlayerStatsMonitor->SetTotalSkillCdTime(SkillNode->GetAttackProperties().GetTotalCdTime());
+
+	const UAttackNode* UltimateNode = CharacterStats->Attacks.GetNodeMatchingIndex(EAttackType::AttackType_Ultimate);
+	PlayerStatsMonitor->SetUltimateTimer(UltimateNode->GetTimerHandle());
+	PlayerStatsMonitor->SetTotalUltimateCdTime(UltimateNode->GetAttackProperties().GetTotalCdTime());
+}
+
+void APlayerCharacter::OnNewStatusEffectReceived(UStatusEffect* StatusEffect)
+{
+	Super::OnNewStatusEffectReceived(StatusEffect);
+	StatusEffect->BindImage(PlayerStatsMonitor->GetFirstAvailableImage(), FStatusEffectBindImageKey());
+}
+
+void APlayerCharacter::OnStatusEffectRemoved()
+{
+	Super::OnStatusEffectRemoved();
+	TArray<UActorComponent*> StatusEffectACs;
+	GetComponents(UStatusEffect::StaticClass(), StatusEffectACs);
+	TArray<UStatusEffect*> StatusEffects;
+	for(UActorComponent* ActorComponent : StatusEffectACs)
+	{
+		StatusEffects.Add(CastChecked<UStatusEffect>(ActorComponent));
+	}
+
+	//Reorder the images so they don't have gap in between them
+	while(true)
+	{
+		const UImage* UnconnectedImage = PlayerStatsMonitor->GetFirstUnconnectedImage();
+		if(!IsValid(UnconnectedImage)) return;
+		for(UStatusEffect* StatusEffect : StatusEffects){
+			if(!StatusEffect->IsBoundImage(UnconnectedImage)) continue;
+			StatusEffect->BindImage(PlayerStatsMonitor->GetFirstAvailableImage(), FStatusEffectBindImageKey());
+			break;
+		}
+	}
+}
+
 void APlayerCharacter::TryJump()
 {
 	if (!AcceptedInputs.IsAllowedInput(EInputType::Jump))
@@ -291,8 +338,10 @@ void APlayerCharacter::LightAttack()
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Light, this, GetWorld());
-	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	if(CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Light, this, GetWorld()))
+	{
+		AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	}
 }
 
 void APlayerCharacter::HeavyAttack()
@@ -300,13 +349,14 @@ void APlayerCharacter::HeavyAttack()
 	if (!AcceptedInputs.IsAllowedInput(EInputType::Attack))
 	{
 		LastInput.TryUpdateStoredInput(GetWorld()->GetRealTimeSeconds(), MaximalInputWindowTime,
-		                               EInputType::Attack, [this]{ HeavyAttack(); });
+									   EInputType::Attack, [this]{ HeavyAttack(); });
 		return;
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Heavy, this, GetWorld());
-	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	if(CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Heavy, this, GetWorld())){
+		AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	}
 }
 
 void APlayerCharacter::SkillAttack()
@@ -319,8 +369,10 @@ void APlayerCharacter::SkillAttack()
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Skill, this, GetWorld());
-	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	if(CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Skill, this, GetWorld()))
+	{
+		AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	}
 }
 
 void APlayerCharacter::UltimateAttack()
@@ -333,8 +385,10 @@ void APlayerCharacter::UltimateAttack()
 	}
 
 	LastInput.Invalidate();
-	CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Ultimate, this, GetWorld());
-	AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	if(CharacterStats->Attacks.ExecuteAttack(EAttackType::AttackType_Ultimate, this, GetWorld()))
+	{
+		AcceptedInputs.OnInputLimitsReset.Add(OnAttackInterrupted);
+	}
 }
 
 void APlayerCharacter::DashStartRunning()
@@ -615,6 +669,18 @@ bool APlayerCharacter::IsOccluded(ETraceTypeQuery TraceType, const FVector& Obse
 		return !AreMultipleVisible(TargetActor, TraceType, ObserverLocation, Locations, 3);
 	}
 	return false;
+}
+
+void APlayerCharacter::OnCdSet(UAttackNode* IdentifiedNode, int32 Index)
+{
+	if(Index == EAttackType::AttackType_Skill)
+	{
+		PlayerStatsMonitor->SetSkillTimer(IdentifiedNode->GetTimerHandle());
+	}
+	else if(Index == EAttackType::AttackType_Ultimate)
+	{
+		PlayerStatsMonitor->SetUltimateTimer(IdentifiedNode->GetTimerHandle());		
+	}
 }
 
 void APlayerCharacter::AttackInterrupted(bool IsLimitDurationOver)

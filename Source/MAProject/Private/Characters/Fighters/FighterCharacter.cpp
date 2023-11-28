@@ -362,6 +362,7 @@ void AFighterCharacter::RegisterHealthInfoWidget(UStatsMonitorBaseWidget* Widget
 void AFighterCharacter::SetAttackTreeMode(FString ModeIdentifier)
 {
 	CharacterStats->Attacks.SetModeIdentifier(ModeIdentifier, FSetAttackTreeModeIdentifier());
+	OnAttackTreeModeChanged(ModeIdentifier);
 }
 
 void AFighterCharacter::SwitchMovementToWalk(FSetWalkOrRunKey) const
@@ -392,6 +393,7 @@ void AFighterCharacter::BeginPlay()
 		{ OnGetDamaged(DamageEvent); });
 #endif
 	SwitchMovementToWalk(FSetWalkOrRunKey());
+	OnAttackTreeModeChanged("");
 }
 
 void AFighterCharacter::ApplyBuffTimed(const FCharacterStatsBuffs& Buffs, float Duration)
@@ -415,14 +417,9 @@ void AFighterCharacter::ApplyBuff(const FCharacterStatsBuffs& Buffs)
 	CharacterStats->Buff(Buffs);
 }
 
-void AFighterCharacter::ForceSetCd(FString NodeName, float RemainingCd)
+void AFighterCharacter::ForceSetCd(FString NodeName, float CdTime, bool ChangeBy)
 {
-	CharacterStats->Attacks.ForceSetCd(NodeName, RemainingCd);
-}
-
-void AFighterCharacter::ForceChangeCdBy(FString NodeName, float CdChange)
-{
-	CharacterStats->Attacks.ForceChangeCdBy(NodeName, CdChange);
+	CharacterStats->Attacks.ForceSetCd(NodeName, CdTime, ChangeBy);
 }
 
 void AFighterCharacter::OnHealthChanged_Implementation(int32 NewHealth, int32 OldHealth)

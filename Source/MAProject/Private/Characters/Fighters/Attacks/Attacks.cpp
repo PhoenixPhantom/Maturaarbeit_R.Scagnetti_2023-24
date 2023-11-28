@@ -43,6 +43,18 @@ void FAttacks::SetModeIdentifier(const FString& ModeIdentifier, FSetAttackTreeMo
 	OnModeChanged.ExecuteIfBound();
 }
 
+UAttackNode* FAttacks::GetNodeMatchingIndex(AttackIndex Index)
+{
+	UGenericGraphNode* CurrentRoot = GetRootNodeInternal();
+	for(UGenericGraphNode* ChildNode : CurrentRoot->ChildrenNodes){
+		if(CastChecked<UAttackTreeEdge>(CurrentRoot->GetEdge(ChildNode))->IndexCondition == Index)
+		{
+			return CastChecked<UAttackNode>(ChildNode);
+		}
+	}
+	return nullptr;
+}
+
 bool FAttacks::ExecuteAttack(AttackIndex Index, const AActor* PlayingInstance, UWorld* WorldContext)
 {
 	UAttackNode* ResultingAttackNode = nullptr;
@@ -82,7 +94,9 @@ bool FAttacks::ExecuteAttack(AttackIndex Index, const AActor* PlayingInstance, U
 	if(ResultingAttackNode->GetIsOnCd()) return false;
 	if(OnCheckCanExecuteAttack.IsBound() && !OnCheckCanExecuteAttack.Execute(AttackProperties)) return false;
 
+	
 	ExecuteAttackInternal(ResultingAttackNode, AttackProperties, WorldContext);
+	OnCdChanged.ExecuteIfBound(ResultingAttackNode, Index);
 	return true;
 }
 
@@ -107,7 +121,7 @@ bool FAttacks::ExecuteAttackFromNode(UAttackNode* NodeToExecute, const AActor* P
 	return true;
 }
 
-void FAttacks::ForceSetCd(const FString& NodeIdentifier, float RemainingCd)
+void FAttacks::ForceSetCd(const FString& NodeIdentifier, float CdTime, bool ChangeBy)
 {
 	UAttackNode** FoundNode = PreCastedAttackNodes.FindByPredicate([NodeIdentifier](UAttackNode* AttackNode)
 	{
@@ -115,18 +129,18 @@ void FAttacks::ForceSetCd(const FString& NodeIdentifier, float RemainingCd)
 	});
 
 	if(FoundNode == nullptr) return;
-	(*FoundNode)->ForceSetCd(RemainingCd);
-}
-
-void FAttacks::ForceChangeCdBy(const FString& NodeIdentifier, float CdChange)
-{
-	UAttackNode** FoundNode = PreCastedAttackNodes.FindByPredicate([NodeIdentifier](UAttackNode* AttackNode)
+	UAttackNode* IdentifiedNode = *FoundNode;
+	IdentifiedNode->ForceSetCd(ChangeBy ? IdentifiedNode->CdTimeRemaining() + CdTime : CdTime);
+	if(OnCdChanged.IsBound())
 	{
-		return AttackNode->CanBeCalled(NodeIdentifier);
-	});
-
-	if(FoundNode == nullptr) return;
-	(*FoundNode)->ForceSetCd((*FoundNode)->CdTimeRemaining() + CdChange);
+		//talking about node indices only makes sense when the node is directly connected to the root
+		UGenericGraphNode* CurrentRoot = GetRootNodeInternal();
+		if(IdentifiedNode->ParentNodes.Contains(CurrentRoot))
+		{
+			OnCdChanged.ExecuteIfBound(IdentifiedNode,
+				CastChecked<UAttackTreeEdge>(CurrentRoot->GetEdge(IdentifiedNode))->IndexCondition);
+		}
+	}
 }
 
 bool FAttacks::operator==(const FAttacks& Attacks) const
