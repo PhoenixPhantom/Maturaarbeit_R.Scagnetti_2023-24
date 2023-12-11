@@ -59,6 +59,8 @@ public:
 	void SetAllowAutomaticOpacityChanges(bool ShouldAllow, FSetCharacterOpacity){ bAllowAutomaticOpacityChanges = ShouldAllow; };
 	bool GetAllowAutomaticOpacityChanges() const { return bAllowAutomaticOpacityChanges; }
 
+	UCustomAnimInstance* GetCustomAnimInstance() const { return CustomAnimInstance; };
+
 	void ReceiveStatusEffectExternal(TSubclassOf<UStatusEffect> NewEffectType, FModifyCharacterStatusEffectKey){ ReceiveStatusEffect(NewEffectType); }
 	void RemoveStatusEffectExternal(UStatusEffect* StatusEffect, FModifyCharacterStatusEffectKey){ RemoveStatusEffectInternal(StatusEffect); }
 

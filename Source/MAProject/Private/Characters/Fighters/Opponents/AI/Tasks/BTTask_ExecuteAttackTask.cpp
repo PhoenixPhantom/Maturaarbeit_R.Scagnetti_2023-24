@@ -31,19 +31,23 @@ EBTNodeResult::Type UBTTask_ExecuteAttackTask::ExecuteTask(UBehaviorTreeComponen
 	check(IsValid(OwningCharacter));
 	if (!OwningCharacter->GetAcceptedInputs().IsAllowedInput(EInputType::Attack))
 	{
-		//this suggests that the character was staggered (or killed) --> the result should be the same "token retention"
+		//this suggests that the character was staggered (or killed) before even starting the attack
+		//--> the result should be the same "token retention"
 		//that occurs when the opponent is staggered while executing the attack
 		OnAttackFinished(false);
 		return EBTNodeResult::InProgress;
 	}
 
 	UAttackNode* RequestedNode = OwningCharacter->GetRequestedAttack();
-	if(!IsValid(RequestedNode))
+	float Distance = FVector::Distance(OwningCharacter->GetActorLocation(), TargetCharacter->GetActorLocation());
+	if(!IsValid(RequestedNode) || Distance > RequestedNode->GetAttackProperties().MaximalMovementDistance)
 	{
 		//tokens can be granted without setting an attack, if the receiver of the token still has a
 		//better score than the other options
-		//In this case we have to select an attack here (which can be done randomly since every
-		//attack has an overall value ov >= 0, so every choice is good)		
+		//it is also possible that the player moved out of the original attack's MaximalMovementDistance
+		
+		//We have to select an attack here (which can be done randomly since every
+		//attack has an overall value overall >= 0, so every choice is good)		
 		RequestedNode = OwningCharacter->GetRandomValidAttackInRange();
 	}
 	if(!IsValid(RequestedNode))

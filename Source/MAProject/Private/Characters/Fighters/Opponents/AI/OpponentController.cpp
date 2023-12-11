@@ -210,10 +210,8 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 
 
 	const FVector OpponentToTarget = ControlledOpponent->GetCombatTarget()->GetActorLocation() - CurrentLocation;
-
-
-	//TODO: obstacle space constraints may be redundant when using reserved space constraints (but not sure jet)
-	TArray<const FPositionalConstraint*> RelevantConstraints = {&PlayerDistanceConstraint}; //, &ObstacleSpaceConstraint};
+	
+	TArray<const FPositionalConstraint*> RelevantConstraints = {&PlayerDistanceConstraint};
 	for(const FReservedSpaceConstraint& ReservedSpace : ReservedSpaceConstraints)
 	{
 		RelevantConstraints.Add(&ReservedSpace);
@@ -269,7 +267,13 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 		, bIsDebugging && ParticipantStatus == ECombatParticipantStatus::Active
 #endif
 	);
-	
+
+	//Fallback to prevent active enemies stupidly standing around without attacking
+	if(!FoundLocation && ParticipantStatus == ECombatParticipantStatus::Active)
+	{
+		ResultingLocation = ControlledOpponent->GetCombatTarget()->GetActorLocation();
+		FoundLocation = true;
+	}
 	Blackboard->SetValueAsBool(HasJustExecutedAttackKeyName, false);
 	return FoundLocation;
 }

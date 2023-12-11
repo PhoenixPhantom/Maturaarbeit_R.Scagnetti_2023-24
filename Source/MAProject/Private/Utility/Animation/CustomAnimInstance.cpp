@@ -4,7 +4,8 @@
 #include "Utility/Animation/CustomAnimInstance.h"
 
 UCustomAnimInstance::UCustomAnimInstance(): MovementSpeed(0.f), DeathAnimTime(0.25f), bIsDying(false), bIsInAir(false),
-	bIsInCustomState0(false), bIsInCustomState1(false), bIsInCustomState2(false)
+	bIsInCustomState0(false), bIsInCustomState1(false), bIsInCustomState2(false), bAllowLeftFrontLeg(true),
+	bAllowRightFrontLeg(true), bAllowLeftBackLeg(true), bAllowRightBackLeg(true)
 {
 }
 
@@ -36,6 +37,19 @@ bool UCustomAnimInstance::IsInState(ECustomAnimationState State) const
 			return false;
 		}
 	}
+}
+
+void UCustomAnimInstance::SetAllowedLegIKTypes(int32 AllowedTypes, float Duration)
+{
+	bAllowLeftFrontLeg = (AllowedTypes >> 0) & 0b1;
+	bAllowRightFrontLeg = (AllowedTypes >> 1) & 0b1;
+	bAllowLeftBackLeg = (AllowedTypes >> 2) & 0b1;
+	bAllowRightBackLeg = (AllowedTypes >> 3) & 0b1;
+	GetWorld()->GetTimerManager().SetTimer(AllowedIKTypesResetHandle, [Local = this]()
+	{
+		if(!IsValid(Local)) return;
+		Local->bAllowLeftFrontLeg = Local->bAllowRightFrontLeg = Local->bAllowLeftBackLeg = Local->bAllowRightBackLeg = true;
+	}, Duration, false);	
 }
 
 void UCustomAnimInstance::EnterCustomState(ECustomAnimationState TargetState)

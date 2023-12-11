@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "AttackTreeBaseNode.h"
 #include "Characters/Fighters/Attacks/AttackProperties.h"
-#include "Utility/Animation/CustomAnimInstance.h"
 #include "AttackNode.generated.h"
 
 class UStatusEffect;

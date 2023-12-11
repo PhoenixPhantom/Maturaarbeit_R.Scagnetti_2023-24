@@ -9,6 +9,7 @@
 struct FSetCanBeTargetedKey final
 {
 	friend class AFighterCharacter;
+	friend class APlayerCharacter;
 private:
 	FSetCanBeTargetedKey(){}
 };

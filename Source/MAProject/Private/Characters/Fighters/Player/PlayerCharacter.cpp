@@ -254,6 +254,22 @@ void APlayerCharacter::GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent
 	});
 }
 
+bool APlayerCharacter::TriggerDeath()
+{
+	if(!IsValid(CustomAnimInstance) || !AcceptedInputs.IsAllowedInput(EInputType::Death) ||
+		GetMesh()->GetCollisionEnabled() == ECollisionEnabled::NoCollision) return false;
+	CustomAnimInstance->TriggerDeath();
+	
+	AcceptedInputs.LimitAvailableInputs({EInputType::Death, CustomAnimInstance->GetDeathAnimTime()}, GetWorld());
+	TDelegate<void(bool)> OnDeathDelegate;
+	OnDeathDelegate.BindUObject(this, &APlayerCharacter::ShowDeathMenu);
+	AcceptedInputs.OnInputLimitsReset.Add(OnDeathDelegate);
+	
+	MakeInvincible(0.f);
+	TargetInformationComponent->SetCanBeTargeted(false, FSetCanBeTargetedKey());
+	return true;
+}
+
 void APlayerCharacter::CharacterLanded()
 {
 	Super::CharacterLanded();
@@ -669,6 +685,22 @@ bool APlayerCharacter::IsOccluded(ETraceTypeQuery TraceType, const FVector& Obse
 		return !AreMultipleVisible(TargetActor, TraceType, ObserverLocation, Locations, 3);
 	}
 	return false;
+}
+
+void APlayerCharacter::ShowDeathMenu(bool IsLimitDurationOver)
+{
+	UGameplayStatics::SetGamePaused(GetWorld(), true);
+	UUserWidget* DeathMenu = CreateWidget<UUserWidget>(GetWorld(), DeathMenuClass);
+	check(IsValid(DeathMenu));
+	DeathMenu->AddToViewport();
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(DeathMenu->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	APlayerController* PlayerController = CastChecked<APlayerController>(GetController());
+	PlayerController->SetInputMode(InputMode);
+	PlayerController->SetShowMouseCursor(true);
+	//TODO: unregister combat character
 }
 
 void APlayerCharacter::OnCdSet(UAttackNode* IdentifiedNode, int32 Index)

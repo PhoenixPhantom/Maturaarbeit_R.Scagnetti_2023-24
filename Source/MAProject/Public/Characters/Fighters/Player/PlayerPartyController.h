@@ -103,6 +103,9 @@ protected:
 	UFUNCTION()
 	void OnPlayerCameraMoved(const FVector2D& LookInputAxis);
 
+	UFUNCTION(BlueprintCallable)
+	void Respawn();
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = Debugging)
 	bool bIsDebugging = false;

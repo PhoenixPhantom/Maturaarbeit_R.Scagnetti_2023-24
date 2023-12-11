@@ -15,7 +15,7 @@ public:
 	// Sets default values for this actor's properties
 	APatrolPath();
 	
-	FORCEINLINE FVector GetAbsolutePointLocation(int32 Index) const { return GetActorLocation() + PathPoints[Index]; }
+	FORCEINLINE FVector GetAbsolutePointLocation(int32 Index) const;
 	FORCEINLINE int32 GetNumPathPoints() const { return PathPoints.Num(); }
 	FORCEINLINE void GetPathPoints(TArray<FVector>& OutPathPoints) const { OutPathPoints = PathPoints; }
 	FORCEINLINE bool IsLoopingPathPoints() const { return bLoopPathPoints; }

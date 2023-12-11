@@ -58,12 +58,14 @@ void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLo
 				UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
 				UNavigationPath* NavigationPath = NavigationSystem->FindPathToLocationSynchronously(GetWorld(),
 					GetComponentLocation(), TargetLocation);
-				for(const FNavPathPoint& PathPoint : NavigationPath->GetPath()->GetPathPoints())
-				{
-					if(FVector::Distance(PathPoint.Location, LookAtGoalLocation) > MaxCombatRadius)
+				if(IsValid(NavigationPath) && NavigationPath->GetPath().IsValid()){
+					for(const FNavPathPoint& PathPoint : NavigationPath->GetPath()->GetPathPoints())
 					{
-						ShouldLookAtTarget = false;
-						break;
+						if(FVector::Distance(PathPoint.Location, LookAtGoalLocation) > MaxCombatRadius)
+						{
+							ShouldLookAtTarget = false;
+							break;
+						}
 					}
 				}
 				

@@ -203,6 +203,49 @@ void APlayerPartyController::OnPlayerCameraMoved(const FVector2D& LookInputAxis)
 	CameraInterventionData.Timestamp = GetWorld()->RealTimeSeconds;
 }
 
+void APlayerPartyController::Respawn()
+{
+	const APlayerCharacter* TargetCharacter = CastChecked<APlayerCharacter>(PartyMemberClass.GetDefaultObject());
+	PartyMemberStats.FromBase(TargetCharacter->GetCharacterBaseStats(), PartyMemberModifiers, this);
+
+	FTransform TargetTransform;
+	//If we have already a saved location
+	if(PawnStartTransform.IsValid())
+	{
+		TargetTransform = PawnStartTransform;
+	}
+	//if this is the first character that is spawned (ever), it should be spawned at the PlayerStart
+	//(which can optionally be marked with the tag "ActiveSpawn")
+	else
+	{
+		TArray<AActor*> FoundActors;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), FoundActors);
+		check(!FoundActors.IsEmpty());
+		const APlayerStart* ChosenPlayerStart = nullptr;
+		for(AActor* Actor : FoundActors)
+		{
+			ChosenPlayerStart = CastChecked<APlayerStart>(Actor);
+			if(ChosenPlayerStart->PlayerStartTag == "ActiveSpawn") break;
+		}
+		TargetTransform = ChosenPlayerStart->GetTransform();
+		UE_LOG(LogTemp, Log, TEXT("Spawn transform is: %s"), *TargetTransform.ToString());
+	}
+
+	APlayerCharacter* NewCharacter = GetWorld()->SpawnActorDeferred<APlayerCharacter>(PartyMemberClass.Get(),
+		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	CombatManager->RegisterCombatParticipant(NewCharacter, FManageCombatParticipantsKey());
+	
+	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, OnPlayerCameraMovedPreconfigured,
+		GetGenericTeamId(), FPreSpawnSetupKey());
+#if WITH_EDITORONLY_DATA
+	NewCharacter->SetIsDebugging(bIsDebugging);
+#endif
+	NewCharacter->FinishSpawning(TargetTransform);
+	
+	Possess(NewCharacter);
+	GetPawn()->EnableInput(this); //Input seems to be disabled by default	
+}
+
 #if WITH_EDITORONLY_DATA
 void APlayerPartyController::ToggleDebugging()
 {

@@ -121,6 +121,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category = UserInterface)
 	TSubclassOf<UUserWidget> PauseMenuClass;
+
+	UPROPERTY(EditAnywhere, Category = UserInterface)
+	TSubclassOf<UUserWidget> DeathMenuClass;
 	
 	//MappingContext
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -164,6 +167,7 @@ protected:
 
 	virtual void QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits) override;
 	virtual void GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit) override;
+	virtual bool TriggerDeath() override;
 	virtual void OnHitTimeDilation(bool WasStaggered) override{} // the player should not get staggered on enemy attacks
 
 	virtual void CharacterLanded() override;
@@ -196,6 +200,8 @@ protected:
 	void UpdateTargetSelection();
 	bool IsOccluded(ETraceTypeQuery TraceType, const FVector& ObserverLocation, const FVector& TargetCenter, const FVector& TargetExtent, AActor* TargetActor) const;
 
+	UFUNCTION()
+	void ShowDeathMenu(bool IsLimitDurationOver);
 	UFUNCTION()
 	void OnCdSet(UAttackNode* IdentifiedNode, int32 Index);
 	UFUNCTION()
