@@ -112,7 +112,7 @@ void UCharacterRotationManagerComponent::SetRotationMode(ECharacterRotationMode 
 		}
 	case ECharacterRotationMode::FlickBack:
 		{
-			if(StoredCharacterRotationMode == ECharacterRotationMode::FlickBack) return;
+			if(StoredCharacterRotationMode == ECharacterRotationMode::FlickBack || !IsValid(StoredTarget)) return;
 			SetRotationMode(StoredCharacterRotationMode, false, StoredTarget);
 		}
 		break;

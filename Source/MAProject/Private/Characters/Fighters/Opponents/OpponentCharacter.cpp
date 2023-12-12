@@ -160,6 +160,12 @@ ACharacter* AOpponentCharacter::GetCombatTarget() const
 	return nullptr;
 }
 
+void AOpponentCharacter::ClearCombatTarget(FClearCombatTargetKey)
+{
+	TargetPlayer = DistanceFromTargetPassive.AnchorController = nullptr;
+	RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToMovement, true);
+}
+
 void AOpponentCharacter::RegisterCombatTarget(AController* NewOpponent, FSetCombatTargetKey Key)
 {
 	if(!IsValid(NewOpponent))

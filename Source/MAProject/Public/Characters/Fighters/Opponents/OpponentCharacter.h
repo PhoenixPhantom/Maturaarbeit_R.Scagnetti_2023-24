@@ -31,6 +31,12 @@ private:
 	FSetFieldOfViewKey(){};
 };
 
+struct FClearCombatTargetKey final
+{
+	friend ACombatManager;
+private:
+	FClearCombatTargetKey(){};
+};
 struct FSetCombatTargetKey final
 {
 	friend AOpponentController;
@@ -133,6 +139,7 @@ public:
 	UCharacterRotationManagerComponent* GetCharacterRotationManager() const { return RotationManagerComponent; }
 	AController* GetCombatTargetController() const;
 	ACharacter* GetCombatTarget() const;
+	void ClearCombatTarget(FClearCombatTargetKey);
 	void RegisterCombatTarget(AController* NewOpponent, FSetCombatTargetKey);
 	void SetLocalFieldOfView(float FieldOfView, FSetFieldOfViewKey){ LocalFieldOfView = FieldOfView; }
 	UBlackboardComponent* GetUsedBlackboardComponent() const { return UsedBlackboardComponent; }

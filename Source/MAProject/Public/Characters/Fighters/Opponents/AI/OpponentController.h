@@ -15,11 +15,18 @@ class AMovementTarget;
 class ACombatManager;
 class UCrowdFollowingComponent;
 
+struct FForceEndCombatKey final
+{
+	friend class ACombatManager;
+private:
+	FForceEndCombatKey(){}
+};
+
 struct FReleaseTokenKey final
 {
 	friend class UBTTask_ReleaseAggressionTokens;
 private:
-	FReleaseTokenKey(){};
+	FReleaseTokenKey(){}
 };
 
 //We need this child class so we can easily change the GoalActor/Location of the AIMoveRequest (which is not easily
@@ -68,7 +75,8 @@ public:
 
 	
 	virtual FGenericTeamId GetGenericTeamId() const override { return 1; }
-	
+
+	void ForceEndCombat(FForceEndCombatKey){ EndCombat(); };
 	bool UpdateCombatLocation(FVector& ResultingLocation, ECombatParticipantStatus ParticipantStatus,
 		bool ForceRecalculation = false) const;
 

@@ -31,9 +31,18 @@ void APlayerPartyController::Tick(float DeltaSeconds)
 
 void APlayerPartyController::OnPossess(APawn* InPawn)
 {
+	APawn* LocalOldPawn = GetPawn();
 	Super::OnPossess(InPawn);
 	APlayerCharacter* TargetCharacter = Cast<APlayerCharacter>(InPawn);
-	if(IsValid(TargetCharacter)) CurrentCharacter = TargetCharacter;
+	if(!IsValid(TargetCharacter)) return;
+	if(IsValid(LocalOldPawn))
+	{
+		LocalOldPawn->Destroy();
+	}
+	CombatManager->RegisterCombatParticipant(TargetCharacter, FManageCombatParticipantsKey());
+	CurrentCharacter = TargetCharacter;
+	CurrentCharacter->EnableInput(this); //Input seems to be disabled by default
+
 }
 
 void APlayerPartyController::OnUnPossess()
@@ -80,7 +89,6 @@ void APlayerPartyController::BeginPlay()
 
 	APlayerCharacter* NewCharacter = GetWorld()->SpawnActorDeferred<APlayerCharacter>(PartyMemberClass.Get(),
 		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
-	CombatManager->RegisterCombatParticipant(NewCharacter, FManageCombatParticipantsKey());
 	
 	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, OnPlayerCameraMovedPreconfigured,
 		GetGenericTeamId(), FPreSpawnSetupKey());
@@ -90,7 +98,6 @@ void APlayerPartyController::BeginPlay()
 	NewCharacter->FinishSpawning(TargetTransform);
 	
 	Possess(NewCharacter);
-	GetPawn()->EnableInput(this); //Input seems to be disabled by default	
 }
 
 void APlayerPartyController::SetCurrentRotSpeed(double Yaw, double Pitch)
@@ -233,7 +240,6 @@ void APlayerPartyController::Respawn()
 
 	APlayerCharacter* NewCharacter = GetWorld()->SpawnActorDeferred<APlayerCharacter>(PartyMemberClass.Get(),
 		TargetTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
-	CombatManager->RegisterCombatParticipant(NewCharacter, FManageCombatParticipantsKey());
 	
 	NewCharacter->PreSpawnSetup(&PartyMemberStats, &PlayerUserSettings, OnPlayerCameraMovedPreconfigured,
 		GetGenericTeamId(), FPreSpawnSetupKey());
@@ -241,9 +247,9 @@ void APlayerPartyController::Respawn()
 	NewCharacter->SetIsDebugging(bIsDebugging);
 #endif
 	NewCharacter->FinishSpawning(TargetTransform);
+
 	
 	Possess(NewCharacter);
-	GetPawn()->EnableInput(this); //Input seems to be disabled by default	
 }
 
 #if WITH_EDITORONLY_DATA

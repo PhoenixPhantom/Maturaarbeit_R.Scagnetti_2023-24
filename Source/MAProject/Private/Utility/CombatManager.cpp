@@ -5,6 +5,7 @@
 
 #include "Characters/Fighters/Attacks/AttackTree/AttackNode.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
+#include "Characters/Fighters/Opponents/AI/OpponentController.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -41,6 +42,13 @@ ECombatParticipantStatus ACombatManager::GetParticipationStatus(AFighterCharacte
 
 void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key)
 {
+	TArray<AOpponentCharacter*> InCombat = ActiveParticipants;
+	InCombat.Append(PassiveParticipants);
+	for(AOpponentCharacter* CurrentlyInCombat : InCombat)
+	{
+		if(CurrentlyInCombat->GetCombatTarget() != PlayerParticipant) continue;
+		CastChecked<AOpponentController>(CurrentlyInCombat->GetController())->ForceEndCombat(FForceEndCombatKey());
+	}
 	PlayerCharacter = PlayerParticipant;
 }
 

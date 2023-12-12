@@ -103,30 +103,34 @@ void AOpponentController::Tick(float DeltaSeconds)
 		for(const FTimestampedStimulus& LastSightStimulus : LastSightStimuli)
 		{
 			AActor* PerceivedActor = LastSightStimulus.TargetActor;
-			//We shouldn't update if we have lost sight but the stimulus has jet to fade
-			if(!LastSightStimulus.WasSuccessfullySensed())
+			if(!IsValid(PerceivedActor)) PendingForgottenStimuli.Add(LastSightStimulus);
+			else
 			{
-				//the automatic expiration system is buggy so this is a custom implementation for just that
-				if(GetWorld()->TimeSeconds - LastSightStimulus.Timestamp > 1.f)
+				//We shouldn't update if we have lost sight but the stimulus has jet to fade
+				if(!LastSightStimulus.WasSuccessfullySensed())
 				{
-					//try to forget the sight stimulus, if not possible, than we still update the stimulus (even if it has expired)
-					if(OnSightForgotten(PerceivedActor))
+					//the automatic expiration system is buggy so this is a custom implementation for just that
+					if(GetWorld()->TimeSeconds - LastSightStimulus.Timestamp > 1.f)
 					{
-						PendingForgottenStimuli.Add(LastSightStimulus);
-						continue;
+						//try to forget the sight stimulus, if not possible, than we still update the stimulus (even if it has expired)
+						if(OnSightForgotten(PerceivedActor))
+						{
+							PendingForgottenStimuli.Add(LastSightStimulus);
+							continue;
+						}
 					}
+					else continue;
 				}
-				else continue;
-			}
 		
-			//don't update every frame but just when relevant changes occur
-			if(FVector::Distance(LastSightStimulus.StimulusLocation, PerceivedActor->GetActorLocation()) >=
-				RelevantSightPerceptionChangeRadius)
-			{
-				FAIStimulus CurrentSightStimulus = LastSightStimulus;
-				CurrentSightStimulus.ReceiverLocation = GetPawn()->GetActorLocation();
-				CurrentSightStimulus.StimulusLocation = PerceivedActor->GetActorLocation();
-				OnTargetPerceptionUpdated(PerceivedActor, CurrentSightStimulus);
+				//don't update every frame but just when relevant changes occur
+				if(FVector::Distance(LastSightStimulus.StimulusLocation, PerceivedActor->GetActorLocation()) >=
+					RelevantSightPerceptionChangeRadius)
+				{
+					FAIStimulus CurrentSightStimulus = LastSightStimulus;
+					CurrentSightStimulus.ReceiverLocation = GetPawn()->GetActorLocation();
+					CurrentSightStimulus.StimulusLocation = PerceivedActor->GetActorLocation();
+					OnTargetPerceptionUpdated(PerceivedActor, CurrentSightStimulus);
+				}
 			}
 		}
 
@@ -139,7 +143,7 @@ void AOpponentController::Tick(float DeltaSeconds)
 }
 
 bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, ECombatParticipantStatus ParticipantStatus,
-	bool ForceRecalculation) const
+                                               bool ForceRecalculation) const
 {
 	const FVector CurrentLocation = ControlledOpponent->GetActorLocation();
 	const FRequiredSpace& RequiredSpace = ControlledOpponent->GetRequiredSpace();
@@ -430,7 +434,7 @@ void AOpponentController::EndCombat()
 
 bool AOpponentController::OnSightForgotten(AActor* SightedActor)
 {
-	//End combat if we are in combat against the target
+	//End combat if we are in combat against the target or if the target already expired
 	if(ControlledOpponent->GetCombatTargetController() != nullptr &&
 		ControlledOpponent->GetCombatTargetController() == SightedActor->GetInstigatorController())
 	{
