@@ -87,8 +87,6 @@ protected:
 	FCharacterStats* CharacterStats;
 	FTimerHandle InvincibilityHandle;
 	float ToughnessBrokenTime;
-	
-	TTuple<double, TArray<AttackIndex>> AttackInputString;
 
 	UPROPERTY()
 	TArray<AActor*> RecentlyDamagedActors;

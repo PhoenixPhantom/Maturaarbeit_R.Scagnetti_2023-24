@@ -3,9 +3,9 @@
 
 #include "Utility/Animation/CustomAnimInstance.h"
 
-UCustomAnimInstance::UCustomAnimInstance(): MovementSpeed(0.f), DeathAnimTime(0.25f), bIsDying(false), bIsInAir(false),
-	bIsInCustomState0(false), bIsInCustomState1(false), bIsInCustomState2(false), bAllowLeftFrontLeg(true),
-	bAllowRightFrontLeg(true), bAllowLeftBackLeg(true), bAllowRightBackLeg(true)
+UCustomAnimInstance::UCustomAnimInstance(): MovementSpeed(0.f), LegIKBlend(0.f), DeathAnimTime(0.25f), bIsDying(false),
+	bIsInAir(false), bIsInCustomState0(false), bIsInCustomState1(false), bIsInCustomState2(false),
+	bAllowLeftFrontLeg(true), bAllowRightFrontLeg(true), bAllowLeftBackLeg(true), bAllowRightBackLeg(true)
 {
 }
 

@@ -165,6 +165,7 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual bool TriggerToughnessBroken() override;
 
+	virtual float GetLegIKBlendWeight(const FVector& Velocity) override;
 	virtual void QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits) override;
 	virtual void GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit) override;
 	virtual bool TriggerDeath() override;

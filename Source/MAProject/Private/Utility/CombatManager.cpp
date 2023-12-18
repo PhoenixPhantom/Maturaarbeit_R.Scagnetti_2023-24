@@ -8,6 +8,7 @@
 #include "Characters/Fighters/Opponents/AI/OpponentController.h"
 #include "Characters/Fighters/Player/PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Utility/Sound/GlobalSoundManager.h"
 
 
 bool FAggressorInfo::operator==(const FAggressorInfo& AggressionData) const
@@ -22,8 +23,9 @@ FScoredAggressorInfo::FScoredAggressorInfo(AOpponentCharacter* NewHolder, UAttac
 }
 
 // Sets default values
-ACombatManager::ACombatManager() : PlayerCharacter(nullptr), MaxAggressionTokens(2),
-	AvailableAggressionTokens(MaxAggressionTokens)
+ACombatManager::ACombatManager() : PlayerCharacter(nullptr), SoundManager(nullptr), PendingOutOfCombatDuration(10.f),
+                                   MaxAggressionTokens(2),
+                                   AvailableAggressionTokens(MaxAggressionTokens)
 {
 #if WITH_EDITORONLY_DATA
 	PrimaryActorTick.bCanEverTick = true;
@@ -47,7 +49,7 @@ void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipa
 	for(AOpponentCharacter* CurrentlyInCombat : InCombat)
 	{
 		if(CurrentlyInCombat->GetCombatTarget() != PlayerParticipant) continue;
-		CastChecked<AOpponentController>(CurrentlyInCombat->GetController())->ForceEndCombat(FForceEndCombatKey());
+		CastChecked<AOpponentController>(CurrentlyInCombat->GetController())->ForceEndCombat(true, FForceEndCombatKey());
 	}
 	PlayerCharacter = PlayerParticipant;
 }
@@ -55,18 +57,41 @@ void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipa
 bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
 {
 	if(ECombatParticipantStatus::NotRegistered != GetParticipationStatus(Participant)) return false;
+	if(FTimerHandle* TimerHandle = PendingOutOfCombat.Find(Participant); TimerHandle == nullptr)
+	{
+		if(IsValid(SoundManager) && PassiveParticipants.IsEmpty() && ActiveParticipants.IsEmpty())
+			SoundManager->EnterCombatState(FSetCombatStateKey());
+	}
+	else
+	{
+		GetWorld()->GetTimerManager().ClearTimer(*TimerHandle);
+		PendingOutOfCombat.Remove(Participant);
+	}
 	PassiveParticipants.Add(Participant);
 	RequestToken(Participant);
 	return true;
 }
 
-void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key)
+void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant, bool SetToPending, FManageCombatParticipantsKey Key)
 {
 	if(AnticipatedActive.Aggressor == Participant) AnticipatedActive = FAggressorInfo();
 	//we can't use ReleaseAggressionTokens as this could lead to token redistribution and Participant not becoming passive
 	const bool WasActiveParticipant = RemoveAggressionTokens(Participant);
 	PassiveParticipants.RemoveSwap(Participant);
 	if(WasActiveParticipant) AttemptDistributeFreeTokens();
+	if(!SetToPending)
+	{
+		if(IsValid(SoundManager) && PassiveParticipants.IsEmpty() && ActiveParticipants.IsEmpty())
+			SoundManager->EndCombatState(FSetCombatStateKey());
+		return;
+	}
+	FTimerHandle& CorrespondingHandle = PendingOutOfCombat.Add(Participant);
+	GetWorld()->GetTimerManager().SetTimer(CorrespondingHandle, [Local = this, Participant]
+	{
+		if(!IsValid(Local)) return;
+		Local->OnOutOfCombat(Participant);
+	}
+	, PendingOutOfCombatDuration, false);
 }
 
 void ACombatManager::ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key)
@@ -107,6 +132,12 @@ void ACombatManager::BeginPlay()
 	TArray<AActor*> Actors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACombatManager::StaticClass(), Actors);
 	check(Actors.Num() == 1 && Actors[0] == this);
+
+
+	//get the sound manager
+	Actors.Empty();
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGlobalSoundManager::StaticClass(), Actors);
+	SoundManager = Cast<AGlobalSoundManager>(Actors[0]);
 }
 
 bool ACombatManager::RemoveAggressionTokens(AOpponentCharacter* Participant)
@@ -261,5 +292,20 @@ void ACombatManager::RequestToken(AOpponentCharacter* Requestor)
 	if(OverridableTokens < Requestor->GetRequestedTokens()) return;
 	
 	GrantTokens(FAggressorInfo(Requestor, DesiredAttack, Requestor->GetRequestedTokens()));
+}
+
+void ACombatManager::OnOutOfCombat(AOpponentCharacter* Participant)
+{
+	if(!IsValid(Participant))
+	{
+		PendingOutOfCombat.Remove(Participant);
+	}
+	//if the pending out of combat participant is the last character to exit from combat, we change the sound state to non-combat
+	if(IsValid(SoundManager) && PassiveParticipants.IsEmpty() && ActiveParticipants.IsEmpty()
+		&& PendingOutOfCombat.Contains(Participant))
+	{
+		PendingOutOfCombat.FindAndRemoveChecked(Participant);
+		SoundManager->EndCombatState(FSetCombatStateKey());
+	}
 }
 

@@ -76,7 +76,7 @@ public:
 	
 	virtual FGenericTeamId GetGenericTeamId() const override { return 1; }
 
-	void ForceEndCombat(FForceEndCombatKey){ EndCombat(); };
+	void ForceEndCombat(bool FullyUnregister, FForceEndCombatKey){ EndCombat(FullyUnregister); }
 	bool UpdateCombatLocation(FVector& ResultingLocation, ECombatParticipantStatus ParticipantStatus,
 		bool ForceRecalculation = false) const;
 
@@ -144,7 +144,7 @@ protected:
 
 	//calling this implies that KnownInformation.Type == Sight
 	void ActiveUpdateCombat(AActor* CombatTarget, const FAIStimulus& KnownInformation);
-	void EndCombat();
+	void EndCombat(bool FullyUnregister = false);
 
 	bool OnSightForgotten(AActor* SightedActor);
 

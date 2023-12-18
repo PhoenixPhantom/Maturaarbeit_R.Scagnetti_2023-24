@@ -24,7 +24,9 @@ public class MAProject : ModuleRules
 			"SlateCore",
 			"GameplayTasks",
 			"NavigationSystem",
-			"AIModule"
+			"AIModule",
+			"SoundScape",
+			"GameplayTags"
 		});
 	}
 }

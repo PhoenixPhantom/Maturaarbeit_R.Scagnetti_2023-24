@@ -30,14 +30,17 @@ EBTNodeResult::Type UBTTask_GetNextPatrolPathPoint::ExecuteTask(UBehaviorTreeCom
 		return EBTNodeResult::Failed;
 	}
 
-	const bool RestartFromClosest = OwnerComp.GetBlackboardComponent()->GetValueAsBool(BlackboardKey.SelectedKeyName);
+	const bool RestartFromClosest = OwnerComp.GetBlackboardComponent()->GetValueAsBool(StartFromClosestPathPointKey.SelectedKeyName);
 	
 	const FVector NextPathPointLocation = PatrolManager->GetNextPathPointLocation(RestartFromClosest);
 	
 	//this bool works like a marker flag, so remove it once it has been acted upon
-	if(RestartFromClosest) OwnerComp.GetBlackboardComponent()->SetValueAsBool(BlackboardKey.SelectedKeyName, false);
+	if(RestartFromClosest) OwnerComp.GetBlackboardComponent()->SetValueAsBool(StartFromClosestPathPointKey.SelectedKeyName, false);
 	
-	if(NextPathPointLocation.ContainsNaN()) return EBTNodeResult::Failed;
+	if(NextPathPointLocation.ContainsNaN())
+	{
+		return EBTNodeResult::Failed;
+	}
 	
 	OwnerComp.GetBlackboardComponent()->SetValueAsVector(BlackboardKey.SelectedKeyName, NextPathPointLocation);
 	return EBTNodeResult::Succeeded;

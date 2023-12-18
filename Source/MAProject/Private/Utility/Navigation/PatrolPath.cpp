@@ -14,6 +14,9 @@ APatrolPath::APatrolPath() : bLoopPathPoints(false)
 
 FVector APatrolPath::GetAbsolutePointLocation(int32 Index) const
 {
-	if(!PathPoints.IsValidIndex(Index)) return FVector(NAN);
+	if(!PathPoints.IsValidIndex(Index))
+	{
+		return FVector(NAN);
+	}
 	return GetActorLocation() + PathPoints[Index];
 }

@@ -23,14 +23,14 @@ UCLASS(ClassGroup=(Custom))
 class MAPROJECT_API UCharacterRotationManagerComponent : public USceneComponent
 {
 	GENERATED_BODY()
-
 public:
 	UCharacterRotationManagerComponent();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void SwitchToOptimal(const FVector& TargetLocation);
-	void SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack = false, AActor* NewTarget = nullptr);
+	void SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack = false,
+		AActor* NewTarget = nullptr, const FVector& TargetLocation = FVector(NAN));
 
 protected:
 	ECharacterRotationMode CharacterRotationMode;

@@ -26,8 +26,11 @@ void AGeneralCharacter::Tick(float DeltaSeconds)
 
 	if(IsValid(CustomAnimInstance))
 	{
-		CustomAnimInstance->SetMovement(GetCharacterMovement()->Velocity);
+		const FVector& Velocity = GetCharacterMovement()->Velocity;
+		CustomAnimInstance->SetMovement(Velocity);
+		CustomAnimInstance->SetLegIKBlend(GetLegIKBlendWeight(Velocity));
 	}
+	
 	
 	FadeMeshWithCameraDistance();
 }
@@ -88,6 +91,11 @@ void AGeneralCharacter::BeginPlay()
 	Super::BeginPlay();
 	CameraPlayerController = GetWorld()->GetFirstPlayerController();
 	CustomAnimInstance = CastChecked<UCustomAnimInstance>(GetMesh()->GetAnimInstance());
+}
+
+float AGeneralCharacter::GetLegIKBlendWeight(const FVector& Velocity)
+{
+	return 1.f - FMath::Min(Velocity.Length() / 400.f, 1.f);
 }
 
 void AGeneralCharacter::FadeMeshWithCameraDistance()

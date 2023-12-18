@@ -85,7 +85,7 @@ void AOpponentController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if(EndPlayReason == EEndPlayReason::Destroyed)
 	{
 		if(IsValid(CombatManager))
-			CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
+			CombatManager->UnregisterCombatParticipant(ControlledOpponent, false, FManageCombatParticipantsKey());
 		if(IsValid(MoveTarget)) MoveTarget->Destroy();
 	}
 }
@@ -349,6 +349,7 @@ void AOpponentController::OnPossess(APawn* InPawn)
 	//Set blackboard default values, just to be certain (they can't have a default value in the editor)
 	Blackboard->SetValueAsBool(IsActiveCombatKeyName, false);
 	Blackboard->SetValueAsBool(IsInvestigatingKeyName, false);
+	Blackboard->SetValueAsBool(RestartPatrolPathKeyName, true);
 	
 	ControlledOpponent = CastChecked<AOpponentCharacter>(InPawn);
 	ControlledOpponent->SetUsedBlackboardComponent(Blackboard, FSetUsedBlackboardKey());
@@ -416,7 +417,7 @@ void AOpponentController::ActiveUpdateCombat(AActor* CombatTarget, const FAIStim
 	Blackboard->SetValueAsVector(TargetLocationKeyName, TargetLocation);
 }
 
-void AOpponentController::EndCombat()
+void AOpponentController::EndCombat(bool FullyUnregister)
 {
 	check(CombatManager->GetParticipationStatus(ControlledOpponent) != ECombatParticipantStatus::NotRegistered);
 	Blackboard->SetValueAsBool(IsInCombatKeyName, false);
@@ -426,7 +427,7 @@ void AOpponentController::EndCombat()
 	Blackboard->SetValueAsBool(RestartPatrolPathKeyName, true);
 
 	ControlledOpponent->RegisterCombatTarget(nullptr, FSetCombatTargetKey());
-	CombatManager->UnregisterCombatParticipant(ControlledOpponent, FManageCombatParticipantsKey());
+	CombatManager->UnregisterCombatParticipant(ControlledOpponent, !FullyUnregister, FManageCombatParticipantsKey());
 #if WITH_EDITORONLY_DATA
 	if(bIsDebugging) GLog->Log(ControlledOpponent->GetActorNameOrLabel() + " has ended combat.");
 #endif

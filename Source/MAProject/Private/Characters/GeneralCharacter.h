@@ -95,7 +95,8 @@ protected:
 
 
 	virtual void BeginPlay() override;
-	
+
+	virtual float GetLegIKBlendWeight(const FVector& Velocity);
 	virtual void FadeMeshWithCameraDistance();
 	virtual void CharacterLanded();
 	virtual void CharacterInAir();

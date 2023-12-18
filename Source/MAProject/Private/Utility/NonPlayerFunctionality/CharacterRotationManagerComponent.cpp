@@ -9,6 +9,7 @@
 #include "NavigationSystem.h"
 #include "Characters/Fighters/Opponents/OpponentCharacter.h"
 #include "Characters/Fighters/Opponents/AI/OpponentController.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 // Sets default values for this component's properties
@@ -30,12 +31,22 @@ void UCharacterRotationManagerComponent::TickComponent(float DeltaTime, ELevelTi
 		PrimaryComponentTick.SetTickFunctionEnable(false);
 		return;
 	}
-	
-	if(FVector::Distance(GetComponentLocation(), OpponentCharacter->GetTargetPlayer()->GetActorLocation()) <=
-			OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius){
+
+	if(OpponentController->GetFocusActor() != nullptr)
+	{
+		if(FVector::Distance(GetComponentLocation(), OpponentCharacter->GetTargetPlayer()->GetActorLocation()) <=
+				OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius){
+			PrimaryComponentTick.SetTickFunctionEnable(false);
+			SetRotationMode(ECharacterRotationMode::OrientToTarget, false,
+				OpponentCharacter->GetTargetPlayer());
+				}
+		return;
+	}
+	FVector Direction = UKismetMathLibrary::GetDirectionUnitVector(OpponentController->GetFocalPoint(), OpponentCharacter->GetActorLocation());
+	if(UKismetMathLibrary::DegAcos(FVector::DotProduct(Direction, OpponentCharacter->GetActorForwardVector())) <= 10.f)
+	{
 		PrimaryComponentTick.SetTickFunctionEnable(false);
-		SetRotationMode(ECharacterRotationMode::OrientToTarget, false,
-			OpponentCharacter->GetTargetPlayer());
+		SetRotationMode(ECharacterRotationMode::FlickBack, false);
 	}
 }
 
@@ -82,7 +93,7 @@ void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLo
 }
 
 void UCharacterRotationManagerComponent::SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack,
-                                                         AActor* NewTarget)
+                                                         AActor* NewTarget, const FVector& TargetLocation)
 {
 	if(!IsValid(OpponentController))
 	{
@@ -103,11 +114,14 @@ void UCharacterRotationManagerComponent::SetRotationMode(ECharacterRotationMode 
 		}
 	case ECharacterRotationMode::OrientToTarget:
 		{
-			check(IsValid(NewTarget));
 			OpponentCharacter->GetCharacterMovement()->bUseControllerDesiredRotation = true;
 			OpponentCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
 			OpponentController->bSetControlRotationFromPawnOrientation = false;
-			OpponentController->SetFocus(NewTarget);
+			if(IsValid(NewTarget)) OpponentController->SetFocus(NewTarget);
+			else
+			{
+ 				OpponentController->SetFocalPoint(TargetLocation);
+			}
 			break;
 		}
 	case ECharacterRotationMode::FlickBack:

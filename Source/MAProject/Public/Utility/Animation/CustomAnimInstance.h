@@ -38,6 +38,7 @@ public:
 	UCustomAnimInstance();
 	void SetMovement(const FVector& MovementVector);
 	void TriggerDeath(){ bIsDying = true; }
+	void SetLegIKBlend(float NewBlend){ LegIKBlend = NewBlend; }
 	void SetIsInAir(bool IsInAir){ bIsInAir = IsInAir; }
 
 	bool IsInState(ECustomAnimationState State) const;
@@ -58,6 +59,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
 	FVector RelativeMovementDirection;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = States)
+	float LegIKBlend;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = States)
 	float DeathAnimTime;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = States)

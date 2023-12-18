@@ -229,6 +229,11 @@ bool APlayerCharacter::TriggerToughnessBroken()
 	return true;
 }
 
+float APlayerCharacter::GetLegIKBlendWeight(const FVector& Velocity)
+{
+	return FMath::Min((GetWorld()->RealTimeSeconds - InputDirection.Key)/RememberInputDirectionTime, 1.f);
+}
+
 void APlayerCharacter::QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLimits)
 {
 	Super::QueueFollowUpLimit(InputLimits);

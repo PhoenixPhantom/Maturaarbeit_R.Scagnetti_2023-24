@@ -15,10 +15,7 @@ UPatrolManagerComponent::UPatrolManagerComponent(): NextIndex(-1),
 
 FVector UPatrolManagerComponent::GetNextPathPointLocation(bool StartFromClosest)
 {
-	if(!IsValid(PatrolPath))
-	{
-		return FVector(NAN);
-	}
+	if(!IsValid(PatrolPath)){ return FVector(NAN);	}
 	if(StartFromClosest || NextIndex < 0) GetPreferredNextPoint();
 	return PatrolPath->GetAbsolutePointLocation(NextIndex);
 }
@@ -65,19 +62,16 @@ int32 UPatrolManagerComponent::AdvanceToNextPathPoint()
 
 void UPatrolManagerComponent::GetPreferredNextPoint()
 {
-	TArray<FVector> PathPoints;
-	PatrolPath->GetPathPoints(PathPoints);
+	const FVector& OwnerLocation = GetOwner()->GetActorLocation();
 
 	float ShortestDistance = std::numeric_limits<float>::max();
 	int32 ShortestDistanceIndex = -1;
-	for(int32 i = 0; i < PathPoints.Num(); i++)
+	for(int32 i = 0; i < PatrolPath->GetNumPathPoints(); i++)
 	{
-		if(const float Distance = FVector::Distance(GetOwner()->GetActorLocation(), PathPoints[i]);
-			Distance < ShortestDistance)
-		{
-			ShortestDistance = Distance;
-			ShortestDistanceIndex = i;
-		}
+		const float Distance = FVector::Distance(OwnerLocation, PatrolPath->GetAbsolutePointLocation(i));
+		if(Distance > ShortestDistance) continue;
+		ShortestDistance = Distance;
+		ShortestDistanceIndex = i;
 	}
 
 	if(ShortestDistanceIndex < 0) return;

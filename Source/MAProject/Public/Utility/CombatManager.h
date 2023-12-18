@@ -7,6 +7,7 @@
 #include "CombatManager.generated.h"
 
 
+class AGlobalSoundManager;
 class UAttackNode;
 class AFighterCharacter;
 class AOpponentCharacter;
@@ -82,7 +83,7 @@ public:
 	
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);
 	bool RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key);
-	void UnregisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key);
+	void UnregisterCombatParticipant(AOpponentCharacter* Participant, bool SetToPending, FManageCombatParticipantsKey Key);
 
 	void ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key);
 
@@ -102,7 +103,14 @@ protected:
 	TArray<AOpponentCharacter*> ActiveParticipants;
 	UPROPERTY()
 	TArray<AOpponentCharacter*> PassiveParticipants;
+	UPROPERTY()
+	TMap<AOpponentCharacter*, FTimerHandle> PendingOutOfCombat;
 
+	UPROPERTY()
+	AGlobalSoundManager* SoundManager;
+
+	UPROPERTY(EditAnywhere)
+	float PendingOutOfCombatDuration;
 	UPROPERTY(EditAnywhere)
 	uint32 MaxAggressionTokens;	
 	uint32 AvailableAggressionTokens;
@@ -122,6 +130,9 @@ protected:
 	//Try to distribute the AvailableAggressionTokens so the highest scoring objects will be inserted
 	void AttemptDistributeFreeTokens();
 	void RequestToken(AOpponentCharacter* Requestor);
+
+	UFUNCTION()
+	void OnOutOfCombat(AOpponentCharacter* Participant);
 
 #if WITH_EDITORONLY_DATA
 	TTuple<float, FDrawDebugImagesDelegate> DebugImagesToDraw;
