@@ -55,6 +55,7 @@ To provide the most essential functionalities, this work will make use of the cu
 * Unreal Engine 5 | MetaSound Footsteps - The Sound FX Guy: https://www.youtube.com/watch?v=SXBEbs69sZ8
 * Unreal Engine 5 | Dynamic Footsteps with MetaSounds - The Sound FX Guy: https://www.youtube.com/watch?v=pYxocPdtHBw
 * Wolf's Howl Gives You Goosebumps (the good kind) - Wolf Conservation Center: https://www.youtube.com/watch?v=JQUHDWHa7WQ (accessed: 16.11.2023)
+* Unreal Engine 5.1 | Creating Soundscapes - The Sound FX Guy: https://www.youtube.com/watch?v=nS3leRwZbNk (accessed: 12.12.2023)
 
 ### Various Topics
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
