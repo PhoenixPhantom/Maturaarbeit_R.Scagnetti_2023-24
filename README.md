@@ -1,14 +1,4 @@
-# "Maturarbeit" - Raffael Scagnetti 2023/24
-
-> <picture>
->   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/info.svg">
->   <img alt="Info" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/info.svg">
-> </picture><br>
->
-> After some consideration and getting used to the project, I decided the title proposed at the beginning fits the scope of this project and what is possible to be achieved therein. Therefore I propose my Maturaarbeit to be retitled to "Combat design in an 3D open world videogame."
-
-
-
+# Combat Design in a 3D Open World Videogame - Raffael Scagnetti 2023/24
 ## The Contents of This Work: Creating a Videogame
 To create a “real” videogame – meaning one that people would voluntarily play - many seperate parts are crucial. That includes the construction of the levels where the game is played, creating the assets used therein. Coding responses and logic are only some examples. And most of these crucial snippets of a game require significant effort as well as different skillsets to do right.
 
