@@ -131,6 +131,8 @@ protected:
 	void AttemptDistributeFreeTokens();
 	void RequestToken(AOpponentCharacter* Requestor);
 
+	void FullyExitFromCombat(AOpponentCharacter* OpponentCharacter);
+
 	UFUNCTION()
 	void OnOutOfCombat(AOpponentCharacter* Participant);
 

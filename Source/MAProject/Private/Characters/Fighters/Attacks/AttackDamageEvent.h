@@ -14,7 +14,7 @@ struct MAPROJECT_API FAttackDamageEvent : public FCustomDamageEvent
 public:
 
 	FAttackDamageEvent();
-	FAttackDamageEvent(const FAttackDamageEvent& AttackDamageEvent);;
+	FAttackDamageEvent(const FAttackDamageEvent& AttackDamageEvent);
 
 	UPROPERTY(EditDefaultsOnly, meta=(UIMin="0", ClampMin="0"))
 	int32 ToughnessBreak;
@@ -32,7 +32,7 @@ public:
 	static const int32 ClassID = 11;
 
 	virtual int32 GetTypeID() const override { return FAttackDamageEvent::ClassID; }
-	virtual bool IsOfType(int32 InID) const override { return FAttackDamageEvent::ClassID == InID || Super::IsOfType(InID); };
+	virtual bool IsOfType(int32 InID) const override { return FAttackDamageEvent::ClassID == InID || Super::IsOfType(InID); }
 
 	bool operator==(const FAttackDamageEvent& AttackDamageEvent) const;
 };

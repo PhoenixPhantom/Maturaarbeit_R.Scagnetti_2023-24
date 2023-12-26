@@ -215,6 +215,73 @@ protected:
 	EWorldConstraintZone CalculateTargetZone(const FVector& TargetPosition) const;
 };
 
+
+USTRUCT()
+struct MAPROJECT_API FPointGenerator
+{
+	GENERATED_BODY();
+public:
+	virtual ~FPointGenerator() = default;
+	virtual FVector GetSamplePoint(uint64 Index) const{ return FVector(NAN); }
+	virtual uint64 GetIndexRange() const{ return 0; }
+};
+
+
+USTRUCT(meta=(DeprecatedStruct, DeprecationMessage="May contain inefficient or outright incorrect calculations. Only used to prove it's inefficiency."))
+struct MAPROJECT_API FInefficientPointGenerator : public FPointGenerator
+{
+	GENERATED_BODY();
+public:
+	FVector SourcePoint;
+	FVector SpacedStartDirection;
+	float Distribution;
+	uint64 NumOfCircles;
+	void SetProperties(const FVector& NewSourcePoint, const FVector& NewSpacedStartDirection,
+	                   float NewDistribution, float NewMaxSampleRange);
+	virtual FVector GetSamplePoint(uint64 Index) const override;
+	virtual uint64 GetIndexRange() const override;
+};
+
+
+//The goto point generator used to directly limit the searched points when given a FCircularDistanceConstraint
+USTRUCT()
+struct MAPROJECT_API FCircularPointGenerator : public FPointGenerator
+{
+	GENERATED_BODY();
+public:
+	FVector SourcePoint;
+	FVector StartDirection;
+	float MinimalLength;
+	float Density;
+	uint64 NumOfCircles;
+
+	FCircularPointGenerator();
+	FCircularPointGenerator(const FCircularDistanceConstraint& SourceConstraint, const FVector& NewStartDirection,
+		float NewDensity){ SetProperties(SourceConstraint, NewStartDirection, NewDensity); }
+	void SetProperties(const FCircularDistanceConstraint& SourceConstraint, const FVector& NewStartDirection,
+		float NewDensity);
+	virtual FVector GetSamplePoint(uint64 Index) const override;
+	virtual uint64 GetIndexRange() const override;
+};
+
+USTRUCT()
+struct MAPROJECT_API FSquarePointGenerator : public FPointGenerator
+{
+	GENERATED_BODY()
+public:
+	FVector SourcePoint;
+	FVector MaxShiftSpace;
+	FVector StartDirection;
+	FVector SideDirection;
+	float Distribution;
+	uint64 NumOfRows;
+	uint64 PointsPerRow;
+	void SetProperties(const FVector& NewSourcePoint, const FVector& NewStartDirection,
+	                   float NewDistribution, float MaxLength, float MaxWidth);
+	virtual FVector GetSamplePoint(uint64 Index) const override;
+	virtual uint64 GetIndexRange() const override;
+};
+
 UCLASS(meta=(ScriptName="ConstraintsLibrary"))
 class UConstraintsFunctionLibrary : public UBlueprintFunctionLibrary
 {
@@ -234,42 +301,34 @@ public:
 		RequireAllValid,
 		RequireAllOptimal
 	};
-	
+
 	/// @brief Gets the closest valid point by sampling the environment in circles
-	/// @param ResultingLocation 
 	/// @param ResultingLocation Is set to the closest valid point if there is one inside MaxSampleRange
-	/// @param SourcePoint The point around which the valid locations are sampled
-	/// @param SpacedStartDirection The direction where the first sample of each circle will be taken and the spacing between every circle
-	/// @param Distribution How far the sample points are from each other
+	/// @param PointGenerator Object generating the sample points according to the given rules
 	/// @param RelevantConstraints The constraints that have to be met for a point to be considered valid
-	/// @param MaxSampleRange The maximal range in which samples will be taken
 	/// @param World The world context object
-	/// @param ProjectionHalfHeight the height the samples can be distant from the navmesh to stay valid
-	/// @param TestType the Requirements that have to be fulfilled for an individual test to be considered a valid option
+	/// @param ProjectionExtent the amount by which a sample position may be shifted (+ and -) so it is on the navigation mesh
+	/// @param InstantSuccessCondition The type of test result that we try to find. Immediately ends the calculation when found.
+	/// @param InstantFailureCondition The type of test result that is required of a point to even be considered. Immediately discards the tested point when not met.
 	/// @param ForceNoNavPath if distance calculations are forced to rely on air distance (even if nav distance is demanded)
 	/// @param DebuggingEnabled whether debugging elements should be drawn
 	/// @return whether a valid point was found
-	static bool SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
-	                                  double Distribution, float MaxSampleRange, const TArray<const FPositionalConstraint*>& RelevantConstraints,
-	                                  UWorld* World, float ProjectionHalfHeight, ETestType TestType = RequireOneValid,
-	                                  bool ForceNoNavPath = false, bool DebuggingEnabled = false);
-
-	static bool CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-	                                      const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 MaxMatch,
-	                                      UWorld* World, const FVector& ProjectionExtent, ETestType TestType = RequireOneValid,
-	                                      bool ForceNoNavPath = false, bool DebuggingEnabled = false);
+	static bool GetBestPositionSampled(FVector& ResultingLocation, const FPointGenerator& PointGenerator,
+		const TArray<const FPositionalConstraint*>& RelevantConstraints, UWorld* World, const FVector& ProjectionExtent,
+		ETestType InstantSuccessCondition = RequireOneValid, ETestType InstantFailureCondition = RequireAllValid,
+		bool ForceNoNavPath = false, bool DebuggingEnabled = false);
 	
 	/// 
 	/// @param TestLocation The location to get the match level for
 	/// @param RelevantConstraints The conditions based on which the match level will be generated
 	/// @param World The world context object
 	/// @param DistanceFromNavMesh the distance from the Navmesh that the point is required (NAN means that no maximal distance is required) 
-	/// @param TestType the Requirements that have to be fulfilled for the test to return a result > 0
+	/// @param InstantFailureCondition the Requirements that have to be fulfilled for the test to return a result > 0
 	/// @param ForceNoNavPath if distance calculations are forced to rely on air distance (even if nav distance is demanded)
 	/// @return The match level of the test location
 	static uint32 GetMatchLevel(const FVector& TestLocation, const TArray<const FPositionalConstraint*>& RelevantConstraints,
-	                            UWorld* World, const FVector& DistanceFromNavMesh = FVector(NAN),
-	                            ETestType TestType = RequireOneValid, bool ForceNoNavPath = false, bool DebuggingEnabled = false);
+		UWorld* World, const FVector& DistanceFromNavMesh = FVector(NAN),
+		ETestType InstantFailureCondition = RequireAllValid, bool ForceNoNavPath = false, bool DebuggingEnabled = false);
 
 #if WITH_EDITORONLY_DATA
 	static void DebugConstraint(const FVector& TestLocation, const FPositionalConstraint* Constraint, FColor Mask, UWorld* WorldContext);

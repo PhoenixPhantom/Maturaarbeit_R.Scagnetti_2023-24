@@ -32,13 +32,13 @@ struct MAPROJECT_API FAttackProperties
 		meta=(Units="cm", ToolTip="Default distance that the animation will move the actor."))
 	float DefaultMovementDistance;
 	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay, meta=(ForceUnits="s",
-		ToolTip="The maximum time the character can wait after this attack to continue the combo (reccomendation: around 1s for players and around 10s for opponents)"))
+		ToolTip="The maximum time the character can wait after this attack to continue the combo (reccomendation: around 2.5s for players and around 10s for opponents)"))
 	float MaxComboTime;
-	UPROPERTY(EditAnywhere, Category = "Combat", AdvancedDisplay, meta=(UIMin=0, ClampMin=0,
+	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay, meta=(UIMin=0, ClampMin=0,
 		ToolTip="Attack priority (compared to other attacks) only has an effect on opponents"))
 	float Priority;
-	UPROPERTY(EditAnywhere, Category = "Combat", AdvancedDisplay,
-		meta=(ToolTip="Whether the attack needs to connect only has an effect on opponents"))
+	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay,
+		meta=(ToolTip="Whether the attack needs to connect (only has an effect on opponents)"))
 	bool bIsMeleeAttack;
 	UPROPERTY(EditAnywhere, Category = Animation)
 	UAnimMontage* AtkAnimation;

@@ -67,10 +67,9 @@ struct FCharacterStatsBuffs : public FGeneralObjectStatsBuffs
 {
 	GENERATED_BODY()
 public:
-	FCharacterStatsBuffs() : WalkSpeedBuff(0), RunSpeedBuff(0), InterruptionResBuff(0), ToughnessBuff(0),
-	                         FlatWalkSpeed(0), FlatRunSpeed(0), FlatInterruptionRes(0), FlatToughness(0)
-	{
-	}
+	FCharacterStatsBuffs();
+	FCharacterStatsBuffs(const FGeneralObjectStatsBuffs& GeneralObjectStatsBuffs, float WSB, float RSB,
+		float IRB, float TB, float FWS, float FRS, float FIR, float FT);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
 	float WalkSpeedBuff;
@@ -88,6 +87,8 @@ public:
 	float FlatInterruptionRes;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float FlatToughness;
+
+	FCharacterStatsBuffs ReverseCharacterStatsBuffs() const;
 };
 
 
@@ -114,6 +115,11 @@ struct FCharacterStats : public FGeneralObjectStats
 	FAttacks Attacks;
 
 	void FromBase(const FCharacterBaseStats& Stats, const FSavableCharacterModifiers& Modifiers, UObject* Outer);
+	virtual void Reset() override;
+	void ResetToughness();
+	void ResetRunSpeed();
+	void ResetWalkSpeed();
+	void ResetInterruptionResistance();
 	void RecalculateBaseRunSpeed();
 	float GetDashSpeed() const { return RunSpeed.GetResulting() * DashFactor; }
 	void Buff(const FCharacterStatsBuffs& Buffs);

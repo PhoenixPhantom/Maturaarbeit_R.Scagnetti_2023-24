@@ -85,7 +85,8 @@ public:
 	FORCEINLINE bool IsWarping() const { return RemainingWarpTime > 0.f; }
 
 	void SetOrUpdateWarpTarget(const FWarpInformation& WarpInformation);
-	
+
+	FVector GetTargetLocation() const;	
 	FVector GetNextLocation(const FTransform& CurrentTransform, float DeltaSeconds) const;
 	FRotator GetNextRotation(const FTransform& CurrentTransform, float DeltaSeconds) const;
 	FTransform GetNextTransform(const FTransform& CurrentTransform, float DeltaSeconds) const;

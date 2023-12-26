@@ -33,8 +33,14 @@ bool FAttackProperties::operator==(const FAttackProperties& AttackProperties) co
 
 float FAttackProperties::GetOverallValue() const
 {
+	float RequiredTimeToExecute = 0.f;
+	for(const FNewInputLimits& InputLimit : InputLimits)
+	{
+		RequiredTimeToExecute += InputLimit.LimitationDuration;
+	}
+	
 	return DamagePercent / 100.f * (static_cast<float>(DamageEvent.StaggerChance)*0.005f + Priority*2.5f) /
-		FMath::Sqrt(AtkAnimation->GetPlayLength());
+		FMath::Sqrt(RequiredTimeToExecute);
 }
 
 float FAttackProperties::GetTotalCdTime() const

@@ -148,6 +148,8 @@ protected:
 
 	bool OnSightForgotten(AActor* SightedActor);
 
+	FVector GetCharacterTargetLocation(const AOpponentCharacter* RelevantCharacter) const;
+
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);
 

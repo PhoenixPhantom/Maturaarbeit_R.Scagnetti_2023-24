@@ -61,8 +61,9 @@ bool FStoredInput::operator==(const FStoredInput& SavedInput) const
 }
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
-	bIsRunning(false), CurrentTarget(nullptr), AutotargetingRange(1000.f), RememberInputDirectionTime(0.5),
-	MaximalInputWindowTime(0.5)
+	bIsRunning(false), bHasJumped(false), bIsRestoringHealth(false), RestoreHealthTimestamp(0.0),
+	CurrentTarget(nullptr), PlayerStatsMonitor(nullptr), AutotargetingRange(1000.f), DashOrBlinkCooldown(1.f),
+	RememberInputDirectionTime(0.5), MaximalInputWindowTime(0.5)
 {
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -106,6 +107,14 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 void APlayerCharacter::Tick(float DeltaSeconds)
 {
 	UpdateTargetSelection();
+	if(bIsRestoringHealth)
+	{
+		if(GetWorld()->RealTimeSeconds - RestoreHealthTimestamp > 5.f)
+		{
+			CharacterStats->ChangeHealthByPercentage(+1.f);
+			RestoreHealthTimestamp = GetWorld()->RealTimeSeconds;
+		}
+	}
 	Super::Tick(DeltaSeconds);
 }
 
@@ -132,8 +141,17 @@ void APlayerCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uin
 		CharacterLanded();
 }
 
+void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	if(IsValid(StatsMonitorWidget))
+	{
+		PlayerStatsMonitor->RemoveFromParent();
+	}
+}
+
 void APlayerCharacter::PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
-	const TDelegate<void(const FVector2D&)>& RequestedActionOnPlayerMovedCamera, FGenericTeamId NewTeamId, FPreSpawnSetupKey Key)
+                                     const TDelegate<void(const FVector2D&)>& RequestedActionOnPlayerMovedCamera, FGenericTeamId NewTeamId, FPreSpawnSetupKey Key)
 {
 	OnPlayerMovedCamera = RequestedActionOnPlayerMovedCamera;
 	InternalTeamId = NewTeamId;
@@ -225,7 +243,7 @@ bool APlayerCharacter::TriggerToughnessBroken()
 {
 	if(!Super::TriggerToughnessBroken()) return false;
 	PlayAnimMontage(GetHitAnimation);
-	CharacterStats->ReceiveTrueDamage(10.f);
+	CharacterStats->ChangeHealth(-10.f);
 	return true;
 }
 
@@ -412,6 +430,45 @@ void APlayerCharacter::UltimateAttack()
 	}
 }
 
+bool APlayerCharacter::Blink()
+{
+	if(GetWorld()->RealTimeSeconds - DashOrBlinkTimestamp <= DashOrBlinkCooldown) return true;
+	const FVector& CurrentTargetLocation = GetCurrentTarget()->GetActorLocation();
+	const FVector& DeltaDistance = CurrentTargetLocation - GetActorLocation();
+	const float MinimalDistance = GetCurrentTarget()->GetSimpleCollisionRadius() + GetSimpleCollisionRadius();
+	
+	FVector MovementDirection;
+	float Distance;
+	DeltaDistance.ToDirectionAndLength(MovementDirection, Distance);
+	//do not blink when too far away from the enemy
+	if(Distance - MinimalDistance > 100.f) return false;
+
+	//determine the appropriate position for the blink to teleport to
+	FHitResult TraceResult;
+	const FVector& TargetLocation = CurrentTargetLocation + MovementDirection.GetSafeNormal()*MinimalDistance;
+	UKismetSystemLibrary::LineTraceSingle(GetWorld(), TargetLocation + FVector(0.0, 0.0, 500.f),
+		TargetLocation + FVector(0.0, 0.0, -500.f), ETraceTypeQuery::TraceTypeQuery3,
+		true, {this}, EDrawDebugTrace::None, TraceResult, true);
+
+	if(!TraceResult.bBlockingHit) return false;
+
+	//reposition/teleport; only if it does work, the blink will happen
+	const FVector& ResultingLocation = TraceResult.Location + FVector(0.0, 0.0, GetSimpleCollisionHalfHeight());
+	if(!SetActorLocation(ResultingLocation, false,nullptr,
+		ETeleportType::TeleportPhysics)) return false;
+	
+	MakeInvincible(0.5f);
+	FRotator TargetRotation = UKismetMathLibrary::FindLookAtRotation(ResultingLocation,
+		GetCurrentTarget()->GetActorLocation());
+	TargetRotation.Pitch = 0.0;
+	SetActorRotation(TargetRotation);
+	
+	DashOrBlinkTimestamp = GetWorld()->RealTimeSeconds;
+	bIsRunning = true;
+	
+	return true;
+}
+
 void APlayerCharacter::DashStartRunning()
 {
 	if (!AcceptedInputs.IsAllowedInput(EInputType::Sprint))
@@ -423,47 +480,55 @@ void APlayerCharacter::DashStartRunning()
 	LastInput.Invalidate();
 	AcceptedInputs.ResetLimits(GetWorld()); //force interrupt
 
+	//try to blink to the other side of the current enemy
+	if(IsValid(GetCurrentTarget()) && !bIsRunning && Blink()) return;
+		
 	//the first seconds of run are a dash
 	if (!bIsRunning)
 	{
-		FVector Direction = InputDirection.Value;
-		if (GetWorld()->RealTimeSeconds - InputDirection.Key > RememberInputDirectionTime)
-		{
-			Direction = GetFollowCamera()->GetForwardVector();
-			Direction.Z = 0.f;
-			if (!Direction.Normalize())
+		if(GetWorld()->RealTimeSeconds - DashOrBlinkTimestamp > DashOrBlinkCooldown){
+			//use the last known movement direction if possible, otherwise use the camera view direction as dash direction
+			FVector Direction = InputDirection.Value;
+			if (GetWorld()->RealTimeSeconds - InputDirection.Key > RememberInputDirectionTime)
 			{
-				FVector OutLocation;
-				FRotator OutRotation;
-				GetActorEyesViewPoint(OutLocation, OutRotation);
-				Direction = OutRotation.Vector();
-				Direction.Z = 0;
-				if (!Direction.Normalize()) Direction = FVector(0.f);
+				Direction = GetControlRotation().Vector();
+				Direction.Z = 0.f;
+				if (!Direction.Normalize())
+				{
+					FVector OutLocation;
+					FRotator OutRotation;
+					GetActorEyesViewPoint(OutLocation, OutRotation);
+					Direction = OutRotation.Vector();
+					Direction.Z = 0;
+					if (!Direction.Normalize()) Direction = FVector(0.f);
+				}
 			}
+
+			//Launch character doesn't work here since it sets the player's movement state to "falling" which causes it to
+			//play the falling animation.
+			GetCharacterMovement()->Velocity += FVector(Direction * CharacterStats->GetDashSpeed()) +
+				FVector::ZAxisVector * GetCharacterMovement()->Velocity.Z;
+
+
+			GetWorld()->GetTimerManager().SetTimerForNextTick(
+				[this, OldRotationRate = GetCharacterMovement()->RotationRate]
+				{
+					GetCharacterMovement()->RotationRate = OldRotationRate;
+				});
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+			{
+				GetCharacterMovement()->Velocity *= 0.6;
+			}, 0.1f, false);
+			
+			GetCharacterMovement()->RotationRate = FRotator(0.f, -1.f, 0.f);
+
+			MakeInvincible(1.f);
+			
+			DashOrBlinkTimestamp = GetWorld()->RealTimeSeconds;
 		}
 
-		//Launch character doesn't work here since it sets the player's movement state to "falling" which causes it to
-		//play the falling animation.
-		GetCharacterMovement()->Velocity += FVector(Direction * CharacterStats->GetDashSpeed()) +
-			FVector::ZAxisVector * GetCharacterMovement()->Velocity.Z;
-
-
-		GetWorld()->GetTimerManager().SetTimerForNextTick(
-			[this, OldRotationRate = GetCharacterMovement()->RotationRate]
-			{
-				GetCharacterMovement()->RotationRate = OldRotationRate;
-			});
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
-		{
-			GetCharacterMovement()->Velocity *= 0.6;
-		}, 0.1f, false);
-		
-		GetCharacterMovement()->RotationRate = FRotator(0.f, -1.f, 0.f);
-
-		MakeInvincible(1.f);
-
-		//Since the player has already been displaced after a dash, we can always allow it to walk afterwards
+		//Since the player has already been displaced after a dash or run, we can always allow it to walk afterwards
 		AcceptedInputs.AddAllowedInputType(EInputType::Walk);
 		bIsRunning = true;
 
@@ -627,7 +692,7 @@ void APlayerCharacter::UpdateTargetSelection()
 			TotalScore += 3.f * FVector::DotProduct(InputDirection.Value,
 			    UKismetMathLibrary::GetDirectionUnitVector(PlayerLocation, ActorCenter));
 		TotalScore += 1.f - FVector::Distance(PlayerLocation, ActorCenter) / AutotargetingRange;
-		if (TargetInfoComp->GetIsCurrentTarget()) TotalScore += 0.5f;
+		if (TargetInfoComp->IsTargetOf(GetController())) TotalScore += 0.5f;
 		TotalScore *= TargetInfoComp->GetTargetPriority();
 
 		//only keep the best score
@@ -641,11 +706,11 @@ void APlayerCharacter::UpdateTargetSelection()
 	//tell the target components who the new target is
 	if (CurrentTarget != BestResult.Value)
 	{
-		if (IsValid(CurrentTarget)) CurrentTarget->SetIsCurrentTarget(false, FSetTargetStateKey());
+		if (IsValid(CurrentTarget)) CurrentTarget->RemoveTargetingEntity(GetController(), FSetTargetStateKey());
 		if (IsValid(BestResult.Value))
 		{
 			CurrentTarget = BestResult.Value;
-			CurrentTarget->SetIsCurrentTarget(true, FSetTargetStateKey());
+			CurrentTarget->AddTargetingEntity(GetController(), FSetTargetStateKey());
 		}
 		else CurrentTarget = nullptr;
 	}

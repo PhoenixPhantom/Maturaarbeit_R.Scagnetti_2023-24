@@ -129,9 +129,6 @@ void APlayerPartyController::AutoControlCameraRotation(float DeltaSeconds)
 	if(DesiredDeltaPitch >= 180.0) DesiredDeltaPitch = 360.0 - DesiredDeltaPitch;
 	if(DesiredDeltaPitch <= -180.0) DesiredDeltaPitch = 360.0 + DesiredDeltaPitch;
 
-	//prevent almost 180 turns
-	if(DesiredDeltaYaw >= 100.0) DesiredDeltaYaw = 180.0 - DesiredDeltaYaw;
-
 	//pitch must always stay between -90 and 90 (since the controller doesn't allow for more
 	if(DesiredDeltaPitch >= 90.0) DesiredDeltaPitch = 180.0 - DesiredDeltaPitch;
 	if(DesiredDeltaPitch <= -90.0) DesiredDeltaPitch = -180.0 - DesiredDeltaPitch;
@@ -163,9 +160,22 @@ void APlayerPartyController::LockOnTarget(FRotator& DesiredRotation)
 		if(!TrySetRequestedInView(CurrentCharacter->GetCurrentTarget())) return;
 	}
 	if(!IsValid(ActorRequestedInView)) return;
-	//the camera is bound to the control rotation, so this is the easiest way to change that
-	DesiredRotation = UKismetMathLibrary::FindLookAtRotation(CurrentCharacter->GetActorLocation(),
-		ActorRequestedInView->GetActorLocation());
+
+	const FVector& PlayerOpponentVector = ActorRequestedInView->GetActorLocation() - CurrentCharacter->GetActorLocation();
+	const FVector& DesiredCameraDirection = PlayerOpponentVector.Cross(FVector(0.f, 0.f, 1.f));
+		
+
+	FVector CinematicViewVector; 
+	//choose the direction that requires less than a 180° turn
+	if(FVector::DotProduct(DesiredCameraDirection, GetControlRotation().Vector()) >= 0.f)
+		CinematicViewVector = DesiredCameraDirection;
+	else CinematicViewVector = -DesiredCameraDirection;
+
+	const float RelevantDistance = PlayerOpponentVector.Length() - CurrentCharacter->GetSimpleCollisionRadius() -
+		ActorRequestedInView->GetSimpleCollisionRadius();
+	//balance the camera position (to the side) with actually seeing the view target
+	DesiredRotation = UKismetMathLibrary::VLerp(PlayerOpponentVector, CinematicViewVector, 
+			std::max(0.0, 1.0 - RelevantDistance/750.0)).Rotation();
 }
 
 void APlayerPartyController::OrientTowardsMovement(FRotator& DesiredRotation) const
@@ -213,6 +223,7 @@ void APlayerPartyController::OnPlayerCameraMoved(const FVector2D& LookInputAxis)
 void APlayerPartyController::Respawn()
 {
 	const APlayerCharacter* TargetCharacter = CastChecked<APlayerCharacter>(PartyMemberClass.GetDefaultObject());
+	PartyMemberStats = FCharacterStats();
 	PartyMemberStats.FromBase(TargetCharacter->GetCharacterBaseStats(), PartyMemberModifiers, this);
 
 	FTransform TargetTransform;

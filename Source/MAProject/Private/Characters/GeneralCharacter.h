@@ -10,7 +10,6 @@
 class UCustomAnimInstance;
 class UStatusEffect;
 class USuckToTargetComponent;
-class UMotionWarpingComponent;
 
 struct FSetCharacterOpacity final
 {
@@ -54,6 +53,7 @@ public:
 	bool CanOverrideCurrentInput(EInputType Type) const { return AcceptedInputs.IsAllowedInput(Type); }
 	const FAcceptedInputs& GetAcceptedInputs() const { return AcceptedInputs; }
 
+	USuckToTargetComponent* GetSuckToTargetComponent() const{ return SuckToTargetComponent; }
 	float GetMeshesOpacity() const;
 	void SetMeshesOpacity(float DesiredOpacity, FSetCharacterOpacity);
 	void SetAllowAutomaticOpacityChanges(bool ShouldAllow, FSetCharacterOpacity){ bAllowAutomaticOpacityChanges = ShouldAllow; };

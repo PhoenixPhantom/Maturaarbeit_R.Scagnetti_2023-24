@@ -19,6 +19,7 @@
 #include "Perception/AISense_Prediction.h"
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense_Touch.h"
+#include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/CharacterRotationManagerComponent.h"
 #include "Utility/NonPlayerFunctionality/MovementTarget.h"
 
@@ -172,17 +173,19 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 				else IsPossible = false;
 			}
 			if(!IsPossible) return false;
+
+			//active participants' valid locations can realistically only be affected by other active participants
 			const float MinRequestedRadius = RequiredSpace.RequiredSpaceSphere->GetScaledSphereRadius();
 			TArray<AOpponentCharacter*> ActiveParticipants = CombatManager->GetAllActiveParticipants();
 			ActiveParticipants.RemoveSwap(ControlledOpponent);
 			for(const AOpponentCharacter* ActiveParticipant : ActiveParticipants)
 			{
-				const FVector& TargetLocation = ActiveParticipant->GetUsedBlackboardComponent()->
-					GetValueAsVector(TargetLocationKeyName);
-				if(TargetLocation.ContainsNaN()) continue;
+				
+				FVector ParticipantTargetLocation = GetCharacterTargetLocation(ActiveParticipant);
+				if(ParticipantTargetLocation.ContainsNaN()) continue;
 			
 				ReservedSpaceConstraints.Add(FReservedSpaceConstraint(ActiveParticipant->GetRequiredSpace(),
-					TargetLocation,ActiveParticipant->GetCombatTarget()->GetActorLocation(),
+					ParticipantTargetLocation,ActiveParticipant->GetCombatTarget()->GetActorLocation(),
 					MinRequestedRadius));
 			}
 			break;
@@ -190,30 +193,27 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 	case ECombatParticipantStatus::Passive:
 		{
 			PlayerDistanceConstraint = ControlledOpponent->GetPassivePlayerDistanceConstraint();
+			
+			//passive participants' valid locations can realistically only be affected by other passive participants
 			TArray<AOpponentCharacter*> PassiveParticipants = CombatManager->GetAllPassiveParticipants();
 			PassiveParticipants.RemoveSwap(ControlledOpponent);
 			for(const AOpponentCharacter* PassiveParticipant : PassiveParticipants)
 			{
-				const FVector& TargetLocation = PassiveParticipant->GetUsedBlackboardComponent()->
-					GetValueAsVector(TargetLocationKeyName);
-				if(TargetLocation.ContainsNaN()) continue;
+				FVector ParticipantTargetLocation = GetCharacterTargetLocation(PassiveParticipant);
+				if(ParticipantTargetLocation.ContainsNaN()) continue;
 				ACharacter* CombatTarget = PassiveParticipant->GetCombatTarget();
 				if(!IsValid(CombatTarget)) continue;
 				ReservedSpaceConstraints.Add(FReservedSpaceConstraint(PassiveParticipant->GetRequiredSpace(),
-					TargetLocation, CombatTarget->GetActorLocation()));
+					ParticipantTargetLocation, CombatTarget->GetActorLocation()));
 			}
 			break;
 		}
 	default: 
 		checkf(false, TEXT("Getting combat location outside combat is not supported"));
 	}
-	
-	FObstacleSpaceConstraint ObstacleSpaceConstraint(RequiredSpace,
-		ControlledOpponent->GetCombatTarget()->GetActorLocation(),
-		{ControlledOpponent->GetCombatTarget(), ControlledOpponent});
 
 
-	const FVector OpponentToTarget = ControlledOpponent->GetCombatTarget()->GetActorLocation() - CurrentLocation;
+	const FVector CurrentToCombatTarget = ControlledOpponent->GetCombatTarget()->GetActorLocation() - CurrentLocation;
 	
 	TArray<const FPositionalConstraint*> RelevantConstraints = {&PlayerDistanceConstraint};
 	for(const FReservedSpaceConstraint& ReservedSpace : ReservedSpaceConstraints)
@@ -233,8 +233,8 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 		else TestLocation = Blackboard->GetValueAsVector(TargetLocationKeyName);
 		
 		if(UConstraintsFunctionLibrary::GetMatchLevel(TestLocation, RelevantConstraints, GetWorld(),
-		FVector(0, 0, abs(OpponentToTarget.Z) + 100.f),
-		UConstraintsFunctionLibrary::RequireAllValid))
+			FVector(0, 0, abs(CurrentToCombatTarget.Z) + 100.f),
+			UConstraintsFunctionLibrary::RequireAllValid))
 		{
 			ResultingLocation = TestLocation;
 			return true;
@@ -250,34 +250,26 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 	
 	FPlayerRelativeWorldZoneConstraint PlayerZoneConstraint(ControlledOpponent->GetCombatTargetController(),
 		CurrentLocation);
-
-
 	
-	FVector Location;
-	FRotator Rotation;
-	ControlledOpponent->GetActorEyesViewPoint(Location, Rotation);
-	FVector ProjectedRotation = Rotation.Vector();
-	ProjectedRotation.Z = 0;
-	ProjectedRotation.Normalize();
-	
-	const float SampleRange = 500.f + OpponentToTarget.Length();
 	RelevantConstraints.Add(&PlayerZoneConstraint);
-	
-	bool FoundLocation = UConstraintsFunctionLibrary::SampleGetClosestValid(ResultingLocation,
-		CurrentLocation,ProjectedRotation * SampleRange / ForwardSampleNumber, 100.f,
-		SampleRange, RelevantConstraints, GetWorld(),abs(OpponentToTarget.Z) + 100.f,
-		UConstraintsFunctionLibrary::RequireAllValid,false
+
+	FCircularPointGenerator PointGenerator(PlayerDistanceConstraint, -CurrentToCombatTarget,
+		ECombatParticipantStatus::Active == ParticipantStatus ? 0.05 : 0.001);
+	bool FoundLocation = UConstraintsFunctionLibrary::GetBestPositionSampled(ResultingLocation, PointGenerator,
+		RelevantConstraints, GetWorld(),FVector(0.0, 0.0, abs(CurrentToCombatTarget.Z) + 500.0),
+		UConstraintsFunctionLibrary::RequireAllOptimal,
+		UConstraintsFunctionLibrary::RequireAllValid, false
 #if WITH_EDITORONLY_DATA
-		, bIsDebugging && ParticipantStatus == ECombatParticipantStatus::Active
+		, bIsDebugging
 #endif
 	);
-
-	//Fallback to prevent active enemies stupidly standing around without attacking
-	if(!FoundLocation && ParticipantStatus == ECombatParticipantStatus::Active)
+#if WITH_EDITORONLY_DATA
+	if(!FoundLocation)
 	{
-		ResultingLocation = ControlledOpponent->GetCombatTarget()->GetActorLocation();
-		FoundLocation = true;
+		GLog->Log("Repositioning failed");
 	}
+#endif
+	
 	Blackboard->SetValueAsBool(HasJustExecutedAttackKeyName, false);
 	return FoundLocation;
 }
@@ -313,10 +305,8 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 	if(PathFollowingRequestResult.Code == EPathFollowingRequestResult::RequestSuccessful)
 	{
 		//Use the original request, as the new one generally doesn't contain the "actual" target position
-		//(as it interpolates to the new target position over time)
+		//(as the modified one interpolates to the new target position over time)
 		ControlledOpponent->GetCharacterRotationManager()->SwitchToOptimal(MoveRequest.GetGoalLocation());
-		/*CrowdFollowingComponent->SetCrowdObstacleAvoidance(
-			CombatManager->GetParticipationStatus(ControlledOpponent) == ECombatParticipantStatus::Active);*/
 	}
 
 	return  PathFollowingRequestResult;
@@ -441,7 +431,7 @@ bool AOpponentController::OnSightForgotten(AActor* SightedActor)
 	{
 		//if the target is so close, that we can touch it, it is nonsensical to loose sight of it
 		if(FVector::Distance(SightedActor->GetActorLocation(), ControlledOpponent->GetActorLocation()) >
-			ControlledOpponent->GetRequiredSpaceActive()->GetScaledSphereRadius())
+			ControlledOpponent->GetSimpleCollisionRadius() + SightedActor->GetSimpleCollisionRadius() + 500.f)
 		{
 			EndCombat();
 			UAISense_Prediction::RequestPawnPredictionEvent(ControlledOpponent, SightedActor, 1.f);
@@ -450,6 +440,31 @@ bool AOpponentController::OnSightForgotten(AActor* SightedActor)
 		return false;
 	}
 	return true;
+}
+
+FVector AOpponentController::GetCharacterTargetLocation(const AOpponentCharacter* RelevantCharacter) const
+{
+	FVector ParticipantTargetLocation;
+	//determine the target location if moving, otherwise the current location
+	if(RelevantCharacter->GetCurrentMontage() != nullptr)
+	{
+		ParticipantTargetLocation = RelevantCharacter->GetSuckToTargetComponent()->GetTargetLocation();
+	}
+	else
+	{
+		//See if the character is moving.
+		//As the squared length is slightly faster, we use that. We actually mean velocity > 10cm/s
+		if(RelevantCharacter->GetVelocity().SquaredLength() > 100.0)
+		{
+			ParticipantTargetLocation =
+				RelevantCharacter->GetUsedBlackboardComponent()->GetValueAsVector(TargetLocationKeyName);
+		}
+		else
+		{
+			ParticipantTargetLocation = RelevantCharacter->GetActorLocation();
+		}
+	}
+	return ParticipantTargetLocation;
 }
 
 

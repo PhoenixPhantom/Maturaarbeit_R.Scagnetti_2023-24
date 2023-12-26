@@ -101,6 +101,13 @@ private:
 	FSetUsedBlackboardKey(){}
 };
 
+struct FResetOpponentStatsKey final
+{
+	friend ACombatManager;
+private:
+	FResetOpponentStatsKey(){}
+};
+
 /**
  * 
  */
@@ -126,6 +133,7 @@ public:
 	
 	void ExecuteOnAggressionTokensGranted(FExecuteOnAggressionTokensGrantedKey) const;
 	void ExecuteOnAggressionTokensReleased(FExecuteOnAggressionTokensReleasedKey) const;
+	void ResetAllStats(FResetOpponentStatsKey) const { CharacterStats->Reset(); }
 
 	FRequiredSpace GetRequiredSpace() const;
 	USphereComponent* GetRequiredSpaceActive() const;

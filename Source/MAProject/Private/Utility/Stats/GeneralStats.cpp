@@ -11,8 +11,19 @@ bool FGeneralBaseStats::operator==(const FGeneralBaseStats& GeneralBaseStats) co
 		BaseDefense == GeneralBaseStats.BaseDefense;
 }
 
+FGeneralObjectStatsBuffs::FGeneralObjectStatsBuffs(float HB, float AB, float DB, float FH, float FA, float FD):
+	HealthBuff(HB), AttackBuff(AB), DefenseBuff(DB), FlatHealth(FH), FlatAttack(FA), FlatDefense(FD)
+{
+}
+
+FGeneralObjectStatsBuffs FGeneralObjectStatsBuffs::ReverseGeneralObjectBuffs() const
+{
+	return FGeneralObjectStatsBuffs(-HealthBuff, -AttackBuff, -DefenseBuff, -FlatHealth, -FlatAttack,
+		-FlatDefense);
+}
+
 FGeneralObjectStats::FGeneralObjectStats(): Attack(0, 0, 0.f),
-	Defense(0, 0, 0.f)
+                                            Defense(0, 0, 0.f)
 {
 }
 
@@ -30,6 +41,32 @@ void FGeneralObjectStats::FromBase(const FGeneralBaseStats& Stats, const FSavabl
 	Defense.Base = Stats.BaseDefense * Modifiers.Level;
 }
 
+void FGeneralObjectStats::Reset()
+{
+	ResetHealth();
+	ResetAttack();
+	ResetDefense();
+}
+
+void FGeneralObjectStats::ResetHealth()
+{
+	Health.Reset();
+	OnMaxHealthChanged.Broadcast(Health.Current, Health.Maximum.GetResulting());
+	Health.Reset();
+}
+
+void FGeneralObjectStats::ResetAttack()
+{
+	Attack.FlatBonus = 0.f;
+	Attack.PercentageBonus = 0.f;
+}
+
+void FGeneralObjectStats::ResetDefense()
+{
+	Defense.FlatBonus = 0.f;
+	Defense.PercentageBonus = 0.f;
+}
+
 void FGeneralObjectStats::Buff(const FGeneralObjectStatsBuffs& Buffs)
 {
 	Health.AddBonuses(Buffs.FlatHealth, Buffs.HealthBuff);
@@ -38,7 +75,7 @@ void FGeneralObjectStats::Buff(const FGeneralObjectStatsBuffs& Buffs)
 	Defense.FlatBonus += FMath::Floor(Buffs.FlatDefense);
 	Attack.PercentageBonus += Buffs.AttackBuff;
 	Defense.PercentageBonus += Buffs.DefenseBuff;
-}
+ }
 
 void FGeneralObjectStats::Debuff(const FGeneralObjectStatsBuffs& Buffs)
 {
@@ -69,18 +106,17 @@ int32 FGeneralObjectStats::ReceiveDamage(float Damage, const FCustomDamageEvent*
 	return ReceiveDamage(Damage);
 }
 
-int32 FGeneralObjectStats::ReceiveTrueDamage(int32 Damage)
+int32 FGeneralObjectStats::ChangeHealth(int32 DeltaHealth)
 {
-	OnHealthChanged.Broadcast(Health.Current <= Damage ? 0 : Health.Current - Damage,
-		Health.Current);
+	int32 ResultingHealth;
+	if(Health.Current + DeltaHealth >= Health.Maximum.GetResulting()) ResultingHealth = Health.Maximum.GetResulting();
+	else if(Health.Current <= -DeltaHealth) ResultingHealth = 0;
+	else ResultingHealth = Health.Current + DeltaHealth;
 	
-	if(Health.Current <= Damage)
-	{
-		Health.Current = 0;
-		if(OnNoHealthReached.IsBound()) OnNoHealthReached.Broadcast();
-		return 0;
-	}
+	OnHealthChanged.Broadcast(ResultingHealth, Health.Current);
 	
-	Health.Current -= Damage;
+	if(ResultingHealth <= 0 && OnNoHealthReached.IsBound())OnNoHealthReached.Broadcast();
+	
+	Health.Current = ResultingHealth;
 	return Health.Current;
 }

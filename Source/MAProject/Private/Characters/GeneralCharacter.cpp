@@ -3,6 +3,7 @@
 
 #include "Characters/GeneralCharacter.h"
 
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Utility/Animation/CustomAnimInstance.h"
@@ -15,7 +16,8 @@ AGeneralCharacter::AGeneralCharacter(const FObjectInitializer& ObjectInitializer
 {
 	SuckToTargetComponent = CreateDefaultSubobject<USuckToTargetComponent>(TEXT("SuckToTargetComp"));
 	PrimaryActorTick.bCanEverTick = true;
-	
+
+	GetCapsuleComponent()->bDynamicObstacle = false;
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionProfileName("CharacterMesh", true);
 }

@@ -15,7 +15,7 @@
 
 AFighterCharacter::AFighterCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer),
 	bIsInvincible(false),  TargetTimeDilation(-1.f), TimeDilationBlendTime(-1.f), TimeDilationTotalTime(-1.f),
-	TimeDilationEffectTimeRemaining(-1.f), ToughnessBrokenTime(1.f), HitFXRadius(50.f)
+	TimeDilationEffectTimeRemaining(-1.f), CharacterStats(nullptr), ToughnessBrokenTime(1.f), HitFXRadius(50.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -31,6 +31,8 @@ void AFighterCharacter::Tick(float DeltaSeconds)
 	if(!MeleeEnabledBones.IsEmpty()) CheckMeshOverlaps();
 	if(TimeDilationEffectTimeRemaining > 0.f) ProcessTimeDilation(DeltaSeconds);
 }
+
+
 
 float AFighterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
                                     AActor* DamageCauser)
@@ -301,12 +303,21 @@ bool AFighterCharacter::TriggerToughnessBroken()
 {
 	check(ToughnessBrokenTime > 0.f);
 	if(!AcceptedInputs.LimitAvailableInputs({EInputType::HeavyStagger, ToughnessBrokenTime}, GetWorld())) return false;
+
+	FCharacterStatsBuffs Debuff;
+	Debuff.DefenseBuff = -50.f;
 	TDelegate<void(bool)> OnToughnessBrokenReset;
-	OnToughnessBrokenReset.BindWeakLambda(this, [this](bool IsLimitDurationOver)
+	OnToughnessBrokenReset.BindWeakLambda(this, [this, Debuff](bool IsLimitDurationOver)
 	{
-		if(IsLimitDurationOver) RestoreToughness();
+		if(!IsLimitDurationOver)
+		{
+			GLog->Log(GetActorNameOrLabel() + " seems to have died while while it's toughness was broken");
+		}
+		RestoreToughness();
+		ApplyBuff(Debuff.ReverseCharacterStatsBuffs());
 	});
 	AcceptedInputs.OnInputLimitsReset.Add(OnToughnessBrokenReset);
+	ApplyBuff(Debuff);
 	return true;
 }
 
@@ -349,14 +360,14 @@ void AFighterCharacter::OnHitTimeDilation(bool WasStaggered)
 void AFighterCharacter::RegisterHealthInfoWidget(UStatsMonitorBaseWidget* Widget)
 {
 	check(IsValid(Widget));
-	HealthInfoWidget = Widget;
+	StatsMonitorWidget = Widget;
 
-	HealthInfoWidget->SetupInformation(CharacterStats->Health, CharacterStats->Toughness, FSetupInformationKey());
+	StatsMonitorWidget->SetupInformation(CharacterStats->Health, CharacterStats->Toughness, FSetupInformationKey());
 	
-	CharacterStats->OnHealthChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateHealth);
-	CharacterStats->OnMaxHealthChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateMaxHealth);
-	CharacterStats->OnToughnessChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateToughness);
-	CharacterStats->OnMaxToughnessChanged.AddDynamic(HealthInfoWidget, &UStatsMonitorBaseWidget::UpdateMaxToughness);
+	CharacterStats->OnHealthChanged.AddDynamic(StatsMonitorWidget, &UStatsMonitorBaseWidget::UpdateHealth);
+	CharacterStats->OnMaxHealthChanged.AddDynamic(StatsMonitorWidget, &UStatsMonitorBaseWidget::UpdateMaxHealth);
+	CharacterStats->OnToughnessChanged.AddDynamic(StatsMonitorWidget, &UStatsMonitorBaseWidget::UpdateToughness);
+	CharacterStats->OnMaxToughnessChanged.AddDynamic(StatsMonitorWidget, &UStatsMonitorBaseWidget::UpdateMaxToughness);
 }
 
 void AFighterCharacter::SetAttackTreeMode(FString ModeIdentifier)
@@ -415,6 +426,18 @@ void AFighterCharacter::ApplyBuffTimed(const FCharacterStatsBuffs& Buffs, float 
 void AFighterCharacter::ApplyBuff(const FCharacterStatsBuffs& Buffs)
 {
 	CharacterStats->Buff(Buffs);
+}
+
+void AFighterCharacter::RemoveBuff(bool bResetHealth, bool bResetAttack, bool bResetDefense, bool bResetToughness,
+	bool bResetRunSpeed, bool bResetWalkSpeed, bool bResetInterruptionResistance)
+{
+	if(bResetHealth) CharacterStats->ResetHealth();
+	if(bResetAttack) CharacterStats->ResetAttack();
+	if(bResetDefense) CharacterStats->ResetDefense();
+	if(bResetToughness) CharacterStats->ResetToughness();
+	if(bResetRunSpeed) CharacterStats->ResetRunSpeed();
+	if(bResetWalkSpeed) CharacterStats->ResetWalkSpeed();
+	if(bResetInterruptionResistance) CharacterStats->ResetInterruptionResistance();
 }
 
 void AFighterCharacter::ForceSetCd(FString NodeName, float CdTime, bool ChangeBy)

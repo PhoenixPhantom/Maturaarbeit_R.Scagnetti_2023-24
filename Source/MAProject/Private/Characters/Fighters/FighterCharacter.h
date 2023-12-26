@@ -92,7 +92,7 @@ protected:
 	TArray<AActor*> RecentlyDamagedActors;
 
 	UPROPERTY()
-	UStatsMonitorBaseWidget* HealthInfoWidget;
+	UStatsMonitorBaseWidget* StatsMonitorWidget;
 	
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UTargetInformationComponent* TargetInformationComponent;
@@ -148,6 +148,9 @@ protected:
 	void ApplyBuffTimed(const FCharacterStatsBuffs& Buffs, float Duration = 1.f);
 	UFUNCTION(BlueprintCallable)
 	void ApplyBuff(const FCharacterStatsBuffs& Buffs);
+	UFUNCTION(BlueprintCallable)
+	void RemoveBuff(bool bResetHealth, bool bResetAttack, bool bResetDefense, bool bResetToughness, bool bResetRunSpeed,
+		bool bResetWalkSpeed, bool bResetInterruptionResistance);
 	UFUNCTION(BlueprintCallable)
 	void ForceSetCd(FString NodeName, float CdTime, bool ChangeBy = false);
 	UFUNCTION(BlueprintNativeEvent)

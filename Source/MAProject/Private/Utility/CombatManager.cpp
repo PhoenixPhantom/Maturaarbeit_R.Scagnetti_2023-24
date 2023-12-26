@@ -60,7 +60,10 @@ bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, 
 	if(FTimerHandle* TimerHandle = PendingOutOfCombat.Find(Participant); TimerHandle == nullptr)
 	{
 		if(IsValid(SoundManager) && PassiveParticipants.IsEmpty() && ActiveParticipants.IsEmpty())
+		{
 			SoundManager->EnterCombatState(FSetCombatStateKey());
+			PlayerCharacter->SetIsRestoringHealth(false, FSetIsRestoringHealthKey());
+		}
 	}
 	else
 	{
@@ -81,8 +84,7 @@ void ACombatManager::UnregisterCombatParticipant(AOpponentCharacter* Participant
 	if(WasActiveParticipant) AttemptDistributeFreeTokens();
 	if(!SetToPending)
 	{
-		if(IsValid(SoundManager) && PassiveParticipants.IsEmpty() && ActiveParticipants.IsEmpty())
-			SoundManager->EndCombatState(FSetCombatStateKey());
+		FullyExitFromCombat(Participant);
 		return;
 	}
 	FTimerHandle& CorrespondingHandle = PendingOutOfCombat.Add(Participant);
@@ -294,18 +296,28 @@ void ACombatManager::RequestToken(AOpponentCharacter* Requestor)
 	GrantTokens(FAggressorInfo(Requestor, DesiredAttack, Requestor->GetRequestedTokens()));
 }
 
+void ACombatManager::FullyExitFromCombat(AOpponentCharacter* OpponentCharacter)
+{
+	OpponentCharacter->ResetAllStats(FResetOpponentStatsKey());
+	//if the pending out of combat participant is the last character to exit from combat, we change the sound state to non-combat
+	if(PassiveParticipants.IsEmpty() && ActiveParticipants.IsEmpty())
+	{
+		if(IsValid(SoundManager))  SoundManager->EndCombatState(FSetCombatStateKey());
+		PlayerCharacter->SetIsRestoringHealth(true, FSetIsRestoringHealthKey());
+	}
+}
+
 void ACombatManager::OnOutOfCombat(AOpponentCharacter* Participant)
 {
 	if(!IsValid(Participant))
 	{
 		PendingOutOfCombat.Remove(Participant);
 	}
-	//if the pending out of combat participant is the last character to exit from combat, we change the sound state to non-combat
-	if(IsValid(SoundManager) && PassiveParticipants.IsEmpty() && ActiveParticipants.IsEmpty()
-		&& PendingOutOfCombat.Contains(Participant))
+	if(PendingOutOfCombat.Contains(Participant))
 	{
+		FullyExitFromCombat(Participant);
 		PendingOutOfCombat.FindAndRemoveChecked(Participant);
-		SoundManager->EndCombatState(FSetCombatStateKey());
 	}
+	
 }
 

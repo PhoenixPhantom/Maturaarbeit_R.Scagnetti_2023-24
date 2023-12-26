@@ -288,7 +288,7 @@ float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharac
 {
 	if(!bCanBecomeAggressive) return -1.f;
 	float Score = 0.f;
-	if(TargetInformationComponent->GetIsCurrentTarget()) Score += BIG_NUMBER; //we want the current target to be always aggressive when possible 
+	if(TargetInformationComponent->IsTargetOf(PlayerCharacter->GetController())) Score += BIG_NUMBER; //we want the current target to be always aggressive when possible 
 	//Aggression priority
 	if(AggressionRange > 0.f) Score += AggressionPriority * (1.f - std::min(FVector::Distance(PlayerCharacter->GetActorLocation(),
 			GetActorLocation())/AggressionRange, 1.0));
@@ -329,7 +329,7 @@ bool AOpponentCharacter::TriggerToughnessBroken()
 {
 	if(!Super::TriggerToughnessBroken()) return false;
 	PlayAnimMontage(ToughnessBrokenAnimation);
-	CharacterStats->ReceiveTrueDamage(100.f);
+	CharacterStats->ChangeHealthByPercentage(-10.f);
 	return true;
 }
 

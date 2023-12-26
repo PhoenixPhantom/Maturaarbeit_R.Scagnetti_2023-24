@@ -7,6 +7,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/ShapeComponent.h"
 #include "Components/SphereComponent.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -224,11 +225,124 @@ void FPlayerRelativeWorldZoneConstraint::DrawOldConstraintDebugStatic(UWorld* Wo
 
 #endif
 
+void FInefficientPointGenerator::SetProperties(const FVector& NewSourcePoint, const FVector& NewSpacedStartDirection,
+                                               float NewDistribution, float NewMaxSampleRange)
+{
+	NumOfCircles = floor(NewMaxSampleRange / NewSpacedStartDirection.Length());
+	
+	//experimentally, it can be seen, that the points created by this algorithms are distributed too
+	//grid like in the direction of the sampling
+	//(the best distribution seems to be around 135° (clockwise) from the sampling direction)
+	//RotateAngleAxis seems to work with a counterclockwise input
+	SpacedStartDirection = NewSpacedStartDirection.RotateAngleAxis(135.0, FVector(0.0, 0.0, 1.0));
+	SourcePoint = NewSourcePoint;
+	Distribution = NewDistribution;
+}
 
+FVector FInefficientPointGenerator::GetSamplePoint(uint64 Index) const
+{
+	uint64 CurrentCircleIndex = 0;
+	const float PointsOnCircleMultiplier = DOUBLE_PI * 2.0 * SpacedStartDirection.Length() / Distribution;
+	uint64 IndicesRemaining = Index;
+	uint64 PointsOnCurrentCircle = 0;
+	for(uint64 i = 0; i < Index; i++)
+	{
+		PointsOnCurrentCircle = ceil(PointsOnCircleMultiplier * i);
+		if(IndicesRemaining > PointsOnCurrentCircle)
+		{
+			IndicesRemaining -= PointsOnCurrentCircle;
+			continue;
+		}
+		CurrentCircleIndex = i;
+		break;
+	}
+
+	const FVector Direction = SpacedStartDirection * static_cast<double>(CurrentCircleIndex);
+	const double DirectionLength = Direction.Length();
+	
+	//360°/Radius * Distribution = 360°/PointsOnCircle = RotationPerStep <==>
+	//2*PI/(2*PI*DirLen / Dist) = Dist/DirLen = RotationPerStep 
+	const double RotationPerStep = Distribution/DirectionLength;
+	return  SourcePoint + Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(IndicesRemaining),
+			FVector(0.f, 0.f, 1.f));
+}
+
+uint64 FInefficientPointGenerator::GetIndexRange() const
+{
+	return DOUBLE_TWO_PI * SpacedStartDirection.Length() / Distribution * static_cast<float>(NumOfCircles) * static_cast<float>(NumOfCircles);
+}
+
+FCircularPointGenerator::FCircularPointGenerator(): MinimalLength(0), Density(0), NumOfCircles(0)
+{
+}
+
+void FCircularPointGenerator::SetProperties(const FCircularDistanceConstraint& SourceConstraint,
+                                            const FVector& NewStartDirection, float NewDensity)
+{
+	SourcePoint = SourceConstraint.AnchorController->GetPawn()->GetActorLocation();
+	StartDirection = NewStartDirection.GetSafeNormal();
+	MinimalLength = SourceConstraint.MinRadius;
+	Density = NewDensity;
+	NumOfCircles = ceil((SourceConstraint.MaxRadius - SourceConstraint.MinRadius) * NewDensity);
+}
+
+FVector FCircularPointGenerator::GetSamplePoint(uint64 Index) const
+{
+	uint64 CurrentCircleIndex = 0;
+	uint64 IndicesRemaining = Index;
+	uint64 PointsOnCurrentCircle = 0;
+	for(uint64 i = 0; i < Index; i++)
+	{
+		PointsOnCurrentCircle = ceil(Density * (DOUBLE_TWO_PI * (MinimalLength + static_cast<double>(i) / Density)));
+		if(IndicesRemaining >= PointsOnCurrentCircle)
+		{
+			IndicesRemaining -= PointsOnCurrentCircle;
+			continue;
+		}
+		CurrentCircleIndex = i;
+		break;
+	}
+
+	const double Radius = MinimalLength + static_cast<double>(CurrentCircleIndex) / Density;
+	const double RadiansPerStep = PointsOnCurrentCircle == 0 ? 0.0 : DOUBLE_TWO_PI/static_cast<double>(PointsOnCurrentCircle);
+	const double RotationAmount = RadiansPerStep * ceil(static_cast<double>(IndicesRemaining)/2.0) *
+		(IndicesRemaining & 0b1 ? -1.0 : 1.0);
+	return  SourcePoint + (StartDirection * Radius).RotateAngleAxisRad(RotationAmount,FVector(0.f, 0.f, 1.f));
+}
+
+uint64 FCircularPointGenerator::GetIndexRange() const
+{
+	//Density * (DOUBLE_TWO_PI * (MinimalLength + CircleIndex/Density)) = PointsOnCircle[Index]
+	return static_cast<float>(NumOfCircles) * (DOUBLE_TWO_PI * (Density * MinimalLength + 0.5*static_cast<float>(NumOfCircles)));
+}
+
+void FSquarePointGenerator::SetProperties(const FVector& NewSourcePoint, const FVector& NewStartDirection,
+                                          float NewDistribution, float MaxLength, float MaxWidth)
+{
+	NumOfRows = ceil(MaxLength / NewDistribution);
+	PointsPerRow = ceil(MaxWidth / NewDistribution);
+	
+	StartDirection = NewStartDirection.GetSafeNormal();
+	SideDirection = StartDirection.Cross(FVector(0.0, 0.0, 1.0)).GetSafeNormal();
+	SourcePoint = NewSourcePoint - SideDirection * (static_cast<double>(PointsPerRow - 1)/2.0 * NewDistribution);
+	Distribution = NewDistribution;
+}
+
+FVector FSquarePointGenerator::GetSamplePoint(uint64 Index) const
+{
+	const double RowIndex = floor(Index / PointsPerRow);
+	const double PointIndex = floor(Index % PointsPerRow);
+	return  SourcePoint + StartDirection * (RowIndex * Distribution) + SideDirection * (PointIndex * Distribution);
+}
+
+uint64 FSquarePointGenerator::GetIndexRange() const
+{
+	return NumOfRows * PointsPerRow;
+}
 
 bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext, const FRequiredSpace& RequiredSpace,
-	const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes, const TArray<AActor*>& ActorsToIgnore,
-	TArray<FHitResult>& HitResults)
+                                                            const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes, const TArray<AActor*>& ActorsToIgnore,
+                                                            TArray<FHitResult>& HitResults)
 {
 	return ShapeTraceMultiForObjects(WorldContext, RequiredSpace, RequiredSpace.GetShape()->GetComponentLocation(), ObjectTypes,
 	                                 ActorsToIgnore, HitResults);
@@ -256,9 +370,10 @@ bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext
 	return false;
 }
 
-bool UConstraintsFunctionLibrary::SampleGetClosestValid(FVector& ResultingLocation, const FVector& SourcePoint, const FVector& SpacedStartDirection,
-                                                        double Distribution, float MaxSampleRange, const TArray<const FPositionalConstraint*>& RelevantConstraints,
-                                                        UWorld* World, float ProjectionHalfHeight, ETestType TestType, bool ForceNoNavPath, bool DebuggingEnabled)
+bool UConstraintsFunctionLibrary::GetBestPositionSampled(FVector& ResultingLocation,
+	const FPointGenerator& PointGenerator, const TArray<const FPositionalConstraint*>& RelevantConstraints,
+	UWorld* World, const FVector& ProjectionExtent, ETestType InstantSuccessCondition, ETestType InstantFailureCondition,
+	bool ForceNoNavPath, bool DebuggingEnabled)
 {
 	uint32 MaxPossibleMatch = 0;
 	for(const FPositionalConstraint* Constraint : RelevantConstraints)
@@ -266,80 +381,48 @@ bool UConstraintsFunctionLibrary::SampleGetClosestValid(FVector& ResultingLocati
 		MaxPossibleMatch += Constraint->GetMaxMatchLevel();
 	}
 
-	//experimentally, it can be seen, that the points created by this algorithms are distributed too
-	//grid like in the direction of the sampling
-	//(the best distribution seems to be around 135° (clockwise) from the sampling direction)
-	//RotateAngleAxis seems to work with a counterclockwise input
-	const FVector CorrectedStartDirection = SpacedStartDirection.RotateAngleAxis(135.0, FVector(0.0, 0.0, 1.0));
-	TArray<FVector> AcceptableLocations;
-	for(uint32 i = 1; true; i++)
+	//this case would need a lot of additional handling, so we don't support it
+	if(InstantSuccessCondition == RequireAllValid && InstantFailureCondition != RequireAllValid)
 	{
-		FVector Direction = CorrectedStartDirection * static_cast<double>(i);
-		const double DirectionLength = Direction.Length();
-		if(DirectionLength > MaxSampleRange) break;
-	
-		const int32 PointsOnCircle = ceil(DOUBLE_PI * 2.0 * DirectionLength / Distribution);
-		//360°/Radius * Distribution = 360°/PointsOnCircle = RotationPerStep <==>
-		//2*PI/(2*PI*DirLen / Dist) = Dist/DirLen = RotationPerStep 
-		const double RotationPerStep = Distribution/DirectionLength;
-
-		TArray<FVector> SamplePoints;
-		SamplePoints.SetNumUninitialized(PointsOnCircle);
-		for(int32 j = 0; j < PointsOnCircle; j++)
-		{
-			SamplePoints[j] = SourcePoint + Direction.RotateAngleAxisRad(RotationPerStep * static_cast<double>(j),
-				FVector(0.f, 0.f, 1.f));
-		}
-		if(CheckSamplesForFirstValid(ResultingLocation, SamplePoints, RelevantConstraints, MaxPossibleMatch,
-				World,FVector(Distribution/2.f, Distribution/2.f, ProjectionHalfHeight),
-		        TestType, ForceNoNavPath, DebuggingEnabled)) return true;
-		if(!ResultingLocation.ContainsNaN()) AcceptableLocations.Add(ResultingLocation);
+		checkNoEntry();
+		return false;
 	}
-
-	//Determine the best (if any) acceptable location
-	CheckSamplesForFirstValid(ResultingLocation, AcceptableLocations, RelevantConstraints,
-              MaxPossibleMatch - 1, World,
-              FVector(Distribution/2.f, Distribution/2.f, ProjectionHalfHeight),
-              TestType, ForceNoNavPath, DebuggingEnabled);
-	if(!ResultingLocation.ContainsNaN()) return true;
-	return false;
-}
-
-bool UConstraintsFunctionLibrary::CheckSamplesForFirstValid(FVector& ValidPoint, const TArray<FVector>& SamplePoints,
-										  const TArray<const FPositionalConstraint*>& RelevantConstraints, uint32 MaxMatch,
-										  UWorld* World, const FVector& ProjectionExtent, ETestType TestType,
-										  bool ForceNoNavPath, bool DebuggingEnabled)
-{
-	ValidPoint = FVector(NAN);
-	TTuple<uint32, FVector> CurrentBest;
+	
+	TTuple<uint64, FVector> CurrentBest;
 	CurrentBest.Key = 0;
-	for(const FVector& SamplePoint : SamplePoints)
+	CurrentBest.Value = FVector(NAN);
+	for(uint64 i = 0; i < PointGenerator.GetIndexRange(); i++)
 	{
-		const uint32 Match = GetMatchLevel(SamplePoint, RelevantConstraints, World,
-		                ProjectionExtent,  TestType, ForceNoNavPath, DebuggingEnabled);
-
-		if((TestType == ETestType::RequireAllOptimal && Match >= MaxMatch) ||
-			((TestType == ETestType::RequireAllValid || TestType == ETestType::RequireOneValid) && Match != 0))
+		FVector SamplePoint = PointGenerator.GetSamplePoint(i);
+		const uint32 Match = GetMatchLevel(SamplePoint, RelevantConstraints, World,ProjectionExtent,
+			InstantFailureCondition, ForceNoNavPath, DebuggingEnabled);
+		if((InstantSuccessCondition == RequireAllOptimal && Match >= MaxPossibleMatch) ||
+			((InstantSuccessCondition == RequireAllValid || InstantSuccessCondition == RequireOneValid) && Match != 0))
 		{
-			ValidPoint = SamplePoint;
+			ResultingLocation = SamplePoint;
 			return true;
 		}
+		if(InstantFailureCondition == RequireAllOptimal && Match < MaxPossibleMatch) continue;
 		if(CurrentBest.Key < Match)
 		{
 			CurrentBest.Key = Match;
 			CurrentBest.Value = SamplePoint;
 		}
 	}
-	//if there is a valid but not optimal point, false is returned but ValidPoint is still set
-	if(CurrentBest.Key > 0) ValidPoint = CurrentBest.Value;
-	return false;
+	ResultingLocation = CurrentBest.Value;
+	if(ResultingLocation.ContainsNaN()) return false;
+	return true;
 }
 
-uint32 UConstraintsFunctionLibrary::GetMatchLevel(const FVector& TestLocation, const TArray<const FPositionalConstraint*>& RelevantConstraints,
-                                                  UWorld* World, const FVector& DistanceFromNavMesh, ETestType TestType, bool ForceNoNavPath, bool DebuggingEnabled)
+uint32 UConstraintsFunctionLibrary::GetMatchLevel(const FVector& TestLocation,
+	const TArray<const FPositionalConstraint*>& RelevantConstraints, UWorld* World, const FVector& DistanceFromNavMesh,
+	ETestType InstantFailureCondition, bool ForceNoNavPath, bool DebuggingEnabled)
 {
+	if(TestLocation.ContainsNaN()) return 0;
 	UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetNavigationSystem(World);
-		
+
+
+	FVector LocationToTest = TestLocation;
 	if(!DistanceFromNavMesh.ContainsNaN()){
 		FNavLocation ProjectedLocation;
 		if(!NavigationSystem->ProjectPointToNavigation(TestLocation ,ProjectedLocation, DistanceFromNavMesh))
@@ -350,28 +433,33 @@ uint32 UConstraintsFunctionLibrary::GetMatchLevel(const FVector& TestLocation, c
 #endif
 			return 0;
 		}
+		LocationToTest = ProjectedLocation;
 	}
 		
 	uint32 TotalMatch = 0;
 	for(const FPositionalConstraint* Constraint : RelevantConstraints)
 	{
-		const uint32 Match = Constraint->GetMatchLevel(TestLocation, ForceNoNavPath ? nullptr : NavigationSystem);
-		if(TestType == RequireAllValid && Match == 0)
+		const uint32 Match = Constraint->GetMatchLevel(LocationToTest, ForceNoNavPath ? nullptr : NavigationSystem);
+		if(InstantFailureCondition == RequireAllValid && Match == 0)
 		{
 #if WITH_EDITORONLY_DATA
-			if(DebuggingEnabled) DebugConstraint(TestLocation, Constraint, FColor(1, 1, 1), World);
+			if(DebuggingEnabled) DebugConstraint(LocationToTest, Constraint, FColor(1, 1, 1), World);
 #endif
 			return 0;
 		}
-		if(TestType == RequireAllOptimal && Match != Constraint->GetMaxMatchLevel())
+		if(InstantFailureCondition == RequireAllOptimal && Match != Constraint->GetMaxMatchLevel())
 		{
 #if WITH_EDITORONLY_DATA
-			if(DebuggingEnabled) DebugConstraint(TestLocation, Constraint, FColor(50, 50, 50), World);
+				if(DebuggingEnabled) DebugConstraint(LocationToTest, Constraint, FColor(50, 50, 50), World);
 #endif
-			return 0;
+				return 0;
 		}
 		TotalMatch += Match;
 	}
+	
+#if WITH_EDITORONLY_DATA
+	if(DebuggingEnabled) DrawDebugPoint(World, LocationToTest,10.f, FColor(255, 255, 255) , false, 1, SDPG_World);
+#endif
 	return TotalMatch;
 }
 

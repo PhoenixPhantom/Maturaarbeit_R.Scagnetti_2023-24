@@ -26,7 +26,7 @@ public:
 
 	Value GetResulting() const
 	{
-		return Base * (1.0 + PercentageBonus/100.0) + FlatBonus;
+		return (PercentageBonus < 0 ? 1 : Base * (1.0 + PercentageBonus/100.0)) + FlatBonus;
 	};
 
 	Value operator+(const Value& OtherFlatBonus){ return GetResulting() * OtherFlatBonus; }
@@ -57,6 +57,12 @@ public:
 	void SetBaseMax(const Value& NewBase)
 	{
 		Maximum.Base = NewBase;
+		Current = Maximum.GetResulting();
+	}
+	void Reset()
+	{
+		Maximum.FlatBonus = 0.f;
+		Maximum.PercentageBonus = 0.f;
 		Current = Maximum.GetResulting();
 	}
 	void AddBonuses(const Value& FlatBonus, const Percentage& PercentageBonus)
@@ -124,8 +130,12 @@ struct FGeneralObjectStatsBuffs
 {
 	GENERATED_BODY()
 public:
+	virtual ~FGeneralObjectStatsBuffs() = default;
+
 	FGeneralObjectStatsBuffs() : HealthBuff(0), AttackBuff(0), DefenseBuff(0), FlatHealth(0), FlatAttack(0),
 	                             FlatDefense(0){}
+
+	FGeneralObjectStatsBuffs(float HB, float AB, float DB, float FH, float FA, float FD);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Units="%"))
 	float HealthBuff;
@@ -139,6 +149,8 @@ public:
 	float FlatAttack;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float FlatDefense;
+
+	FGeneralObjectStatsBuffs ReverseGeneralObjectBuffs() const;
 };
 
 
@@ -168,12 +180,20 @@ struct FGeneralObjectStats
 	bool operator==(const FGeneralObjectStats& GeneralObjectStats) const;
 
 	void FromBase(const FGeneralBaseStats& Stats, const FSavableModifiersBase& Modifiers);
+	virtual void Reset();
+	void ResetHealth();
+	void ResetAttack();
+	void ResetDefense();
 	void Buff(const FGeneralObjectStatsBuffs& Buffs);
 	void Debuff(const FGeneralObjectStatsBuffs& Buffs);
 
 	virtual float GetDamageOutput() const;
 	virtual void GenerateDamageEvent(FCustomDamageEvent& DamageEvent, const FHitResult& HitResult = FHitResult()) const = 0;
 	int32 ReceiveDamage(float Damage, const FCustomDamageEvent* DamageInfo);
-	int32 ReceiveDamage(float Damage){ return ReceiveTrueDamage(Damage/static_cast<float>(Defense.GetResulting())); }
-	int32 ReceiveTrueDamage(int32 Damage);
+	int32 ReceiveDamage(float Damage){ return ChangeHealth(-Damage/static_cast<float>(Defense.GetResulting())); }
+	int32 ChangeHealth(int32 DeltaHealth);
+	FORCEINLINE int32 ChangeHealthByPercentage(float Percentage)
+	{ 
+		return ChangeHealth(static_cast<float>(Health.Maximum.GetResulting()) * Percentage/100.f);
+	}
 };

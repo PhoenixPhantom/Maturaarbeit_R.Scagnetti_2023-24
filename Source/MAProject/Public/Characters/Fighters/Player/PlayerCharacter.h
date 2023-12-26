@@ -16,6 +16,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UStatsMonitorBaseWidget;
+class ACombatManager;
 
 DECLARE_DELEGATE(FOnInputRepeatedDelegate);
 
@@ -24,6 +25,13 @@ struct FPreSpawnSetupKey final
 	friend class APlayerPartyController;
 private:
 	FPreSpawnSetupKey(){}
+};
+
+struct FSetIsRestoringHealthKey final
+{
+	friend class ACombatManager;
+private:
+	FSetIsRestoringHealthKey(){}
 };
 
 struct FStoredInput
@@ -56,7 +64,10 @@ public:
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
-	virtual FGenericTeamId GetGenericTeamId() const override { return InternalTeamId; };
+	virtual FGenericTeamId GetGenericTeamId() const override { return InternalTeamId; }
+	void SetIsRestoringHealth(bool ShouldRestore, FSetIsRestoringHealthKey){ bIsRestoringHealth = ShouldRestore; }
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	const FCharacterBaseStats& GetCharacterBaseStats() const { return BaseStats; }
 	void PreSpawnSetup(FCharacterStats* PropertiesSource, FPlayerUserSettings* PlayerUserSettingsSource,
@@ -81,8 +92,11 @@ public:
 	AActor* GetCurrentTarget() const;
 
 protected:
-	bool bIsRunning;
-	bool bHasJumped;
+	uint8 bIsRunning:1;
+	uint8 bHasJumped:1;
+	uint8 bIsRestoringHealth:1;
+	double RestoreHealthTimestamp;
+	double DashOrBlinkTimestamp;
 
 	FGenericTeamId InternalTeamId;
 
@@ -100,10 +114,13 @@ protected:
 
 	UPROPERTY()
 	UPlayerStatsMonitorBaseWidget* PlayerStatsMonitor;
-
+	
 	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay)
 	float AutotargetingRange;
 
+	UPROPERTY(EditAnywhere, Category = Input, AdvancedDisplay)
+	double DashOrBlinkCooldown;
+	
 	UPROPERTY(EditAnywhere, Category = Input, AdvancedDisplay)
 	double RememberInputDirectionTime;
 
@@ -188,6 +205,9 @@ protected:
 	void SkillAttack();
 	void UltimateAttack();
 
+	
+	///Execute blink @return whether the blink could be fully executed
+	bool Blink();
 	void DashStartRunning();
 	void StopRunning();
 	void Move(const FInputActionValue& Value);

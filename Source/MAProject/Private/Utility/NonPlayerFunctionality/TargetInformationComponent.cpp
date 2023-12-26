@@ -5,14 +5,19 @@
 
 
 // Sets default values for this component's properties
-UTargetInformationComponent::UTargetInformationComponent() : TargetPriority(100.f), bIsCurrentTarget(false),
-	bCanBeTargeted(true)
+UTargetInformationComponent::UTargetInformationComponent() : bCanBeTargeted(true),
+	TargetPriority(100.f)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UTargetInformationComponent::SetIsCurrentTarget(bool TargetState, FSetTargetStateKey)
+void UTargetInformationComponent::AddTargetingEntity(AController* TargetingController, FSetTargetStateKey)
 {
-	bIsCurrentTarget = TargetState; OnChangeTargetState.Broadcast(bIsCurrentTarget);
+	TargetingControllers.AddUnique(TargetingController);
+}
+
+void UTargetInformationComponent::RemoveTargetingEntity(AController* NonTargetingController, FSetTargetStateKey)
+{
+	TargetingControllers.RemoveSwap(NonTargetingController);
 }
 

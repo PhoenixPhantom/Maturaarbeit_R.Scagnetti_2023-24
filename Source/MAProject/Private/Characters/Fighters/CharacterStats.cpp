@@ -12,6 +12,25 @@ bool FCharacterBaseStats::operator==(const FCharacterBaseStats& CharacterBaseSta
 		AttackTree == CharacterBaseStats.AttackTree;
 }
 
+FCharacterStatsBuffs::FCharacterStatsBuffs(): WalkSpeedBuff(0), RunSpeedBuff(0), InterruptionResBuff(0), ToughnessBuff(0),
+                                              FlatWalkSpeed(0), FlatRunSpeed(0), FlatInterruptionRes(0), FlatToughness(0)
+{
+}
+
+FCharacterStatsBuffs::FCharacterStatsBuffs(const FGeneralObjectStatsBuffs& GeneralObjectStatsBuffs, float WSB,
+float RSB, float IRB, float TB, float FWS, float FRS, float FIR, float FT) :
+	FGeneralObjectStatsBuffs(GeneralObjectStatsBuffs), WalkSpeedBuff(WSB), RunSpeedBuff(RSB), InterruptionResBuff(IRB),
+	ToughnessBuff(TB), FlatWalkSpeed(FWS), FlatRunSpeed(FRS), FlatInterruptionRes(FIR), FlatToughness(FT)
+{
+}
+
+FCharacterStatsBuffs FCharacterStatsBuffs::ReverseCharacterStatsBuffs() const
+{
+	return FCharacterStatsBuffs(ReverseGeneralObjectBuffs(), -WalkSpeedBuff, -RunSpeedBuff,
+		-InterruptionResBuff, -ToughnessBuff,-FlatWalkSpeed, -FlatRunSpeed,
+		-FlatInterruptionRes, -FlatToughness);
+}
+
 FCharacterStats::FCharacterStats() :
 	WalkSpeed(0.f, 0.f, 0.f), RunSpeed(0.f, 0.f, 0.f),
 	RunSpeedupFactor(1.f), DashFactor(2.f), InterruptionResistance(0.f, 0.f, 0.f)
@@ -27,8 +46,43 @@ void FCharacterStats::FromBase(const FCharacterBaseStats& Stats, const FSavableC
 	DashFactor = Stats.DashFactor;
 	Toughness.SetBaseMax(Stats.BaseToughness);
 
+	
 	InterruptionResistance.Base = Stats.BaseInterruptionResistance;
 	Attacks = FAttacks(Stats.AttackTree, Outer);
+}
+
+void FCharacterStats::Reset()
+{
+	Super::Reset();
+	ResetToughness();
+	ResetRunSpeed();
+	ResetWalkSpeed();
+	ResetInterruptionResistance();
+}
+
+void FCharacterStats::ResetToughness()
+{
+	Toughness.Reset();
+	OnMaxToughnessChanged.Broadcast(Health.Current, Health.Maximum.GetResulting());
+}
+
+void FCharacterStats::ResetRunSpeed()
+{
+	RunSpeed.FlatBonus = 0.f;
+	RunSpeed.PercentageBonus = 0.f;
+}
+
+void FCharacterStats::ResetWalkSpeed()
+{
+	WalkSpeed.FlatBonus = 0.f;
+	WalkSpeed.PercentageBonus = 0.f;
+	RecalculateBaseRunSpeed();
+}
+
+void FCharacterStats::ResetInterruptionResistance()
+{
+	InterruptionResistance.Base = 0.f;
+	InterruptionResistance.PercentageBonus = 0.f;
 }
 
 void FCharacterStats::RecalculateBaseRunSpeed()
@@ -94,7 +148,12 @@ float FCharacterStats::GetDamageOutput() const
 void FCharacterStats::GenerateDamageEvent(FCustomDamageEvent& DamageEvent, const FHitResult& HitResult) const
 {
 	check(DamageEvent.IsOfType(FAttackDamageEvent::ClassID));
-	check(Attacks.HasPendingAttackProperties());
+	if(!Attacks.HasPendingAttackProperties())
+	{
+		checkNoEntry();
+		DamageEvent = static_cast<FCustomDamageEvent>(FAttackDamageEvent());
+		return;
+	}
 	FAttackDamageEvent& AttackDamageEvent = static_cast<FAttackDamageEvent&>(DamageEvent);
 	AttackDamageEvent = Attacks.GetPendingAttackProperties()->DamageEvent;
 	AttackDamageEvent.HitDirection = HitResult.Location - HitResult.TraceStart;

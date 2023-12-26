@@ -48,6 +48,21 @@ void USuckToTargetComponent::SetOrUpdateWarpTarget(const FWarpInformation& WarpI
 	
 }
 
+FVector USuckToTargetComponent::GetTargetLocation() const
+{
+	const FVector& CurrentLocation = GetOwner()->GetActorLocation();
+	if(!IsWarping() || !bWarpLocation) return CurrentLocation;
+	if(TargetObject == nullptr)
+	{
+		return FVector(bMovementX ? TargetLocation.X : CurrentLocation.X, bMovementY ? TargetLocation.Y : CurrentLocation.Y,
+			bMovementZ ? TargetLocation.Z : CurrentLocation.Z);
+	}
+	//else
+	const FVector& ResultingTargetLocation = TargetObject->GetComponentLocation();
+	return FVector(bMovementX ? ResultingTargetLocation.X : CurrentLocation.X,
+		bMovementY ? ResultingTargetLocation.Y : CurrentLocation.Y, bMovementZ ? ResultingTargetLocation.Z : CurrentLocation.Z);
+}
+
 FVector USuckToTargetComponent::GetNextLocation(const FTransform& CurrentTransform, float DeltaSeconds) const
 {
 	const FVector CurrentLocation = CurrentTransform.GetLocation();
