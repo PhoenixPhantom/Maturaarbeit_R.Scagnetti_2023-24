@@ -25,28 +25,39 @@ To provide the most essential functionalities, this work will make use of the cu
 * PCG random generator - imneme: https://github.com/imneme/pcg-cpp (accessed: 18.10.2023)
 * Deep Star Maps - NASA: https://svs.gsfc.nasa.gov/3895 (accessed: 4.12.2023)
 * CGI Moon Kit - NASA: https://svs.gsfc.nasa.gov/cgi-bin/details.cgi?aid=4720 (accessed: 4.12.2023)
+* Wolf's Howl Gives You Goosebumps (the good kind) - Wolf Conservation Center: https://www.youtube.com/watch?v=JQUHDWHa7WQ (accessed: 16.11.2023)
+* Desert3(Royalty Free Music) - PeriTune: https://soundcloud.com/sei_peridot/desert3?in=sei_peridot/sets/peritunematerial (accessed: 15.12.2023)
+* Desert6(Royalty Free Music) - PeriTune: https://soundcloud.com/sei_peridot/desert6?in=sei_peridot/sets/peritunematerial (accessed: 15.12.2023)
+* Labyrinth(Royalty Free Music) - PeriTune: https://soundcloud.com/sei_peridot/labyrinth?in=sei_peridot/sets/peritunematerial (accessed: 15.12.2023)
+* WildField(Royalty Free Music) - PeriTune: https://soundcloud.com/sei_peridot/wildfield?in=sei_peridot/sets/peritunematerial (accessed: 15.12.2023)
+* Dunkler Wald - Matteo Scagnetti (created: 2023)
+* Leichter Wald - Matteo Scagnetti (created: 2023)
+* Wald Wind - Matteo Scagnetti (created: 2023)
 
+<a name="Combat"></a>
 ### Combat
 * Evolving Combat in 'God of War' for a New Perspective - GDC (by Santa Monica Studio's Mihir Sheth): https://www.youtube.com/watch?v=hE5tWF-Ou2k
 * Dreamscaper: Killer Combat on an Indie Budget - GDC (by Afterburner Studios' Ian Cofino): https://www.youtube.com/watch?v=3Omb5exWpd4
 * Attack representation inspired by: "How to make combo attacks - Beginner tutorial Unreal Engine 5" - LeafBranchGames: https://www.youtube.com/watch?v=rKbb4PBmFUA (accessed: 3.10.2023)
 
+<a name="AI"></a>
 ### Artificial Intelligence
 * Unreal Engine 5 Tutorial - AI Part 9: Prediction Sense - Ryan Laley: https://www.youtube.com/watch?v=-EU8EedeVi4
 * All about BTTasks in C++ - The Games Dev: https://www.thegames.dev/?p=70
 
+<a name="FX"></a>
 ### Effects
 #### Visual FX
 * Animal Bite FX in UE4 Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=geHrMbvA5HA with Inspiration from Olivier Deplanque (https://www.artstation.com/artwork/b5XEod)
 * Unreal Engine Impact Effect in Niagara Tutorial - CGHOW: https://www.youtube.com/watch?v=8UThnwfEwng
 * How to Add Camera Shake in Unreal Engine 5 - GorkaGames: https://www.youtube.com/watch?v=rTVb7nEhKv8 (accessed: 18.10.2023)
-* Unreal Enngine Tutorial [UE5]: Aura Effect From Scratch - PART 1-3 [NIAGARA] - Rimaye [ Assets and Tutorials - NIAGARA ]: https://www.youtube.com/watch?v=S_pA2uLhZWc&list=PLvYJUGYt8abFzLte-jehECt2LHWGLfM1X&pp=iAQB (accessed: 13.11.2023)
+* Unreal Engine Tutorial [UE5]: Aura Effect From Scratch - PART 1-3 [NIAGARA] - Rimaye [ Assets and Tutorials - NIAGARA ]: https://www.youtube.com/watch?v=S_pA2uLhZWc&list=PLvYJUGYt8abFzLte-jehECt2LHWGLfM1X&pp=iAQB (accessed: 13.11.2023)
 #### Sound FX
 * Unreal Engine 5 | MetaSound Footsteps - The Sound FX Guy: https://www.youtube.com/watch?v=SXBEbs69sZ8
 * Unreal Engine 5 | Dynamic Footsteps with MetaSounds - The Sound FX Guy: https://www.youtube.com/watch?v=pYxocPdtHBw
-* Wolf's Howl Gives You Goosebumps (the good kind) - Wolf Conservation Center: https://www.youtube.com/watch?v=JQUHDWHa7WQ (accessed: 16.11.2023)
 * Unreal Engine 5.1 | Creating Soundscapes - The Sound FX Guy: https://www.youtube.com/watch?v=nS3leRwZbNk (accessed: 12.12.2023)
 
+<a name="Varia"></a>
 ### Various Topics
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
 
