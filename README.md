@@ -43,6 +43,7 @@ To provide the most essential functionalities, this work will make use of the cu
 <a name="AI"></a>
 ### Artificial Intelligence
 * Unreal Engine 5 Tutorial - AI Part 9: Prediction Sense - Ryan Laley: https://www.youtube.com/watch?v=-EU8EedeVi4
+* Unreal Engine 5 Tutorial - AI Part 6: Patrol Path - Ryan Laley: https://www.youtube.com/watch?v=z8VJhDmAyx4 
 * All about BTTasks in C++ - The Games Dev: https://www.thegames.dev/?p=70
 
 <a name="FX"></a>
@@ -60,4 +61,5 @@ To provide the most essential functionalities, this work will make use of the cu
 <a name="Varia"></a>
 ### Various Topics
 * UE4: How to fix translucent materials - Tech Art Aid: https://www.youtube.com/watch?v=ieHpTG_P8Q0
+* Unreal Concepts - Dynamic Circular Progress Bars ( UE4 ) - Mathew Wadstein https://www.youtube.com/watch?v=9NtSfPq95fQ
 
