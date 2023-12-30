@@ -64,7 +64,7 @@ const FAttackProperties& UAttackNode::GetAttackProperties(const AActor* PlayingI
 	{
 		TArray<UActorComponent*> ActiveStatusEffects;
 		PlayingInstance->GetComponents(UStatusEffect::StaticClass(), ActiveStatusEffects);
-		
+
 		for(const FAttackPropertiesNodeAdditional& AttackPropertiesNodeAdditional : AdditionalAttacks)
 		{
 			if(ActiveStatusEffects.FindByPredicate(

@@ -43,7 +43,7 @@ void FAttacks::SetModeIdentifier(const FString& ModeIdentifier, FSetAttackTreeMo
 	OnModeChanged.ExecuteIfBound();
 }
 
-UAttackNode* FAttacks::GetNodeMatchingIndex(AttackIndex Index)
+UAttackNode* FAttacks::GetFirstNodeMatchingIndex(AttackIndex Index)
 {
 	UGenericGraphNode* CurrentRoot = GetRootNodeInternal();
 	for(UGenericGraphNode* ChildNode : CurrentRoot->ChildrenNodes){

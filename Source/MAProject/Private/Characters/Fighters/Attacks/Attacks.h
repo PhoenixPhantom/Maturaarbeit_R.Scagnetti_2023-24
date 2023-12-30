@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "AttackProperties.h"
 #include "Characters/Fighters/Attacks/AttackTree/AttackTreeEdge.h"
-#include "Utility/Animation/CustomAnimInstance.h"
 #include "Attacks.generated.h"
 
 
@@ -55,9 +54,10 @@ public:
 
 	void SetModeIdentifier(const FString& ModeIdentifier, FSetAttackTreeModeIdentifier);
 
-	UAttackNode* GetNodeMatchingIndex(AttackIndex Index);
+	UAttackNode* GetFirstNodeMatchingIndex(AttackIndex Index);
 	/// Execute the attack by either continuing the current combo string or by starting a new string from the root node
 	bool ExecuteAttack(AttackIndex Index, const AActor* PlayingInstance, UWorld* WorldContext);
+	/// Execute the exact given attack
 	bool ExecuteAttackFromNode(UAttackNode* NodeToExecute, const AActor* PlayingInstance, UWorld* WorldContext);
 
 	void ForceSetCd(const FString& NodeIdentifier, float CdTime, bool ChangeBy);

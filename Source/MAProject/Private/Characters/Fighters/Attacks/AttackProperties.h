@@ -31,6 +31,9 @@ struct MAPROJECT_API FAttackProperties
 	UPROPERTY(EditAnywhere, Category = Combat,
 		meta=(Units="cm", ToolTip="Default distance that the animation will move the actor."))
 	float DefaultMovementDistance;
+	UPROPERTY(EditAnywhere, Category = Combat,
+		meta=(Units="cm", ToolTip="The character's animation cannot move less than the minimal movement distance (only has an effect on opponents)"))
+	float MinimalMovementDistance;
 	UPROPERTY(EditAnywhere, Category = Combat, AdvancedDisplay, meta=(ForceUnits="s",
 		ToolTip="The maximum time the character can wait after this attack to continue the combo (reccomendation: around 2.5s for players and around 10s for opponents)"))
 	float MaxComboTime;
@@ -47,7 +50,7 @@ struct MAPROJECT_API FAttackProperties
 
 
 	bool operator==(const FAttackProperties& AttackProperties) const;
-
+	
 	float GetOverallValue() const;
 	float GetTotalCdTime() const;
 };

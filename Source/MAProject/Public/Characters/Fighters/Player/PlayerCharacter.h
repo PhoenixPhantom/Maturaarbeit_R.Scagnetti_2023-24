@@ -62,8 +62,6 @@ public:
 
 	virtual float GetFieldOfView() const override;
 
-	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
-
 	virtual FGenericTeamId GetGenericTeamId() const override { return InternalTeamId; }
 	void SetIsRestoringHealth(bool ShouldRestore, FSetIsRestoringHealthKey){ bIsRestoringHealth = ShouldRestore; }
 	

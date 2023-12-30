@@ -165,7 +165,7 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 						ControlledOpponent->GetNavAgentLocation());
 				
 				if (IsValid(NavData))
-				{
+				{dddd
 					IsPossible = NavigationSystem->TestPathSync(
 						FPathFindingQuery(this, *NavData,ControlledOpponent->GetNavAgentLocation(),
 						PlayerDistanceConstraint.AnchorController->GetCharacter()->GetNavAgentLocation()));
@@ -224,19 +224,23 @@ bool AOpponentController::UpdateCombatLocation(FVector& ResultingLocation, EComb
 	if(!ForceRecalculation)
 	{
 		//Check if it is necessary to change the target location, before calculating it, reducing movement noise
-		FVector TestLocation;
+		FVector CurrentTargetLocation;
 		if(Blackboard->GetValueAsBool(HasJustExecutedAttackKeyName))
 		{
-			TestLocation = CurrentLocation;
+			//if the character has executed an attack, after reaching the target location,
+			//the character is not walking anymore is most likely not in the same position as the
+			//last walk to target anymore (due to the SuckToTargetComponent). The current position is then more relevant
+			//and there is no target point interpolation needed as the character is not moving currently anyways
+			CurrentTargetLocation = CurrentLocation;
 			MoveTarget->ForceNoInterpolationOnce();
 		}
-		else TestLocation = Blackboard->GetValueAsVector(TargetLocationKeyName);
+		else CurrentTargetLocation = Blackboard->GetValueAsVector(TargetLocationKeyName);
 		
-		if(UConstraintsFunctionLibrary::GetMatchLevel(TestLocation, RelevantConstraints, GetWorld(),
+		if(UConstraintsFunctionLibrary::GetMatchLevel(CurrentTargetLocation, RelevantConstraints, GetWorld(),
 			FVector(0, 0, abs(CurrentToCombatTarget.Z) + 100.f),
 			UConstraintsFunctionLibrary::RequireAllValid))
 		{
-			ResultingLocation = TestLocation;
+			ResultingLocation = CurrentTargetLocation;
 			return true;
 		}
 	}
@@ -281,7 +285,7 @@ FPathFollowingRequestResult AOpponentController::MoveTo(const FAIMoveRequest& Mo
 	if(!IsValid(MoveTarget) ||
 		CombatManager->GetParticipationStatus(ControlledOpponent) != ECombatParticipantStatus::Active)
 	{
-		MoveTarget->SetMovementTargetLocation(FAISystem::InvalidLocation, FSetMovementTargetKey());
+		if(IsValid(MoveTarget)) MoveTarget->SetMovementTargetLocation(FAISystem::InvalidLocation, FSetMovementTargetKey());
 		return Super::MoveTo(MoveRequest, OutPath);
 	}
 

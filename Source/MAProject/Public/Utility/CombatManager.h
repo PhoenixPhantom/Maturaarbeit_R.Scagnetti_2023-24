@@ -129,7 +129,6 @@ protected:
 
 	//Try to distribute the AvailableAggressionTokens so the highest scoring objects will be inserted
 	void AttemptDistributeFreeTokens();
-	void RequestToken(AOpponentCharacter* Requestor);
 
 	void FullyExitFromCombat(AOpponentCharacter* OpponentCharacter);
 

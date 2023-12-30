@@ -71,7 +71,8 @@ bool ACombatManager::RegisterCombatParticipant(AOpponentCharacter* Participant, 
 		PendingOutOfCombat.Remove(Participant);
 	}
 	PassiveParticipants.Add(Participant);
-	RequestToken(Participant);
+	//try to grant the tokens
+	GrantTokens(FAggressorInfo(Participant, Participant->GetRandomValidAttack(), Participant->GetRequestedTokens()));
 	return true;
 }
 
@@ -199,11 +200,11 @@ bool ACombatManager::MakePassiveParticipant(int32 Index)
 float ACombatManager::GetAttackValue(UAttackNode* AttackNode, AOpponentCharacter* Attacker)
 {
 	if(!IsValid(AttackNode) || !IsValid(Attacker)) return -1.f;
-	//getOverallValue is normally under 12.5 and the character's attack stat is around 100
-	//Since we want the attack score to weigh about half as much as the aggression score, we multiply with  ~6/12500
-	//(6 for the expected highest amount for the optimal target)
-	return 0.0004f * static_cast<float>(Attacker->GetCharacterStats()->Attack.GetResulting()) *
-		AttackNode->GetAttackProperties().GetOverallValue(); //we just look at the "default attack", even if this might not always make sense
+	//getOverallValue will often be around 2 and the character's attack stat is around 100
+	//Since we want the attack score to maximally be 6, we multiply with  ~6/200
+	return 0.03f * static_cast<float>(Attacker->GetCharacterStats()->Attack.GetResulting()) *
+		AttackNode->GetAttackProperties().GetOverallValue();
+	//we just look at the "default attack", even if this might not be accurate when using contextual attacks
 }
 
 void ACombatManager::AttemptDistributeFreeTokens()
@@ -213,13 +214,13 @@ void ACombatManager::AttemptDistributeFreeTokens()
 		if(!GrantTokens(AnticipatedActive)) return;
 	}
 	
-	//The resulting sorted list of options from best to worst
+	//Generate a list of participants trying to become aggressive sorted from best to worst
 	TList<FScoredAggressorInfo>* BestOption = nullptr;
 	for(AOpponentCharacter* Participant : PassiveParticipants)
 	{
 		float Score = Participant->GenerateAggressionScore(PlayerCharacter);
 		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
-		if(Score >= 0.f)
+		if(Score >= 0.f && Participant->GetRequestedTokens() <= MaxAggressionTokens)
 		{
 			UAttackNode* RequestedAttack = Participant->GetRandomValidAttack();
 			Score += GetAttackValue(RequestedAttack, Participant);
@@ -252,13 +253,12 @@ void ACombatManager::AttemptDistributeFreeTokens()
 		//Try grant tokens to the entity, thereby checking whether that is even possible
 		if(!GrantTokens(CurrentOption->Element))
 		{
-			if(AvailableAggressionTokens >= 1 && CurrentOption->Next != nullptr)
+			if(CurrentOption->Next != nullptr && CurrentOption->Next->Element.RequestedTokens <= AvailableAggressionTokens)
 			{
 				//if an entity requires more tokens than what is left over, and there are still other entities that might
 				//be satisfied with the available amount of tokens, we queue the entity (to be guaranteed to be the
-				//next one to receive a token) before stopping token distribution
-				//(this should prevent entities requiring a high amount of tokens from never being able to get active,
-				//but obviously brings with it some other problems)
+				//next one to receive a token) before stopping token distribution.
+				//This prevents entities requiring a high amount of tokens from never being able to get active.
 				AnticipatedActive = static_cast<FAggressorInfo>(CurrentOption->Next->Element);
 			}
 			else AnticipatedActive = FAggressorInfo();
@@ -266,34 +266,6 @@ void ACombatManager::AttemptDistributeFreeTokens()
 		}
 		CurrentOption = CurrentOption->Next;
 	}	
-}
-
-void ACombatManager::RequestToken(AOpponentCharacter* Requestor)
-{
-	uint32 OverridableTokens = MaxAggressionTokens;
-	
-	float RequestorScore = Requestor->GenerateAggressionScore(PlayerCharacter);
-	if(RequestorScore < 0.f) return;
-	
-	UAttackNode* DesiredAttack = Requestor->GetRandomValidAttack();
-	RequestorScore += GetAttackValue(DesiredAttack, Requestor);
-	
-	for(AOpponentCharacter* Participant : ActiveParticipants)
-	{
-		float Score = Participant->GenerateAggressionScore(PlayerCharacter);
-		//A score < 0.f means that the given participant cannot become aggressive, so it is not relevant
-		if(Score >= 0.f)
-		{
-			UAttackNode* RequestedAttack = Participant->GetRequestedAttack();
-			Score += GetAttackValue(RequestedAttack, Participant);
-			//only lower priorities can be overridden by the new requestor
-			if(Score >= RequestorScore) OverridableTokens -= Participant->GetRequestedTokens();
-		}
-	}
-
-	if(OverridableTokens < Requestor->GetRequestedTokens()) return;
-	
-	GrantTokens(FAggressorInfo(Requestor, DesiredAttack, Requestor->GetRequestedTokens()));
 }
 
 void ACombatManager::FullyExitFromCombat(AOpponentCharacter* OpponentCharacter)

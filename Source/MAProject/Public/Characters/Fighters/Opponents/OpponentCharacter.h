@@ -139,7 +139,7 @@ public:
 	USphereComponent* GetRequiredSpaceActive() const;
 
 	FCircularDistanceConstraint GetActivePlayerDistanceConstraint() const;
-	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; };
+	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; }
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
 	AActor* GetTargetPlayer() const { return IsValid(TargetPlayer) ? TargetPlayer->GetPawn() : nullptr; }

@@ -16,6 +16,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "UserInterface/StatsMonitorBaseWidget.h"
 #include "UserInterface/HUD/Playerscreen/PlayerStatsMonitorBaseWidget.h"
+#include "Utility/Animation/CustomAnimInstance.h"
 #include "Utility/Animation/SuckToTargetComponent.h"
 #include "Utility/NonPlayerFunctionality/TargetInformationComponent.h"
 #include "Utility/Stats/StatusEffect.h"
@@ -129,18 +130,6 @@ float APlayerCharacter::GetFieldOfView() const
 	return FollowCamera->FieldOfView;
 }
 
-void APlayerCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
-{
-	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
-	if(GetCharacterMovement()->MovementMode == MOVE_Falling || GetCharacterMovement()->MovementMode == MOVE_Flying)
-		CharacterInAir();
-	if ((PrevMovementMode == MOVE_Falling || PrevMovementMode == MOVE_Flying) &&
-		GetCharacterMovement()->MovementMode == MOVE_Walking ||
-		GetCharacterMovement()->MovementMode == MOVE_NavWalking ||
-		GetCharacterMovement()->MovementMode == MOVE_Swimming)
-		CharacterLanded();
-}
-
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
@@ -170,13 +159,16 @@ float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget) co
 	FVector Extent;
 	RankGenerationTarget->GetActorBounds(true, ActorCenter, Extent);
 
+	
 	float ActionRank = 0.f;
 	const float OffsetFromForward = FVector::DotProduct(EyesRotation.Vector(),
 	                                                    UKismetMathLibrary::GetDirectionUnitVector(
 		                                                    EyesLocation, ActorCenter));
 	if (UKismetMathLibrary::DegAcos(OffsetFromForward) <= GetFieldOfView() / 2.f) ActionRank += 1.5f;
 	ActionRank += 1.f + OffsetFromForward; //there should be no negative action ranks
-
+	
+	//the current target should act whenever possible
+	if(CurrentTarget->GetOwner() == RankGenerationTarget) ActionRank += BIG_NUMBER; //TODO: this sometimes crashes
 	return ActionRank;
 }
 
@@ -249,6 +241,7 @@ bool APlayerCharacter::TriggerToughnessBroken()
 
 float APlayerCharacter::GetLegIKBlendWeight(const FVector& Velocity)
 {
+	//this implementation is smoother than the default one when rock-climbing
 	return FMath::Min((GetWorld()->RealTimeSeconds - InputDirection.Key)/RememberInputDirectionTime, 1.f);
 }
 
@@ -266,8 +259,8 @@ void APlayerCharacter::QueueFollowUpLimit(const TArray<FNewInputLimits>& InputLi
 void APlayerCharacter::GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent, const FHitResult& CausingHit)
 {
 	Super::GenerateDamageEvent(AttackDamageEvent, CausingHit);
-	//only the player should get time dilation when an attack hits, as only the player can trigger time dilation
-	//and the effect always has to apply on both contestants
+	//only the player can trigger time dilation on attack hits
+	//We use a delegate, as the effect always has to apply on both contestants
 	AttackDamageEvent.OnHitRegistered.BindWeakLambda(this, [this, AttackDamageEvent,
 		SpringArmLength = SpringArm->TargetArmLength](bool HasStaggered)
 	{
@@ -279,6 +272,9 @@ void APlayerCharacter::GenerateDamageEvent(FAttackDamageEvent& AttackDamageEvent
 
 bool APlayerCharacter::TriggerDeath()
 {
+	//we have to use a fully parent independent implementation here
+	//as the GeneralCharacter already binds the destroy function to the OnInputLimitsReset
+	//this would cause the game to crash if executed on the player character, so we bind the ShowDeathMenu function instead
 	if(!IsValid(CustomAnimInstance) || !AcceptedInputs.IsAllowedInput(EInputType::Death) ||
 		GetMesh()->GetCollisionEnabled() == ECollisionEnabled::NoCollision) return false;
 	CustomAnimInstance->TriggerDeath();
@@ -309,11 +305,11 @@ void APlayerCharacter::CharacterInAir()
 void APlayerCharacter::OnAttackTreeModeChanged(FString NewRoot)
 {
 	Super::OnAttackTreeModeChanged(NewRoot);
-	const UAttackNode* SkillNode = CharacterStats->Attacks.GetNodeMatchingIndex(EAttackType::AttackType_Skill);
+	const UAttackNode* SkillNode = CharacterStats->Attacks.GetFirstNodeMatchingIndex(EAttackType::AttackType_Skill);
 	PlayerStatsMonitor->SetSkillTimer(SkillNode->GetTimerHandle());
 	PlayerStatsMonitor->SetTotalSkillCdTime(SkillNode->GetAttackProperties().GetTotalCdTime());
 
-	const UAttackNode* UltimateNode = CharacterStats->Attacks.GetNodeMatchingIndex(EAttackType::AttackType_Ultimate);
+	const UAttackNode* UltimateNode = CharacterStats->Attacks.GetFirstNodeMatchingIndex(EAttackType::AttackType_Ultimate);
 	PlayerStatsMonitor->SetUltimateTimer(UltimateNode->GetTimerHandle());
 	PlayerStatsMonitor->SetTotalUltimateCdTime(UltimateNode->GetAttackProperties().GetTotalCdTime());
 }
@@ -358,7 +354,7 @@ void APlayerCharacter::TryJump()
 	}
 
 	LastInput.Invalidate();
-	AcceptedInputs.ResetLimits(GetWorld()); //force interrupt
+	AcceptedInputs.ResetLimits(GetWorld()); //Force interrupt here. This makes jump interrupts have effect faster. 
 	Jump();
 }
 
@@ -523,7 +519,7 @@ void APlayerCharacter::DashStartRunning()
 			
 			GetCharacterMovement()->RotationRate = FRotator(0.f, -1.f, 0.f);
 
-			MakeInvincible(1.f);
+			MakeInvincible(0.5f);
 			
 			DashOrBlinkTimestamp = GetWorld()->RealTimeSeconds;
 		}

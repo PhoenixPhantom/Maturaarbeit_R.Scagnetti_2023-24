@@ -99,18 +99,25 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 	FCircularDistanceConstraint DistanceConstraint(TargetPlayer);
 	if(IsValid(RequestedAttack))
 	{
+		//the max values are decreased slightly as the move to request has a leniency radius that ends the movement
+		//before actually reaching the target point. This is required to prevent the character from permanently getting stuck
+		//but also means that attacks can sometimes not be executed due to being out of range even though the character shouldn't.
 		DistanceConstraint.MaxRadius = FMath::Max(RequestedAttack->GetAttackProperties().MaximalMovementDistance - 100.f, 50.f);
-		DistanceConstraint.MinRadius = 0.f;
+		DistanceConstraint.MinRadius = RequestedAttack->GetAttackProperties().MinimalMovementDistance;
 		DistanceConstraint.OptimalMaxRadius = FMath::Max(RequestedAttack->GetAttackProperties().DefaultMovementDistance - 50.f, 25.f);
-		DistanceConstraint.OptimalMinRadius = 0.f;
+		DistanceConstraint.OptimalMinRadius = RequestedAttack->GetAttackProperties().MinimalMovementDistance;
 		DistanceConstraint.bUseNavPath = RequestedAttack->GetAttackProperties().bIsMeleeAttack;
 		return DistanceConstraint;
 	}
 	bool FoundExecutableAttack = false;
 	float TotalDistance = 0.f;
 	float MaxDistance = std::numeric_limits<float>::lowest();
+	float MinDistance = std::numeric_limits<float>::max();
+	bool MaxRequiresNavPath = false;
+	bool MinRequiresNavPath = false;
 	float NumValidAttacks = 0.f;
 
+	//if there is no requested attack, we return the average of the most likely to execute attacks (those not on cooldown and otherwise all)
 	const UGenericGraphNode* SourceNode = CharacterStats->Attacks.GetCurrentNode(GetWorld());
 	for(const UGenericGraphNode* ChildNode : SourceNode->ChildrenNodes)
 	{
@@ -124,6 +131,9 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 				FoundExecutableAttack = true;
 				TotalDistance = 0.f;
 				MaxDistance = std::numeric_limits<float>::lowest();
+				MinDistance = std::numeric_limits<float>::max();
+				MaxRequiresNavPath = false;
+				MinRequiresNavPath = false;
 				NumValidAttacks = 0.f;
 			}
 		}
@@ -132,19 +142,29 @@ FCircularDistanceConstraint AOpponentCharacter::GetActivePlayerDistanceConstrain
 		NumValidAttacks += 1.f;
 		if(MaxDistance < AttackProperties.MaximalMovementDistance)
 		{
+			MaxRequiresNavPath = AttackProperties.bIsMeleeAttack;
 			MaxDistance = AttackProperties.MaximalMovementDistance;
+		}
+		if(MinDistance > AttackProperties.MinimalMovementDistance)
+		{
+			MinRequiresNavPath = AttackProperties.bIsMeleeAttack;
+			MinDistance = AttackProperties.MinimalMovementDistance;
 		}
 		TotalDistance += AttackProperties.DefaultMovementDistance;
 	}
 	
 	const float DistanceAverage = SourceNode->ChildrenNodes.IsEmpty() ? -1.f :
 		TotalDistance/NumValidAttacks;
+
 	
+	//The max values are decreased slightly as the move to request has a lineancy radius that ends the movement
+	//before actually reaching the target point. This is required to prevent the character from permanently getting stuck
+	//but also means that attacks can sometimes not be executed due to being out of range even though the character shouldn't.
 	DistanceConstraint.MaxRadius = FMath::Max(MaxDistance - 100.f, 50.f);
-	DistanceConstraint.MinRadius = 0.f;
+	DistanceConstraint.MinRadius = MinDistance;
 	DistanceConstraint.OptimalMaxRadius = FMath::Max(DistanceAverage - 50.f, 25.f);
-	DistanceConstraint.OptimalMinRadius = 0.f;
-	//TODO: bUseNavPath is completely random here, fix this
+	DistanceConstraint.OptimalMinRadius = MinDistance;
+	DistanceConstraint.bUseNavPath = MaxRequiresNavPath || MinRequiresNavPath;
 	return DistanceConstraint;
 }
 
@@ -288,7 +308,6 @@ float AOpponentCharacter::GenerateAggressionScore(APlayerCharacter* PlayerCharac
 {
 	if(!bCanBecomeAggressive) return -1.f;
 	float Score = 0.f;
-	if(TargetInformationComponent->IsTargetOf(PlayerCharacter->GetController())) Score += BIG_NUMBER; //we want the current target to be always aggressive when possible 
 	//Aggression priority
 	if(AggressionRange > 0.f) Score += AggressionPriority * (1.f - std::min(FVector::Distance(PlayerCharacter->GetActorLocation(),
 			GetActorLocation())/AggressionRange, 1.0));
