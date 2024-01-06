@@ -14,7 +14,6 @@
 >
 > Visual Studio 2022 does not support MacOS as of August 2023. Alternatively the [Visual Studio 2022 for Mac Preview](https://visualstudio.microsoft.com/vs/mac/preview/) can be used.
 
-> Every time the local folder is synchronized with the GitHub, especially if any changes have been made to the project's "Source", the above steps must be repeated.
 > <picture>
 >   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/info.svg">
 >   <img alt="Info" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/info.svg">
@@ -47,6 +46,7 @@ After downloading the repository:
 >   <img alt="Warning" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/warning.svg">
 > </picture><br>
 >
+> Every time the local folder is synchronized with the GitHub, especially if any changes have been made to the project's "Source", the above steps must be repeated.
 
 
 [return to README](README.md)
