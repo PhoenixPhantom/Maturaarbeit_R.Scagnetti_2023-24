@@ -31,14 +31,10 @@ void APlayerPartyController::Tick(float DeltaSeconds)
 
 void APlayerPartyController::OnPossess(APawn* InPawn)
 {
-	APawn* LocalOldPawn = GetPawn();
 	Super::OnPossess(InPawn);
 	APlayerCharacter* TargetCharacter = Cast<APlayerCharacter>(InPawn);
 	if(!IsValid(TargetCharacter)) return;
-	if(IsValid(LocalOldPawn))
-	{
-		LocalOldPawn->Destroy();
-	}
+	
 	CombatManager->RegisterCombatParticipant(TargetCharacter, FManageCombatParticipantsKey());
 	CurrentCharacter = TargetCharacter;
 	CurrentCharacter->EnableInput(this); //Input seems to be disabled by default
@@ -47,6 +43,18 @@ void APlayerPartyController::OnPossess(APawn* InPawn)
 
 void APlayerPartyController::OnUnPossess()
 {
+	APawn* LocalOldPawn = GetPawn();
+	if(IsValid(LocalOldPawn))
+	{
+		//if the old pawn was a player character, we have to unregister them from combat before destroying them
+		if(IsValid(CurrentCharacter))
+		{
+			CombatManager->RegisterCombatParticipant(static_cast<APlayerCharacter*>(nullptr), FManageCombatParticipantsKey());
+		}
+		
+		//remove redundant player characters
+		LocalOldPawn->Destroy();
+	}
 	Super::OnUnPossess();
 	CurrentCharacter = nullptr;
 }
@@ -200,7 +208,8 @@ bool APlayerPartyController::TrySetRequestedInView(AActor* RequestedInView)
 		FVector CameraLocation;
 		FRotator CameraRotation;
 		CurrentCharacter->GetActorEyesViewPoint(CameraLocation, CameraRotation);
-	
+
+		//only characters indicates should be focused on by looking at them will be followed
 		if (UKismetMathLibrary::DegAcos(FVector::DotProduct(CameraRotation.Vector(),
 			UKismetMathLibrary::GetDirectionUnitVector(CameraLocation,RequestedInView->GetActorLocation())))
 			<= CurrentCharacter->GetFieldOfView() / 2.f)
@@ -222,17 +231,15 @@ void APlayerPartyController::OnPlayerCameraMoved(const FVector2D& LookInputAxis)
 
 void APlayerPartyController::Respawn()
 {
-	const APlayerCharacter* TargetCharacter = CastChecked<APlayerCharacter>(PartyMemberClass.GetDefaultObject());
-	PartyMemberStats = FCharacterStats();
-	PartyMemberStats.FromBase(TargetCharacter->GetCharacterBaseStats(), PartyMemberModifiers, this);
+	PartyMemberStats.Reset();
 
 	FTransform TargetTransform;
-	//If we have already a saved location
+	//reload at the last saved location if possible
 	if(PawnStartTransform.IsValid())
 	{
 		TargetTransform = PawnStartTransform;
 	}
-	//if this is the first character that is spawned (ever), it should be spawned at the PlayerStart
+	//if nothing has been saved jet, the character should be spawned at the PlayerStart
 	//(which can optionally be marked with the tag "ActiveSpawn")
 	else
 	{

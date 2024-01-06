@@ -168,7 +168,7 @@ float APlayerCharacter::RequestActionRank(const AActor* RankGenerationTarget) co
 	ActionRank += 1.f + OffsetFromForward; //there should be no negative action ranks
 	
 	//the current target should act whenever possible
-	if(CurrentTarget->GetOwner() == RankGenerationTarget) ActionRank += BIG_NUMBER; //TODO: this sometimes crashes
+	if(GetCurrentTarget() == RankGenerationTarget) ActionRank += BIG_NUMBER;
 	return ActionRank;
 }
 
@@ -766,7 +766,6 @@ void APlayerCharacter::ShowDeathMenu(bool IsLimitDurationOver)
 	APlayerController* PlayerController = CastChecked<APlayerController>(GetController());
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->SetShowMouseCursor(true);
-	//TODO: unregister combat character
 }
 
 void APlayerCharacter::OnCdSet(UAttackNode* IdentifiedNode, int32 Index)

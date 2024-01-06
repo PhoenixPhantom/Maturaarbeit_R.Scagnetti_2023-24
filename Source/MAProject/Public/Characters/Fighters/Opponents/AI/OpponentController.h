@@ -140,15 +140,15 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
 
-	void TriggerInvestigationProcess(const FAIStimulus& KnownInformation);
+	void TriggerInvestigationProcess(const FAIStimulus& KnownInformation) const;
 
 	//calling this implies that KnownInformation.Type == Sight
-	void ActiveUpdateCombat(AActor* CombatTarget, const FAIStimulus& KnownInformation);
-	void EndCombat(bool FullyUnregister = false);
+	void ActiveUpdateCombat(const AActor* CombatTarget, const FAIStimulus& KnownInformation) const;
+	void EndCombat(bool FullyUnregister = false) const;
 
-	bool OnSightForgotten(AActor* SightedActor);
+	bool OnSightForgotten(AActor* SightedActor) const;
 
-	FVector GetCharacterTargetLocation(const AOpponentCharacter* RelevantCharacter) const;
+	static FVector GetCharacterTargetLocation(const AOpponentCharacter* RelevantCharacter, FName BlackboardTargetLocationName);
 
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);

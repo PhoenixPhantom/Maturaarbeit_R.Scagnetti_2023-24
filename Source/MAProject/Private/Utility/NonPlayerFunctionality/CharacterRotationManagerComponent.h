@@ -28,11 +28,13 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void SwitchToOptimal(const FVector& TargetLocation);
+	void ChooseOptimalForCombat(const FVector& TargetLocation);
+	void SetIsInCombat(bool IsInCombat){ bIsInCombat = IsInCombat; }
 	void SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack = false,
 		AActor* NewTarget = nullptr, const FVector& TargetLocation = FVector(NAN));
 
 protected:
+	uint8 bIsInCombat:1;
 	ECharacterRotationMode CharacterRotationMode;
 	ECharacterRotationMode StoredCharacterRotationMode;
 	

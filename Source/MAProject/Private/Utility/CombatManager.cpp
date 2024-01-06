@@ -44,13 +44,18 @@ ECombatParticipantStatus ACombatManager::GetParticipationStatus(AFighterCharacte
 
 void ACombatManager::RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key)
 {
-	TArray<AOpponentCharacter*> InCombat = ActiveParticipants;
-	InCombat.Append(PassiveParticipants);
-	for(AOpponentCharacter* CurrentlyInCombat : InCombat)
+	//when the player character is unregistered, combat for all NPCs attacking them is ended
+	if(PlayerParticipant == nullptr)
 	{
-		if(CurrentlyInCombat->GetCombatTarget() != PlayerParticipant) continue;
-		CastChecked<AOpponentController>(CurrentlyInCombat->GetController())->ForceEndCombat(true, FForceEndCombatKey());
+		TArray<AOpponentCharacter*> InCombat = ActiveParticipants;
+		InCombat.Append(PassiveParticipants);
+		for(AOpponentCharacter* CurrentlyInCombat : InCombat)
+		{
+			if(CurrentlyInCombat->GetCombatTarget() != PlayerCharacter) continue;
+			CastChecked<AOpponentController>(CurrentlyInCombat->GetController())->ForceEndCombat(true, FForceEndCombatKey());
+		}
 	}
+	
 	PlayerCharacter = PlayerParticipant;
 }
 

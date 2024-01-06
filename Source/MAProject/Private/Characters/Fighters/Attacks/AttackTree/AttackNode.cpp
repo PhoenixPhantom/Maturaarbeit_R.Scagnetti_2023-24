@@ -132,9 +132,9 @@ FLinearColor UAttackNode::GetBackgroundColor() const
 
 void UAttackNode::Execute()
 {
-	bIsOnCd = true;
 	const float ActualCdTime = AttackProperties.GetTotalCdTime();
-	check(ActualCdTime > 0.f);
+	if(ActualCdTime <= 0.f) return;
+	bIsOnCd = true;
 	GetOuter()->GetWorld()->GetTimerManager().SetTimer(CdHandle,
 		[this](){ bIsOnCd = false; },ActualCdTime, false);
 }

@@ -197,7 +197,7 @@ void AOpponentCharacter::RegisterCombatTarget(AController* NewOpponent, FSetComb
 	{
 		TargetPlayer = DistanceFromTargetPassive.AnchorController = NewOpponent;
 		RotationManagerComponent->SetRotationMode(ECharacterRotationMode::OrientToTarget, true,
-			GetTargetPlayer());
+			TargetPlayer->GetPawn());
 	}
 }
 
@@ -220,8 +220,7 @@ UAttackNode* AOpponentCharacter::GetRandomValidAttack() const
 {
 	if(!AcceptedInputs.IsAllowedInput(EInputType::Attack)) return nullptr;
 
-	const ACharacter* TargetCharacter = GetCombatTarget();
-	if (!IsValid(TargetCharacter))
+	if (GetCombatTarget() == nullptr)
 	{
 		return nullptr;
 	}
@@ -263,12 +262,12 @@ UAttackNode* AOpponentCharacter::GetRandomValidAttackInRange() const
 	if(!GetAcceptedInputs().IsAllowedInput(EInputType::Attack)) return nullptr;
 
 	const ACharacter* TargetCharacter = GetCombatTarget();
-	if (!IsValid(TargetCharacter))
+	if (TargetCharacter == nullptr)
 	{
 		return nullptr;
 	}
 
-	const float RequiredRange = FVector::Distance(GetTargetPlayer()->GetActorLocation(), GetActorLocation());
+	const float RequiredRange = FVector::Distance(TargetCharacter->GetActorLocation(), GetActorLocation());
 	const UGenericGraphNode* SourceNode = GetCharacterStats()->Attacks.GetCurrentNode(GetWorld());
 	
 	//Sort through all available attacks and remove those that cannot be executed
@@ -363,11 +362,14 @@ void AOpponentCharacter::OnGetAttacked(const FAttackDamageEvent* DamageEvent)
 	SpawnHitFX(DamageEvent->HitLocation, DamageEvent->HitFXScaleFactor);
 
 	//opponents can get staggered by attacks (without toughness break)
-	const uint32 CasePerThousand = FMath::RandRange(0, 1000);
+	std::uniform_int_distribution<int32> Distribution(0.0, 1000.0);
+	int32 CasePerThousand = Distribution(RandomGenerator);
 	const bool AttackStaggers = CasePerThousand <= DamageEvent->StaggerChance;
 	if(AttackStaggers)
 	{
-		GetStaggered(false);
+		CasePerThousand = Distribution(RandomGenerator); //generate another random number to see if the stagger can be prevented
+		const bool IsStaggerPrevented = CasePerThousand <= CharacterStats->InterruptionResistance.GetResulting();
+		if(!IsStaggerPrevented) GetStaggered(false);
 	}
 		
 	// ReSharper disable once CppExpressionWithoutSideEffects

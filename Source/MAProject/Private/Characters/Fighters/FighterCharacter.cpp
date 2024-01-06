@@ -396,13 +396,9 @@ void AFighterCharacter::BeginPlay()
 	CharacterStats->OnNoToughnessReached.AddDynamic(this, &AFighterCharacter::OnToughnessBroken);
 	CharacterStats->Attacks.OnExecuteAttack.AddDynamic(this, &AFighterCharacter::OnExecuteAttack);
 	CharacterStats->Attacks.OnCheckCanExecuteAttack.BindDynamic(this, &AFighterCharacter::OnCheckCanExecuteAttack);
-#if USE_UE5_DELEGATE
-	CharacterStats->OnGetDamaged.AddDynamic(this, &AFighterCharacter::OnGetDamagedUE);
-#else
-	//TODO: This is a hack to allow passing a FCustomDamageEvent* without loss or errors
+	//This is a hack to allow passing a FCustomDamageEvent* without loss or errors
 	CharacterStats->OnGetDamaged.BindWeakLambda(this, [this](const FCustomDamageEvent* DamageEvent)
 		{ OnGetDamaged(DamageEvent); });
-#endif
 	SwitchMovementToWalk(FSetWalkOrRunKey());
 	OnAttackTreeModeChanged("");
 }

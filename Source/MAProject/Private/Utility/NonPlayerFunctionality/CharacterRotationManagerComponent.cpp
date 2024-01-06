@@ -13,7 +13,7 @@
 
 
 // Sets default values for this component's properties
-UCharacterRotationManagerComponent::UCharacterRotationManagerComponent() :
+UCharacterRotationManagerComponent::UCharacterRotationManagerComponent() : bIsInCombat(false),
 	CharacterRotationMode(ECharacterRotationMode::OrientToMovement),
 	StoredCharacterRotationMode(ECharacterRotationMode::FlickBack), OpponentCharacter(nullptr),
 	OpponentController(nullptr), StoredTarget(nullptr)
@@ -26,70 +26,85 @@ void UCharacterRotationManagerComponent::TickComponent(float DeltaTime, ELevelTi
                                                        FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if(!IsValid(OpponentCharacter->GetTargetPlayer()))
-	{
-		PrimaryComponentTick.SetTickFunctionEnable(false);
-		return;
-	}
 
-	if(OpponentController->GetFocusActor() != nullptr)
+	if(bIsInCombat)
 	{
-		if(FVector::Distance(GetComponentLocation(), OpponentCharacter->GetTargetPlayer()->GetActorLocation()) <=
-				OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius){
+		//end combat for the rotation manager if the owing character has no combat target anymore
+		if(!IsValid(OpponentCharacter->GetCombatTarget()))
+		{
 			PrimaryComponentTick.SetTickFunctionEnable(false);
+			return;
+		}
+		if(FVector::Distance(GetComponentLocation(), OpponentCharacter->GetCombatTarget()->GetActorLocation()) <=
+					OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius)
+		{
 			SetRotationMode(ECharacterRotationMode::OrientToTarget, false,
-				OpponentCharacter->GetTargetPlayer());
-				}
-		return;
+				OpponentCharacter->GetCombatTarget());
+		}
+		else
+		{
+			SetRotationMode(ECharacterRotationMode::FlickBack);
+		}
 	}
-	FVector Direction = UKismetMathLibrary::GetDirectionUnitVector(OpponentController->GetFocalPoint(), OpponentCharacter->GetActorLocation());
-	if(UKismetMathLibrary::DegAcos(FVector::DotProduct(Direction, OpponentCharacter->GetActorForwardVector())) <= 10.f)
+	else
 	{
-		PrimaryComponentTick.SetTickFunctionEnable(false);
-		SetRotationMode(ECharacterRotationMode::FlickBack, false);
+		const FVector& Direction = UKismetMathLibrary::GetDirectionUnitVector(OpponentCharacter->GetActorLocation(),
+			OpponentController->GetFocalPoint());
+		if(UKismetMathLibrary::DegAcos(FVector::DotProduct(Direction, OpponentCharacter->GetActorForwardVector())) <= 10.f)
+		{
+			PrimaryComponentTick.SetTickFunctionEnable(false);
+			SetRotationMode(ECharacterRotationMode::FlickBack, false);
+		}
 	}
 }
 
-void UCharacterRotationManagerComponent::SwitchToOptimal(const FVector& TargetLocation)
+void UCharacterRotationManagerComponent::ChooseOptimalForCombat(const FVector& TargetLocation)
 {
-	AActor* LookAtGoal = OpponentCharacter->GetTargetPlayer();
+	bIsInCombat = true;
+	AActor* LookAtGoal = OpponentCharacter->GetCombatTarget();
 	if(IsValid(LookAtGoal))
 	{
 		const float MaxCombatRadius = OpponentCharacter->GetPassivePlayerDistanceConstraint().MaxRadius;
 		const FVector& LookAtGoalLocation = LookAtGoal->GetActorLocation();
 
-		if(FVector::Distance(TargetLocation, LookAtGoalLocation) <= MaxCombatRadius){
-			//only consider to keep looking at the target if both the current position as well as the target
-			//position are close enough for it to be relevant
-			if(FVector::Distance(GetComponentLocation(), LookAtGoalLocation) <= MaxCombatRadius)
-			{
-				bool ShouldLookAtTarget = true;
-				//Also: all path points have to be close enough, to guarantee,
-				//that we don't make a long detour to get around some obstacle
-				UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
-				UNavigationPath* NavigationPath = NavigationSystem->FindPathToLocationSynchronously(GetWorld(),
-					GetComponentLocation(), TargetLocation);
-				if(IsValid(NavigationPath) && NavigationPath->GetPath().IsValid()){
-					for(const FNavPathPoint& PathPoint : NavigationPath->GetPath()->GetPathPoints())
+		const bool IsEndInRange = FVector::Distance(TargetLocation, LookAtGoalLocation) <= MaxCombatRadius;
+		const bool IsStartInRange = FVector::Distance(GetComponentLocation(), LookAtGoalLocation) <= MaxCombatRadius;
+		bool EverLeavesRange = !IsEndInRange || !IsStartInRange;
+		if(IsEndInRange && IsStartInRange)
+		{
+			//Also: all path points have to be close enough, to guarantee,
+			//that we don't make a long detour to get around some obstacle
+			UNavigationSystemV1* NavigationSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+			UNavigationPath* NavigationPath = NavigationSystem->FindPathToLocationSynchronously(GetWorld(),
+				GetComponentLocation(), TargetLocation);
+			if(IsValid(NavigationPath) && NavigationPath->GetPath().IsValid()){
+				for(const FNavPathPoint& PathPoint : NavigationPath->GetPath()->GetPathPoints())
+				{
+					if(FVector::Distance(PathPoint.Location, LookAtGoalLocation) > MaxCombatRadius)
 					{
-						if(FVector::Distance(PathPoint.Location, LookAtGoalLocation) > MaxCombatRadius)
-						{
-							ShouldLookAtTarget = false;
-							break;
-						}
+						EverLeavesRange = true;
+						break;
 					}
 				}
-				
-				if(ShouldLookAtTarget)
-				{
-					SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
-				}
 			}
-			else PrimaryComponentTick.SetTickFunctionEnable(true);
 		}
+		if(!EverLeavesRange)
+		{
+			SetRotationMode(ECharacterRotationMode::OrientToTarget, false, LookAtGoal);
+			PrimaryComponentTick.SetTickFunctionEnable(false);
+			return;
+		}
+		if(IsEndInRange)
+		{
+			SetRotationMode(ECharacterRotationMode::OrientToMovement, false);
+			PrimaryComponentTick.SetTickFunctionEnable(true);
+			return;
+		}
+		//if we start in range but end outside of it, directly turning around makes sense
 	}
 	
 	SetRotationMode(ECharacterRotationMode::OrientToMovement, false);
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 }
 
 void UCharacterRotationManagerComponent::SetRotationMode(ECharacterRotationMode NewRotationMode, bool StoreForFlickBack,

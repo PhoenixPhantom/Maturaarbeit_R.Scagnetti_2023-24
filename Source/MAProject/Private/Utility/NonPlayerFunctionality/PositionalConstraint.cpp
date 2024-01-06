@@ -7,14 +7,20 @@
 #include "Components/BoxComponent.h"
 #include "Components/ShapeComponent.h"
 #include "Components/SphereComponent.h"
-#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Kismet/GameplayStatics.h"
 
 
+float FRequiredSpace::GetMinimalRadius() const
+{
+	if(IsValid(Sphere)) return Sphere->GetScaledSphereRadius();
+	if(IsValid(Box)) return Box->GetScaledBoxExtent().GetAbsMin();
+	return 0.f;
+}
+
 UShapeComponent* FRequiredSpace::GetShape() const
 {
-	if(RequiredSpaceBox == nullptr) return RequiredSpaceSphere;
-	return RequiredSpaceBox;
+	if(Box == nullptr) return Sphere;
+	return Box;
 }
 
 FReservedSpaceConstraint::FReservedSpaceConstraint(): MatchLevelFactor(1), OtherRadius(0.f)
@@ -30,23 +36,23 @@ FReservedSpaceConstraint::FReservedSpaceConstraint(const FRequiredSpace& NewRequ
 
 uint8 FReservedSpaceConstraint::GetMatchLevel(const FVector& Position, UNavigationSystemV1* NavigationSystem) const
 {
-	if(RequiredSpace.RequiredSpaceSphere != nullptr)
+	if(RequiredSpace.Sphere != nullptr)
 	{
 		const FVector LocationOffset = (FacingToPoint - Position).Rotation().
-			RotateVector(RequiredSpace.RequiredSpaceSphere->GetRelativeLocation());
+			RotateVector(RequiredSpace.Sphere->GetRelativeLocation());
 		if(FVector::Distance(Position, ReserverLocation + LocationOffset) >=
-			FMath::Max(RequiredSpace.RequiredSpaceSphere->GetScaledSphereRadius(), OtherRadius))
+			FMath::Max(RequiredSpace.Sphere->GetScaledSphereRadius(), OtherRadius))
 		{
 			return MatchLevelFactor;
 		}
 		return 0;
 	}
-	if(RequiredSpace.RequiredSpaceBox != nullptr)
+	if(RequiredSpace.Box != nullptr)
 	{
 		const FRotator ToWorldSpaceRotation = (FacingToPoint - Position).Rotation();
 		const FVector BoxLocation =
-			ToWorldSpaceRotation.RotateVector(RequiredSpace.RequiredSpaceBox->GetRelativeLocation()) + ReserverLocation;
-		const FVector BoxExtent = ToWorldSpaceRotation.RotateVector(RequiredSpace.RequiredSpaceBox->GetScaledBoxExtent());
+			ToWorldSpaceRotation.RotateVector(RequiredSpace.Box->GetRelativeLocation()) + ReserverLocation;
+		const FVector BoxExtent = ToWorldSpaceRotation.RotateVector(RequiredSpace.Box->GetScaledBoxExtent());
 
 		const bool InsideX = (Position.X < BoxLocation.X + BoxExtent.X) && (Position.X > BoxLocation.X - BoxExtent.X);
 		const bool InsideY = (Position.Y < BoxLocation.Y + BoxExtent.Y) && (Position.Y > BoxLocation.Y - BoxExtent.Y);
@@ -272,11 +278,11 @@ uint64 FInefficientPointGenerator::GetIndexRange() const
 	return DOUBLE_TWO_PI * SpacedStartDirection.Length() / Distribution * static_cast<float>(NumOfCircles) * static_cast<float>(NumOfCircles);
 }
 
-FCircularPointGenerator::FCircularPointGenerator(): MinimalLength(0), Density(0), NumOfCircles(0)
+FCircularPointsGenerator::FCircularPointsGenerator(): MinimalLength(0), Density(0), NumOfCircles(0)
 {
 }
 
-void FCircularPointGenerator::SetProperties(const FCircularDistanceConstraint& SourceConstraint,
+void FCircularPointsGenerator::SetProperties(const FCircularDistanceConstraint& SourceConstraint,
                                             const FVector& NewStartDirection, float NewDensity)
 {
 	SourcePoint = SourceConstraint.AnchorController->GetPawn()->GetActorLocation();
@@ -286,7 +292,7 @@ void FCircularPointGenerator::SetProperties(const FCircularDistanceConstraint& S
 	NumOfCircles = ceil((SourceConstraint.MaxRadius - SourceConstraint.MinRadius) * NewDensity);
 }
 
-FVector FCircularPointGenerator::GetSamplePoint(uint64 Index) const
+FVector FCircularPointsGenerator::GetSamplePoint(uint64 Index) const
 {
 	uint64 CurrentCircleIndex = 0;
 	uint64 IndicesRemaining = Index;
@@ -310,7 +316,7 @@ FVector FCircularPointGenerator::GetSamplePoint(uint64 Index) const
 	return  SourcePoint + (StartDirection * Radius).RotateAngleAxisRad(RotationAmount,FVector(0.f, 0.f, 1.f));
 }
 
-uint64 FCircularPointGenerator::GetIndexRange() const
+uint64 FCircularPointsGenerator::GetIndexRange() const
 {
 	//Density * (DOUBLE_TWO_PI * (MinimalLength + CircleIndex/Density)) = PointsOnCircle[Index]
 	return static_cast<float>(NumOfCircles) * (DOUBLE_TWO_PI * (Density * MinimalLength + 0.5*static_cast<float>(NumOfCircles)));
@@ -352,18 +358,18 @@ bool UConstraintsFunctionLibrary::ShapeTraceMultiForObjects(UWorld* WorldContext
                                const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
                                const TArray<AActor*>& ActorsToIgnore, TArray<FHitResult>& HitResults)
 {
-	if(RequiredSpace.RequiredSpaceSphere != nullptr)
+	if(RequiredSpace.Sphere != nullptr)
 	{
 		return UKismetSystemLibrary::SphereTraceMultiForObjects(WorldContext, Location,
-			Location, RequiredSpace.RequiredSpaceSphere->GetScaledSphereRadius(), ObjectTypes,
+			Location, RequiredSpace.Sphere->GetScaledSphereRadius(), ObjectTypes,
 			true, ActorsToIgnore, EDrawDebugTrace::None, HitResults, true);
 	}
-	if(RequiredSpace.RequiredSpaceBox != nullptr)
+	if(RequiredSpace.Box != nullptr)
 	{
 		//TODO: using component rotation makes no sense here
 		return UKismetSystemLibrary::BoxTraceMultiForObjects(WorldContext, Location,
-			Location, RequiredSpace.RequiredSpaceBox->GetScaledBoxExtent(),
-			RequiredSpace.RequiredSpaceBox->GetComponentRotation(), ObjectTypes,
+			Location, RequiredSpace.Box->GetScaledBoxExtent(),
+			RequiredSpace.Box->GetComponentRotation(), ObjectTypes,
 			true, ActorsToIgnore, EDrawDebugTrace::None, HitResults, true);
 	}
 	unimplemented();

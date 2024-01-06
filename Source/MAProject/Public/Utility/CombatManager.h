@@ -78,11 +78,14 @@ public:
 	APlayerCharacter* GetPlayerCharacter() const { return PlayerCharacter; }
 	ECombatParticipantStatus GetParticipationStatus(AFighterCharacter* Character) const;
 
-	const TArray<AOpponentCharacter*>& GetAllActiveParticipants(){ return ActiveParticipants; };
-	const TArray<AOpponentCharacter*>& GetAllPassiveParticipants(){ return PassiveParticipants; };
-	
+	const TArray<AOpponentCharacter*>& GetAllActiveParticipants(){ return ActiveParticipants; }
+	const TArray<AOpponentCharacter*>& GetAllPassiveParticipants(){ return PassiveParticipants; }
+
+	//register or unregister (nullptr) the player for combat
 	void RegisterCombatParticipant(APlayerCharacter* PlayerParticipant, FManageCombatParticipantsKey Key);
+	//register a NPC for combat
 	bool RegisterCombatParticipant(AOpponentCharacter* Participant, FManageCombatParticipantsKey Key);
+	//unregister an NPC from combat
 	void UnregisterCombatParticipant(AOpponentCharacter* Participant, bool SetToPending, FManageCombatParticipantsKey Key);
 
 	void ReleaseAggressionTokens(AOpponentCharacter* Participant, FManageAggressionTokensKey Key);

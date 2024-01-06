@@ -15,14 +15,15 @@ struct MAPROJECT_API FRequiredSpace
 {
 	GENERATED_BODY()
 public:
-	FRequiredSpace(): RequiredSpaceBox(nullptr), RequiredSpaceSphere(nullptr){}
-	FRequiredSpace(UBoxComponent* RequiredSpace) : RequiredSpaceBox(RequiredSpace), RequiredSpaceSphere(nullptr){}
-	FRequiredSpace(USphereComponent* RequiredSpace) : RequiredSpaceBox(nullptr), RequiredSpaceSphere(RequiredSpace){}
+	FRequiredSpace(): Box(nullptr), Sphere(nullptr){}
+	FRequiredSpace(UBoxComponent* RequiredSpace) : Box(RequiredSpace), Sphere(nullptr){}
+	FRequiredSpace(USphereComponent* RequiredSpace) : Box(nullptr), Sphere(RequiredSpace){}
 	UPROPERTY(EditAnywhere)
-	UBoxComponent* RequiredSpaceBox;
+	UBoxComponent* Box;
 	UPROPERTY(EditAnywhere)
-	USphereComponent* RequiredSpaceSphere;
+	USphereComponent* Sphere;
 
+	float GetMinimalRadius() const;
 	UShapeComponent* GetShape() const;
 };
 
@@ -245,7 +246,7 @@ public:
 
 //The goto point generator used to directly limit the searched points when given a FCircularDistanceConstraint
 USTRUCT()
-struct MAPROJECT_API FCircularPointGenerator : public FPointGenerator
+struct MAPROJECT_API FCircularPointsGenerator : public FPointGenerator
 {
 	GENERATED_BODY();
 public:
@@ -255,8 +256,8 @@ public:
 	float Density;
 	uint64 NumOfCircles;
 
-	FCircularPointGenerator();
-	FCircularPointGenerator(const FCircularDistanceConstraint& SourceConstraint, const FVector& NewStartDirection,
+	FCircularPointsGenerator();
+	FCircularPointsGenerator(const FCircularDistanceConstraint& SourceConstraint, const FVector& NewStartDirection,
 		float NewDensity){ SetProperties(SourceConstraint, NewStartDirection, NewDensity); }
 	void SetProperties(const FCircularDistanceConstraint& SourceConstraint, const FVector& NewStartDirection,
 		float NewDensity);

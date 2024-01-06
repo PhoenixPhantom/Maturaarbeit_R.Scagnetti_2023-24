@@ -142,7 +142,6 @@ public:
 	const FCircularDistanceConstraint& GetPassivePlayerDistanceConstraint() const{ return DistanceFromTargetPassive; }
 	
 	uint32 GetRequestedTokens() const { return RequestedAggressionTokens; }
-	AActor* GetTargetPlayer() const { return IsValid(TargetPlayer) ? TargetPlayer->GetPawn() : nullptr; }
 	UAdvancedCharacterMovementComponent* GetAdvancedCharacterMovement() const{ return AdvancedCharacterMovementComponent; }
 	UCharacterRotationManagerComponent* GetCharacterRotationManager() const { return RotationManagerComponent; }
 	AController* GetCombatTargetController() const;

@@ -20,7 +20,7 @@ public:
 	int32 ToughnessBreak;
 	///The chance of a stagger occuring (in per mille)
 	UPROPERTY(EditDefaultsOnly, meta=(UIMax="1000", UIMin="0", ClampMax="1000", ClampMin="0"))
-	uint32 StaggerChance;
+	int32 StaggerChance;
 	UPROPERTY(EditDefaultsOnly, meta=(ForceUnits="x"))
 	float HitFXScaleFactor;
 	

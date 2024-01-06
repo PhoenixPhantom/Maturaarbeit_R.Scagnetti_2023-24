@@ -6,7 +6,7 @@
 #include "Characters/Fighters/Player/PlayerPartyController.h"
 #include "Utility/Savegame/ReadWriteHelpers.h"
 
-ACustomGameMode::ACustomGameMode()
+ACustomGameMode::ACustomGameMode(): PlayerSetupData(nullptr)
 {
 }
 

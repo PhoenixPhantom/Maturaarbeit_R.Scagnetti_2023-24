@@ -48,7 +48,7 @@ public:
 	FMaxVal Maximum;
 	Value Current;
 	
-	TMaxedValue() : Maximum(0, 0, 0), Current(0){};
+	TMaxedValue() : Maximum(0, 0, 0), Current(0){}
 	TMaxedValue(const Value& NewBase, const Value& NewFlatBonus, const Percentage& NewPercentageBonus) :
 		Maximum(NewBase, NewFlatBonus, NewPercentageBonus){ Current = Maximum.GetResulting(); }
 	TMaxedValue(const FMaxVal& Scalable) : Maximum(Scalable){ Current = Maximum.GetResulting(); }
@@ -101,7 +101,7 @@ struct MAPROJECT_API FGeneralBaseStats
 	FGeneralBaseStats() : BaseHealth(100), BaseAttack(100), BaseDefense(100){}
 
 	FGeneralBaseStats(const FGeneralBaseStats& Source) : BaseHealth(Source.BaseHealth), BaseAttack(Source.BaseAttack),
-		BaseDefense(Source.BaseDefense){};
+		BaseDefense(Source.BaseDefense){}
 
 	FGeneralBaseStats(const float NewHealth, const uint32 NewBaseDamage = 100, const uint32 NewBaseDefense = 100) :
 		BaseHealth(NewHealth), BaseAttack(NewBaseDamage), BaseDefense(NewBaseDefense){};
@@ -120,10 +120,8 @@ struct MAPROJECT_API FGeneralBaseStats
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChangedDelegate, int32, New, int32, Old);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMaxHealthChangedDelegate, int32, NewCurrent, int32, NewMax);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetDamagedDelegate,  const FCustomDamageEvent&, DamageEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMinHealthReachedDelegate);
 
-#define USE_UE5_DELEGATE false
 
 USTRUCT(BlueprintType)
 struct FGeneralObjectStatsBuffs
@@ -162,12 +160,9 @@ struct FGeneralObjectStats
 	FOnHealthChangedDelegate OnHealthChanged;
 	FOnMaxHealthChangedDelegate OnMaxHealthChanged;
 
-#if USE_UE5_DELEGATE
-	FOnGetDamagedDelegate OnGetDamaged;
-#else
-	//TODO: This is a hack to make passing FCustomDamageEvent* through without loss or errors
+	//This is a hack to make passing FCustomDamageEvent* through without loss or errors
 	TDelegate<void(const FCustomDamageEvent*)> OnGetDamaged;
-#endif
+	
 	FOnMinHealthReachedDelegate OnNoHealthReached;
 
 	//Represents the current health of the object. Should not be changed directly but through ReceiveDamage
