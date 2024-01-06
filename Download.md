@@ -14,6 +14,14 @@
 >
 > Visual Studio 2022 does not support MacOS as of August 2023. Alternatively the [Visual Studio 2022 for Mac Preview](https://visualstudio.microsoft.com/vs/mac/preview/) can be used.
 
+> Every time the local folder is synchronized with the GitHub, especially if any changes have been made to the project's "Source", the above steps must be repeated.
+> <picture>
+>   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/info.svg">
+>   <img alt="Info" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/info.svg">
+> </picture><br>
+>
+> The code editor used in this work is jetbrain's [rider](https://www.jetbrains.com/rider/). However, as this software only has a paied version, the functionally equivalent Visual Studio is reccomended in these instructions.
+
 
 
 Software requirements:
@@ -31,13 +39,14 @@ After downloading the repository:
  3. Do not touch any of the compilation settings
  4. Click F5 or "Run" the project (green play button)
  5. From now on the project can be run by simply double-clicking "MAProject.uproject"
+ 6. After the shaders are compiled, the game will launch to the Unreal Engine editor
+ 7. click the green play button in the top left corner or the editor window
 
 > <picture>
 >   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/warning.svg">
 >   <img alt="Warning" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/warning.svg">
 > </picture><br>
 >
-> Every time the local folder is synchronized with the GitHub, especially if any changes have been made to the project's "Source", the above steps must be repeated.
 
 
 [return to README](README.md)
