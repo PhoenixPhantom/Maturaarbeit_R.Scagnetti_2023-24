@@ -20,7 +20,7 @@
 >   <img alt="Info" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/info.svg">
 > </picture><br>
 >
-> The code editor used in this work is jetbrain's [rider](https://www.jetbrains.com/rider/). However, as this software only has a paied version, the functionally equivalent Visual Studio is reccomended in these instructions.
+> The code editor used in this work is jetbrain's [rider](https://www.jetbrains.com/rider/). However, as this software only has a paid version, the functionally equivalent Visual Studio is reccomended in these instructions.
 
 
 
