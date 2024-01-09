@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a9cb54dc-e5f8-4c5e-8922-7881720013b5" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.MAProject/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MAProject/.idea/workspace.xml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files (x86)/Windows Kits/10/Include/10.0.22621.0/ucrt/corecrt_math.h" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.37.32822/include/type_traits" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/MAProject/Private/Utility/Tools/pcg-cpp/include/pcg_extras.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/MAProject/Private/Utility/Tools/pcg-cpp/include/pcg_random.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/MAProject/Private/Utility/Tools/pcg-cpp/include/pcg_uint128.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/MAProjectEditor/Public/MAProjectEditor.h" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2SeqHGVV7LBDACF0N8cG1SCIbPK" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;C++ Project.MAProject.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;CodeLensConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;rider.external.source.directories&quot;: [
+      &quot;C:\\Users\\phoen\\AppData\\Roaming\\JetBrains\\Rider2023.3\\resharper-host\\DecompilerCache&quot;,
+      &quot;C:\\Users\\phoen\\AppData\\Roaming\\JetBrains\\Rider2023.3\\resharper-host\\SourcesCache&quot;,
+      &quot;C:\\Users\\phoen\\AppData\\Local\\Symbols\\src&quot;
+    ]
+  }
+}</component>
+  <component name="RunManager">
+    <configuration name="MAProject" type="CppProject" factoryName="C++ Project">
+      <configuration_1>
+        <option name="CONFIGURATION" value="DebugGame Editor" />
+        <option name="PLATFORM" value="Win64" />
+        <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
+        <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
+        <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
+        <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
+        <option name="PASS_PARENT_ENVS" value="1" />
+        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      </configuration_1>
+      <configuration_2>
+        <option name="CONFIGURATION" value="Shipping" />
+        <option name="PLATFORM" value="Win64" />
+        <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
+        <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
+        <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
+        <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
+        <option name="PASS_PARENT_ENVS" value="1" />
+        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      </configuration_2>
+      <configuration_3>
+        <option name="CONFIGURATION" value="DebugGame" />
+        <option name="PLATFORM" value="Win64" />
+        <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
+        <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
+        <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
+        <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
+        <option name="PASS_PARENT_ENVS" value="1" />
+        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      </configuration_3>
+      <configuration_4>
+        <option name="CONFIGURATION" value="Development Editor" />
+        <option name="PLATFORM" value="Win64" />
+        <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
+        <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
+        <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
+        <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
+        <option name="PASS_PARENT_ENVS" value="1" />
+        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      </configuration_4>
+      <configuration_5>
+        <option name="CONFIGURATION" value="Development" />
+        <option name="PLATFORM" value="Win64" />
+        <option name="PROJECT_FILE_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+        <option name="CURRENT_LAUNCH_PROFILE" value="Local" />
+        <option name="EXE_PATH" value="$(LocalDebuggerCommand)" />
+        <option name="PROGRAM_PARAMETERS" value="$(LocalDebuggerCommandArguments)" />
+        <option name="WORKING_DIRECTORY" value="$(LocalDebuggerWorkingDirectory)" />
+        <option name="PASS_PARENT_ENVS" value="1" />
+        <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      </configuration_5>
+      <option name="DEFAULT_PROJECT_PATH" value="$PROJECT_DIR$/Intermediate/ProjectFiles/MAProject.vcxproj" />
+      <method v="2">
+        <option name="Build" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a9cb54dc-e5f8-4c5e-8922-7881720013b5" name="Changes" comment="" />
+      <created>1689517308556</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1689517308556</updated>
+      <workItem from="1689517310749" duration="357000" />
+      <workItem from="1689519649574" duration="2024000" />
+      <workItem from="1689535154827" duration="714000" />
+      <workItem from="1689590088014" duration="1418000" />
+      <workItem from="1689654329668" duration="98000" />
+      <workItem from="1690183945911" duration="12476000" />
+      <workItem from="1690387883955" duration="5606000" />
+      <workItem from="1690439885309" duration="8992000" />
+      <workItem from="1690474915730" duration="1631000" />
+      <workItem from="1690532635541" duration="8421000" />
+      <workItem from="1690554990909" duration="6622000" />
+      <workItem from="1690614210158" duration="2846000" />
+      <workItem from="1690694411155" duration="7557000" />
+      <workItem from="1690728780031" duration="8829000" />
+      <workItem from="1690782293026" duration="2087000" />
+      <workItem from="1690791041727" duration="12522000" />
+      <workItem from="1690864595772" duration="1799000" />
+      <workItem from="1690866823857" duration="350000" />
+      <workItem from="1690916990955" duration="589000" />
+      <workItem from="1690958307863" duration="1088000" />
+      <workItem from="1690963015207" duration="594000" />
+      <workItem from="1690971795353" duration="17793000" />
+      <workItem from="1691127328121" duration="608000" />
+      <workItem from="1691130945183" duration="1210000" />
+      <workItem from="1691132538355" duration="420000" />
+      <workItem from="1691134665748" duration="247000" />
+      <workItem from="1691140024162" duration="11771000" />
+      <workItem from="1691245155193" duration="6188000" />
+      <workItem from="1691300350386" duration="6385000" />
+      <workItem from="1691334660288" duration="8012000" />
+      <workItem from="1691419424502" duration="17751000" />
+      <workItem from="1691493606432" duration="893000" />
+      <workItem from="1691494525719" duration="7126000" />
+      <workItem from="1691558283765" duration="476000" />
+      <workItem from="1691558775210" duration="626000" />
+      <workItem from="1691591544691" duration="1371000" />
+      <workItem from="1691648919673" duration="16039000" />
+      <workItem from="1691727218929" duration="1444000" />
+      <workItem from="1692334189396" duration="1624000" />
+      <workItem from="1692551741891" duration="86000" />
+      <workItem from="1692692119810" duration="1379000" />
+      <workItem from="1692936728061" duration="1629000" />
+      <workItem from="1693283592333" duration="10648000" />
+      <workItem from="1693295332793" duration="4094000" />
+      <workItem from="1693369044534" duration="1622000" />
+      <workItem from="1693488646059" duration="8247000" />
+      <workItem from="1693588174206" duration="136000" />
+      <workItem from="1693642698347" duration="3461000" />
+      <workItem from="1693664441885" duration="2822000" />
+      <workItem from="1693674836915" duration="2507000" />
+      <workItem from="1693750533044" duration="7286000" />
+      <workItem from="1693801435826" duration="6776000" />
+      <workItem from="1693840682895" duration="6988000" />
+      <workItem from="1693897816135" duration="3407000" />
+      <workItem from="1693931607911" duration="7080000" />
+      <workItem from="1693976803380" duration="3009000" />
+      <workItem from="1693999345980" duration="1798000" />
+      <workItem from="1694189127298" duration="8001000" />
+      <workItem from="1694406577059" duration="5870000" />
+      <workItem from="1694494669338" duration="8022000" />
+      <workItem from="1694787653304" duration="15219000" />
+      <workItem from="1694929674673" duration="3218000" />
+      <workItem from="1694945546293" duration="12925000" />
+      <workItem from="1695049836725" duration="4745000" />
+      <workItem from="1695101618315" duration="13481000" />
+      <workItem from="1695137537757" duration="1703000" />
+      <workItem from="1695463579923" duration="1860000" />
+      <workItem from="1695709153620" duration="6049000" />
+      <workItem from="1695789100976" duration="353000" />
+      <workItem from="1695902502076" duration="14740000" />
+      <workItem from="1695959944454" duration="4932000" />
+      <workItem from="1695972966762" duration="216000" />
+      <workItem from="1696138788000" duration="17250000" />
+      <workItem from="1696219268619" duration="2833000" />
+      <workItem from="1696271953494" duration="1658000" />
+      <workItem from="1696273701152" duration="3518000" />
+      <workItem from="1696391500082" duration="206000" />
+      <workItem from="1696505344619" duration="4497000" />
+      <workItem from="1696530387567" duration="4672000" />
+      <workItem from="1696564304882" duration="5478000" />
+      <workItem from="1696671894917" duration="3905000" />
+      <workItem from="1696689207427" duration="4945000" />
+      <workItem from="1696743043189" duration="9945000" />
+      <workItem from="1696762015321" duration="1988000" />
+      <workItem from="1696764697934" duration="200000" />
+      <workItem from="1696764933633" duration="9761000" />
+      <workItem from="1696824176896" duration="1383000" />
+      <workItem from="1696832267331" duration="4340000" />
+      <workItem from="1696919327328" duration="6949000" />
+      <workItem from="1697033147488" duration="2126000" />
+      <workItem from="1697094008119" duration="37079000" />
+      <workItem from="1697177261816" duration="8003000" />
+      <workItem from="1697367361771" duration="3625000" />
+      <workItem from="1697455501972" duration="2308000" />
+      <workItem from="1697605091679" duration="22638000" />
+      <workItem from="1697643078012" duration="6156000" />
+      <workItem from="1697703531793" duration="1838000" />
+      <workItem from="1697821566801" duration="6644000" />
+      <workItem from="1697900996581" duration="5126000" />
+      <workItem from="1697957850363" duration="8419000" />
+      <workItem from="1698164161537" duration="3081000" />
+      <workItem from="1698206906792" duration="962000" />
+      <workItem from="1698418434574" duration="4721000" />
+      <workItem from="1698480111396" duration="7041000" />
+      <workItem from="1698566447126" duration="717000" />
+      <workItem from="1698570763348" duration="1271000" />
+      <workItem from="1698586978857" duration="1472000" />
+      <workItem from="1698648885931" duration="640000" />
+      <workItem from="1698678930677" duration="3220000" />
+      <workItem from="1698734125144" duration="12112000" />
+      <workItem from="1698772083501" duration="760000" />
+      <workItem from="1699112007676" duration="676000" />
+      <workItem from="1699120042447" duration="761000" />
+      <workItem from="1699184611636" duration="9634000" />
+      <workItem from="1699195092754" duration="3930000" />
+      <workItem from="1699206728835" duration="7290000" />
+      <workItem from="1699248306979" duration="4234000" />
+      <workItem from="1699339214109" duration="8990000" />
+      <workItem from="1699386827434" duration="416000" />
+      <workItem from="1699548168082" duration="12469000" />
+      <workItem from="1699593786971" duration="5500000" />
+      <workItem from="1699699082990" duration="4306000" />
+      <workItem from="1699717634511" duration="14403000" />
+      <workItem from="1699814568798" duration="1910000" />
+      <workItem from="1699857032214" duration="2443000" />
+      <workItem from="1699895007036" duration="596000" />
+      <workItem from="1699943209961" duration="3922000" />
+      <workItem from="1699989151228" duration="4929000" />
+      <workItem from="1700025071603" duration="726000" />
+      <workItem from="1700142377395" duration="1130000" />
+      <workItem from="1700197841376" duration="702000" />
+      <workItem from="1700312786685" duration="4008000" />
+      <workItem from="1700380484058" duration="15977000" />
+      <workItem from="1700419517219" duration="1438000" />
+      <workItem from="1700424342424" duration="667000" />
+      <workItem from="1700494978981" duration="1247000" />
+      <workItem from="1700544994027" duration="4620000" />
+      <workItem from="1700841599170" duration="12524000" />
+      <workItem from="1701064905465" duration="3870000" />
+      <workItem from="1701100553134" duration="3399000" />
+      <workItem from="1701149736811" duration="12534000" />
+      <workItem from="1701193464437" duration="7231000" />
+      <workItem from="1701350473325" duration="12084000" />
+      <workItem from="1701406530665" duration="2417000" />
+      <workItem from="1701506098556" duration="1665000" />
+      <workItem from="1701529392295" duration="1236000" />
+      <workItem from="1701619123819" duration="2205000" />
+      <workItem from="1701668571637" duration="1955000" />
+      <workItem from="1701704178201" duration="5649000" />
+      <workItem from="1701753466468" duration="2103000" />
+      <workItem from="1701840539996" duration="624000" />
+      <workItem from="1701950979913" duration="11625000" />
+      <workItem from="1702236683700" duration="1502000" />
+      <workItem from="1702238235158" duration="3877000" />
+      <workItem from="1702278523230" duration="1140000" />
+      <workItem from="1702310878818" duration="10998000" />
+      <workItem from="1702404664600" duration="1159000" />
+      <workItem from="1702408387341" duration="2000" />
+      <workItem from="1702408400528" duration="5466000" />
+      <workItem from="1702563186179" duration="7273000" />
+      <workItem from="1702719320474" duration="4964000" />
+      <workItem from="1702726203595" duration="661000" />
+      <workItem from="1702739844993" duration="13103000" />
+      <workItem from="1702792849230" duration="8556000" />
+      <workItem from="1702811204365" duration="14245000" />
+      <workItem from="1702897629061" duration="7062000" />
+      <workItem from="1702914322927" duration="5362000" />
+      <workItem from="1702965959436" duration="3342000" />
+      <workItem from="1703162512112" duration="6442000" />
+      <workItem from="1703223065241" duration="1362000" />
+      <workItem from="1703262963141" duration="10524000" />
+      <workItem from="1703316651985" duration="19770000" />
+      <workItem from="1703394289364" duration="26058000" />
+      <workItem from="1703486283252" duration="7476000" />
+      <workItem from="1703574317442" duration="21193000" />
+      <workItem from="1703688032615" duration="4285000" />
+      <workItem from="1703748436246" duration="12119000" />
+      <workItem from="1703838014248" duration="2307000" />
+      <workItem from="1703849707714" duration="8350000" />
+      <workItem from="1703917326794" duration="5111000" />
+      <workItem from="1703940214055" duration="9506000" />
+      <workItem from="1703951856220" duration="10081000" />
+      <workItem from="1704021574652" duration="1655000" />
+      <workItem from="1704096184695" duration="2716000" />
+      <workItem from="1704106258562" duration="242000" />
+      <workItem from="1704216722394" duration="1329000" />
+      <workItem from="1704266749019" duration="786000" />
+      <workItem from="1704269468060" duration="138000" />
+      <workItem from="1704283864597" duration="6504000" />
+      <workItem from="1704442377059" duration="171000" />
+      <workItem from="1704466300718" duration="1206000" />
+      <workItem from="1704551179521" duration="238000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://C:/Program Files/Epic Games/UE_5.2/Engine/Source/Runtime/Core/Public/Containers/Array.h</url>
+          <line>15</line>
+          <option name="timeStamp" value="24" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>
