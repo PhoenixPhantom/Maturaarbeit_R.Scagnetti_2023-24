@@ -47,7 +47,6 @@ The overall goal of this work was to create the combat elements of a 3D open wor
 Software requirements:
  * Install Unreal Engine 5.2 from the [Epic Games launcher](https://store.epicgames.com/en-US/download)
  * Install the [GitHub desktop app](https://desktop.github.com)
- * Download the [Git Large File Storage](https://git-lfs.com) and install it by running "git lfs install" in the command line
  * Download [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) and install "Game development with C++" in the "Workloads" tab.
  * Install [.NET 6.0](https://dotnet.microsoft.com/en-us/download) and the newest version of the [.NET framework developer pack (currently 4.8.1)](https://dotnet.microsoft.com/en-us/download/dotnet-framework/thank-you/net481-developer-pack-offline-installer)
 
