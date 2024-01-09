@@ -1,1 +1,0 @@
-﻿#include "Triple.h"
